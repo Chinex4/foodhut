@@ -132,7 +132,6 @@ export default function HomeScreen() {
           }
         />
 
-        {/* remove the "Loading meals…" / error text block; skeletons cover loading */}
         {status === "failed" && !!error && (
           <Text className="px-4 mt-6 text-red-600">{error}</Text>
         )}
