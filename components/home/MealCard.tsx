@@ -1,8 +1,13 @@
 import { Image, Pressable, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import React from "react";
+import React, { useState } from "react";
 import type { Meal } from "@/redux/meals/meals.types";
 import { formatNGN, toNum } from "@/utils/money";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setCartItem } from "@/redux/cart/cart.thunks";
+import { showError, showSuccess } from "../ui/toast";
+import { selectCartItemQuantity } from "@/redux/cart/cart.selectors";
+import { capitalizeFirst } from "@/utils/capitalize";
 
 export default function MealCard({
   item,
@@ -13,6 +18,20 @@ export default function MealCard({
   compact?: boolean;
   onPress?: () => void;
 }) {
+  const dispatch = useAppDispatch();
+  const kitchenId = item?.kitchen_id ?? "";
+  const qty = useAppSelector(selectCartItemQuantity(kitchenId, item.id));
+
+  const addOne = async () => {
+    try {
+      const res = await dispatch(
+        setCartItem({ mealId: item.id, quantity: qty + 1 })
+      ).unwrap();
+      showSuccess(res.message || "Added to cart");
+    } catch (err: any) {
+      showError(err);
+    }
+  };
   return (
     <Pressable
       onPress={onPress}
@@ -45,16 +64,13 @@ export default function MealCard({
       {/* info */}
       <View className="p-3">
         <Text
-          className="font-satoshiMedium text-neutral-900 text-[16px] uppercase"
+          className="font-satoshiMedium text-neutral-900 text-[16px]"
           numberOfLines={1}
         >
-          {item.name}
+          {capitalizeFirst(item.name)}
         </Text>
-        <Text
-          className="text-neutral-500 text-[12px] mt-0.5"
-          numberOfLines={1}
-        >
-          {item.description}
+        <Text className="text-neutral-500 text-[12px] mt-0.5" numberOfLines={1}>
+          {capitalizeFirst(item.description)}
         </Text>
 
         <View className="mt-2 flex-row items-center justify-between">
@@ -68,11 +84,14 @@ export default function MealCard({
               </Text>
             )}
           </View>
-          <View className="bg-primary rounded-full px-3 py-1">
+          <Pressable
+            onPress={addOne}
+            className="bg-primary rounded-full px-3 py-1"
+          >
             <Text className="text-white font-satoshiMedium text-[12px]">
               Add To Cart
             </Text>
-          </View>
+          </Pressable>
         </View>
       </View>
     </Pressable>

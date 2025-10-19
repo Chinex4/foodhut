@@ -113,7 +113,10 @@ const mealsSlice = createSlice({
         const id = a.payload.id;
         state.likeStatus[id] = "succeeded";
         const m = state.entities[id];
-        if (m) m.likes = (m.likes ?? 0) + 1;
+        if (m) {
+          m.likes = (m.likes ?? 0) + 1;
+          m.is_liked = true; // <<< set flag
+        }
       })
       .addCase(likeMeal.rejected, (state, a) => {
         const id = a.meta.arg;
@@ -129,7 +132,10 @@ const mealsSlice = createSlice({
         const id = a.payload.id;
         state.likeStatus[id] = "succeeded";
         const m = state.entities[id];
-        if (m) m.likes = Math.max(0, (m.likes ?? 0) - 1);
+        if (m) {
+          m.likes = Math.max(0, (m.likes ?? 0) - 1);
+          m.is_liked = false; // <<< clear flag
+        }
       })
       .addCase(unlikeMeal.rejected, (state, a) => {
         const id = a.meta.arg;

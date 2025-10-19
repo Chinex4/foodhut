@@ -59,6 +59,7 @@ export type RawSearchItem = any;
 export type SearchItem = SearchMeal | SearchKitchen;
 
 export type SearchQuery = {
+  search?: string;
   q: string;
   page?: number;
   per_page?: number;

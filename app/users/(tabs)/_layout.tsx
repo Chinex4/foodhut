@@ -18,7 +18,7 @@ export default function TabLayout() {
           paddingTop: 8,
           paddingBottom: Platform.select({ ios: 18, default: 14 }),
           backgroundColor: "#FFF8EC", // a soft off-white like your mock
-          borderTopWidth: 0,
+          borderTopWidth: 1,
           elevation: 0,
         },
         tabBarLabelStyle: {

@@ -37,7 +37,7 @@ export const setCartItem = createAsyncThunk<
   { rejectValue: string }
 >("cart/setCartItem", async ({ mealId, quantity }, { rejectWithValue }) => {
   try {
-    const res = await api.put(`${BASE}/active/items/${mealId}`, { quantity });
+    const res = await api.put(`${BASE}/items/${mealId}`, { quantity });
     const after = await api.get(`${BASE}`);
     return {
       message: res.data?.message ?? "Cart updated successfully",
@@ -46,6 +46,7 @@ export const setCartItem = createAsyncThunk<
       quantity,
     };
   } catch (err: any) {
+    console.log(err)
     return rejectWithValue(
       err?.response?.data?.error || "Failed to update cart"
     );
@@ -59,7 +60,7 @@ export const removeCartItem = createAsyncThunk<
   { rejectValue: string }
 >("cart/removeCartItem", async (mealId, { rejectWithValue }) => {
   try {
-    const res = await api.delete(`${BASE}/active/items/${mealId}`);
+    const res = await api.delete(`${BASE}/items/${mealId}`);
     const after = await api.get(`${BASE}`);
     return {
       message: res.data?.message ?? "Meal removed from cart successfully",
@@ -67,6 +68,7 @@ export const removeCartItem = createAsyncThunk<
       mealId,
     };
   } catch (err: any) {
+    console.log(err)
     return rejectWithValue(
       err?.response?.data?.error || "Failed to remove item"
     );

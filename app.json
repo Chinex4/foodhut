@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "foodhut",
+    "name": "Foodhut",
     "slug": "foodhut",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo-transparent.png",
     "scheme": "foodhut",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

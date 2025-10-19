@@ -1,4 +1,3 @@
-// redux/meals/meals.thunks.ts
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/api/axios";
 import type {

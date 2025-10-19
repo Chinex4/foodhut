@@ -26,6 +26,7 @@ import { fetchMyProfile } from "@/redux/users/users.thunks";
 import AdsCarousel from "@/components/home/AdsCarousel";
 import MealCardSkeleton from "@/components/home/MealCardSkeleton";
 import { useRouter } from "expo-router";
+import SearchBar from "@/components/search/SearchBar";
 
 export default function HomeScreen() {
   const dispatch = useAppDispatch();
@@ -55,7 +56,7 @@ export default function HomeScreen() {
   }, [fetchMestatus, dispatch]);
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-primary-50">
       <StatusBar style="dark" />
       <ScrollView
         contentContainerStyle={{
@@ -73,17 +74,7 @@ export default function HomeScreen() {
           </Text>
 
           {/* search */}
-          <View className="mt-4 flex-row items-center bg-neutral-100 rounded-2xl px-4 h-12">
-            <Ionicons name="search-outline" size={20} color="#8E8E93" />
-            <TextInput
-              placeholder="Search for food"
-              placeholderTextColor="#8E8E93"
-              className="flex-1 ml-3 font-satoshi"
-            />
-            <Pressable className="ml-3">
-              <Ionicons name="options-outline" size={22} color="#8E8E93" />
-            </Pressable>
-          </View>
+          <SearchBar className="mt-4" />
         </View>
 
         {/* promo banner (static placeholder) */}
@@ -99,7 +90,11 @@ export default function HomeScreen() {
             status === "loading" ? (
               <MealCardSkeleton compact />
             ) : (
-              <MealCard item={item} compact />
+              <MealCard
+                onPress={() => router.push(`/users/meal/${item.id}` as any)}
+                item={item}
+                compact
+              />
             )
           }
         />
@@ -113,7 +108,11 @@ export default function HomeScreen() {
             status === "loading" ? (
               <MealCardSkeleton compact />
             ) : (
-              <MealCard item={item} compact />
+              <MealCard
+                item={item}
+                onPress={() => router.push(`/users/meal/${item.id}` as any)}
+                compact
+              />
             )
           }
         />
@@ -127,7 +126,11 @@ export default function HomeScreen() {
             status === "loading" ? (
               <MealCardSkeleton compact />
             ) : (
-              <MealCard item={item} compact />
+              <MealCard
+                item={item}
+                onPress={() => router.push(`/users/meal/${item.id}` as any)}
+                compact
+              />
             )
           }
         />

@@ -12,16 +12,17 @@ const BASE = "/search";
 
 const buildQuery = (q: SearchQuery) => {
   const p = new URLSearchParams();
-  p.set("q", q.q);
+  const term = (q.search ?? q.q ?? "").trim();
+  if (term) p.set("search", term);
+
   if (q.page) p.set("page", String(q.page));
   if (q.per_page) p.set("per_page", String(q.per_page));
+
   const s = p.toString();
   return s ? `?${s}` : "";
 };
 
-// map raw API items → discriminated union
 const mapItem = (x: RawSearchItem): SearchItem => {
-  // crude check: if "address" exists, it’s a kitchen; if "description"/"price" exist, it’s a meal
   if (typeof x === "object" && x && "address" in x) {
     return { kind: "kitchen", ...(x as any) };
   }
@@ -34,13 +35,25 @@ export const searchMealsAndKitchens = createAsyncThunk<
   { rejectValue: string }
 >("search/searchMealsAndKitchens", async (query, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}${buildQuery(query)}`);
+    const term = (query.search ?? query.q ?? "").trim();
+    if (!term) {
+      return rejectWithValue("Please enter a search term.");
+    }
+
+    const url = `${BASE}${buildQuery(query)}`;
+    const res = await api.get(url);
     const data = res.data as SearchListResponse;
     return {
       items: (data.items ?? []).map(mapItem),
       meta: data.meta,
     };
   } catch (err: any) {
+    // optional: keep the url in your logs for debugging
+    console.log(
+      "SEARCH ERROR",
+      `${BASE}${buildQuery(query)}`,
+      err?.response?.data
+    );
     return rejectWithValue(err?.response?.data?.error || "Failed to search");
   }
 });

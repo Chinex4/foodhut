@@ -20,6 +20,7 @@ export type Meal = {
   cover_image: Media | null;
   created_at: string;
   updated_at: string | null;
+  is_liked?: boolean;
 };
 
 export type MealsQuery = {
