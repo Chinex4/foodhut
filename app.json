@@ -14,11 +14,11 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffa800",
-        "foregroundImage": "./assets/images/logo-transparent.png",
-
+        "foregroundImage": "./assets/images/logo-transparent.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.chinexx.foodhut"
     },
     "web": {
       "output": "static",
@@ -43,6 +43,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8f351823-5f0b-4775-bdf6-d3781868f84f"
+      }
     }
   }
 }
