@@ -92,9 +92,11 @@ export type SetCartItemPayload = {
 };
 
 export type CheckoutPayload = {
-  payment_method: "WALLET" | string;
-  dispatch_rider_note?: string;
+  kitchen_id: string;
+  payment_method: "WALLET" | "ONLINE" | string;
+  dispatch_rider_note: string;
   delivery_address: string;
+  delivery_date?: number;
 };
 
 export type CheckoutResult = {

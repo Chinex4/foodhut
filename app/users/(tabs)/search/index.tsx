@@ -17,45 +17,49 @@ export default function SearchResultsScreen() {
 
   const meals = items.filter((x) => x.kind === "meal");
 
-  if (status === "loading") {
-    return (
-      <View className="flex-1 bg-white pt-8">
-        <ActivityIndicator style={{ marginTop: 80 }} color="#ffa800" />
-      </View>
-    );
-  }
-  if (status === "failed") {
-    return (
-      <View className="flex-1 bg-white pt-8">
-        <Text className="text-center text-red-600 mt-6">{error}</Text>
-      </View>
-    );
-  }
-  if (!meals.length) {
-    return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <Image source={require('@/assets/images/trayy.png')}/>
-        <Text className="text-neutral-500 mt-4">Search for meals or kitchen.</Text>
-      </View>
-    );
-  }
-
   return (
     <View className="flex-1 bg-primary-50 pt-6">
-      <View className="mt-20 px-5 mb-4">
+      {/* Always visible */}
+      <View className="mt-6 px-5 mb-4">
         <SearchBar className="mt-4" />
       </View>
+
       <FlatList
         data={meals}
-        keyExtractor={(m) => m.id}
-        contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 16 }}
+        keyExtractor={(m: any) => String(m.id)}
+        contentContainerStyle={{
+          paddingBottom: 120,
+          paddingHorizontal: 16,
+          flexGrow: 1, // so ListEmptyComponent centers nicely
+        }}
+        keyboardShouldPersistTaps="handled"
+        removeClippedSubviews
+        windowSize={7}
+        initialNumToRender={6}
         renderItem={({ item }: any) => (
           <View className="mb-4">
-            <MealCard item={item} onPress={
-              () => router.push(`/users/meal/${item.id}`)
-            } />
+            <MealCard
+              item={item}
+              onPress={() => router.push(`/users/meal/${item.id}`)}
+            />
           </View>
         )}
+        ListEmptyComponent={
+          <View className="flex-1 items-center justify-center">
+            {status === "loading" ? (
+              <ActivityIndicator style={{ marginTop: 40 }} color="#ffa800" />
+            ) : status === "failed" ? (
+              <Text className="text-center text-red-600 mt-6">{error}</Text>
+            ) : (
+              <View className="items-center">
+                <Image source={require("@/assets/images/trayy.png")} />
+                <Text className="text-neutral-500 mt-4">
+                  Search for meals or kitchen.
+                </Text>
+              </View>
+            )}
+          </View>
+        }
       />
     </View>
   );

@@ -9,6 +9,7 @@ import {
 } from "@/redux/orders/orders.selectors";
 import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { StatusBar } from "expo-status-bar";
 
 export default function OrderDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,14 +25,16 @@ export default function OrderDetails() {
     return <Text className="text-center mt-10 text-neutral-500">Loading…</Text>;
 
   return (
-    <View className="flex-1 bg-white">
-      <View className="flex-row items-center px-4 pt-4 pb-2">
+    <View className="flex-1 bg-primary-50">
+      <StatusBar style="dark"/>
+      <View className="flex-row items-center justify-between px-4 pt-4 pb-2 mt-20">
         <Pressable onPress={() => router.back()} className="mr-2 p-1">
           <Ionicons name="chevron-back" size={26} color="#111" />
         </Pressable>
-        <Text className="text-[22px] font-satoshiBold">
+        <Text className="text-2xl font-satoshiBold">
           Order #{order.id.slice(-6)}
         </Text>
+        <View className="w-10"/>
       </View>
 
       <FlatList

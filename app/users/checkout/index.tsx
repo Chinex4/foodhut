@@ -1,0 +1,587 @@
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import Ionicons from "@expo/vector-icons/Ionicons";
+
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  selectCartKitchenIds,
+  selectCartItemsForKitchen,
+  selectCartSubtotal,
+  selectCartTotalItems,
+  selectCartCheckoutStatus,
+} from "@/redux/cart/cart.selectors";
+import { checkoutActiveCart } from "@/redux/cart/cart.thunks";
+
+import { payForOrder } from "@/redux/orders/orders.thunks"; // <- ensure you export payForOrder from orders.thunks
+import { formatNGN } from "@/utils/money";
+import { showError, showSuccess } from "@/components/ui/toast";
+import { makeSelectPayStatus } from "@/redux/orders/orders.selectors";
+import { StatusBar } from "expo-status-bar";
+import { capitalizeFirst } from "@/utils/capitalize";
+
+import dayjs from "dayjs";
+
+type PaymentUI = "ONLINE" | "WALLET";
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <Text className="text-neutral-900 font-satoshiBold text-[16px] mb-2">
+      {title}
+    </Text>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  bold = false,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+}) {
+  return (
+    <View className="flex-row items-center justify-between mb-3">
+      <Text
+        className={`text-neutral-600 font-satoshi ${bold ? "font-satoshiBold" : ""}`}
+      >
+        {label}
+      </Text>
+      <Text className={`text-neutral-900 ${bold ? "font-satoshiBold" : ""}`}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function Radio({
+  label,
+  selected,
+  onPress,
+  rightEl,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  rightEl?: React.ReactNode;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center justify-between py-4"
+    >
+      <View className="flex-row items-center">
+        <View
+          className={`w-5 h-5 rounded-full border mr-3 ${
+            selected ? "border-primary bg-primary" : "border-neutral-400"
+          }`}
+        />
+        <Text className="text-neutral-800 font-satoshiMedium">{label}</Text>
+      </View>
+      {rightEl}
+    </Pressable>
+  );
+}
+
+export default function CheckoutScreen() {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+
+  const subtotal = useAppSelector(selectCartSubtotal);
+  const totalItems = useAppSelector(selectCartTotalItems);
+  const checkoutStatus = useAppSelector(selectCartCheckoutStatus);
+
+  // UI state
+  const [tab, setTab] = useState<"ORDER" | "DELIVERY">("ORDER");
+  const [address, setAddress] = useState<string>("");
+  const [note, setNote] = useState<string>("");
+  const [when, setWhen] = useState<"ASAP" | "SCHEDULE">("ASAP");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentUI>("ONLINE");
+
+  const [contact, setContact] = useState<string>("");
+  const [riderNote, setRiderNote] = useState<string>("");
+  const [kitchenNote, setKitchenNote] = useState<string>("");
+  const [voucher, setVoucher] = useState<string>("");
+  const voucherEndsOn = "02/10/2025";
+
+  const [scheduledAt, setScheduledAt] = useState<number | undefined>(undefined);
+
+  // simple static fees (replace if backend returns these)
+  const deliveryFee = useMemo(() => (subtotal > 0 ? 1200 : 0), [subtotal]);
+  const serviceFee = useMemo(() => Math.round(subtotal * 0.02), [subtotal]);
+  const total = useMemo(
+    () => subtotal + deliveryFee + serviceFee,
+    [subtotal, deliveryFee, serviceFee]
+  );
+
+  const [placing, setPlacing] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const payStatus =
+    useAppSelector(orderId ? makeSelectPayStatus(orderId) : () => "idle") ??
+    "idle";
+  const isBusy =
+    placing || checkoutStatus === "loading" || payStatus === "loading";
+
+  //   const canPlace = subtotal > 0 && !!address.trim() && !isBusy;
+
+  const kitchenIds = useAppSelector(selectCartKitchenIds);
+  const [kitchenId, setKitchenId] = useState<string | null>(
+    kitchenIds[0] ?? null
+  );
+
+  useEffect(() => {
+    setKitchenId((k) => k ?? kitchenIds[0] ?? null);
+  }, [kitchenIds]);
+
+  const canPlace =
+    subtotal > 0 &&
+    !!address.trim() &&
+    !!kitchenId &&
+    !(when === "SCHEDULE" && !scheduledAt) &&
+    !isBusy;
+
+  const orderRows = useAppSelector((s) => {
+    const rows: {
+      id: string;
+      title: string;
+      qty: number;
+      price: number;
+      cover?: string | null;
+    }[] = [];
+    for (const kid of kitchenIds) {
+      const items = selectCartItemsForKitchen(kid)(s);
+      for (const it of items) {
+        rows.push({
+          id: String(it.meal.id),
+          title: it.meal.name,
+          qty: it.quantity,
+          price: Number(it.meal.price),
+          cover: it.meal.cover_image?.url ?? null,
+        });
+      }
+    }
+    return rows;
+  });
+
+  const handlePlaceOrder = async () => {
+    try {
+      if (!kitchenId) return showError("Select a kitchen to continue.");
+
+      setPlacing(true);
+
+      const payload = {
+        kitchen_id: kitchenId,
+        payment_method: paymentMethod,
+        delivery_address: address.trim(),
+        dispatch_rider_note: (riderNote ?? "").trim(),
+        delivery_date: when === "SCHEDULE" ? scheduledAt : undefined,
+      } as const;
+
+      const checkoutRes = await dispatch(checkoutActiveCart(payload)).unwrap();
+
+      const createdId = checkoutRes.result.id as string;
+      setOrderId(createdId);
+
+      if (paymentMethod === "ONLINE") {
+        const payRes = await dispatch(
+          payForOrder({ id: createdId, with: "ONLINE" })
+        ).unwrap();
+        // @ts-ignore
+        const url: string = payRes.url;
+        if (url) {
+          await WebBrowser.openBrowserAsync(url);
+          router.replace(`/users/orders/${createdId}`);
+          return;
+        }
+      } else {
+        const payRes = await dispatch(
+          payForOrder({ id: createdId, with: "WALLET" })
+        ).unwrap();
+        // @ts-ignore
+        showSuccess(payRes.message || "Payment successful");
+        router.replace(`/users/orders/${createdId}`);
+        return;
+      }
+
+      showSuccess(checkoutRes.result.message || "Order placed");
+      router.replace(`/users/orders/${createdId}`);
+    } catch (err: any) {
+      console.log("Checkout error:", err?.response?.data || err);
+      showError(
+        err?.message || err || "Failed to place order. Please try again."
+      );
+    } finally {
+      setPlacing(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.select({ ios: "padding", android: undefined })}
+      className="flex-1 bg-[#FFFDF8]"
+    >
+      <StatusBar style="dark" />
+      {/* Header */}
+      <View className="pt-14 pb-3 px-5 bg-[#FFFDF8]">
+        <View className="flex-row items-center justify-between">
+          <Pressable onPress={() => router.back()} className="mr-2">
+            <Ionicons name="chevron-back" size={22} color="#0F172A" />
+          </Pressable>
+          <Text className="text-2xl font-satoshiBold text-neutral-900">
+            Checkout
+          </Text>
+          <View className="w-10" />
+        </View>
+
+        {/* Tabs */}
+        <View className="flex-row mt-5">
+          <Pressable onPress={() => setTab("ORDER")} className="mr-6 pb-2">
+            <Text
+              className={`${
+                tab === "ORDER"
+                  ? "text-neutral-900 font-satoshiBold"
+                  : "text-neutral-500 font-satoshi"
+              }`}
+            >
+              Your Order
+            </Text>
+            {tab === "ORDER" && (
+              <View className="h-1 bg-primary rounded-full mt-2" />
+            )}
+          </Pressable>
+
+          <Pressable onPress={() => setTab("DELIVERY")} className="pb-2">
+            <Text
+              className={`${
+                tab === "DELIVERY"
+                  ? "text-neutral-900 font-satoshiBold"
+                  : "text-neutral-500 font-satoshi"
+              }`}
+            >
+              Delivery & Payment
+            </Text>
+            {tab === "DELIVERY" && (
+              <View className="h-1 bg-primary rounded-full mt-2" />
+            )}
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Content */}
+      {tab === "ORDER" ? (
+        <View className="flex-1 px-5">
+          <FlatList
+            data={orderRows}
+            keyExtractor={(x) => x.id}
+            contentContainerStyle={{ paddingBottom: 180 }}
+            keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={
+              <View>
+                <SectionHeader title="Order Summary" />
+              </View>
+            }
+            renderItem={({ item }) => (
+              <View
+                className="bg-white rounded-2xl border border-neutral-100 mb-4 p-3"
+                style={{
+                  shadowOpacity: 0.05,
+                  shadowRadius: 10,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 4 },
+                }}
+              >
+                <View className="flex-row">
+                  <Image
+                    source={
+                      item.cover
+                        ? { uri: item.cover }
+                        : require("@/assets/images/logo-transparent.png")
+                    }
+                    className="w-16 h-16 rounded-xl bg-neutral-100"
+                  />
+                  <View className="flex-1 ml-3 justify-center">
+                    <Text
+                      numberOfLines={1}
+                      className="font-satoshiMedium text-neutral-900"
+                    >
+                      {capitalizeFirst(item.title)}
+                    </Text>
+                    <Text className="text-neutral-500 font-satoshi mt-1">
+                      {formatNGN(item.price)}{" "}
+                      <Text className="text-neutral-400">× {item.qty}</Text>
+                    </Text>
+                  </View>
+                  <Text className="font-satoshiBold text-neutral-900 self-center">
+                    {formatNGN(item.price * item.qty)}
+                  </Text>
+                </View>
+              </View>
+            )}
+            ListFooterComponent={
+              <View className="mt-6">
+                <Text className="text-neutral-700 mb-2 font-satoshi">
+                  Leave a message for the restaurant
+                </Text>
+                <TextInput
+                  placeholder="e.g. No pepper, ring me on arrival"
+                  value={note}
+                  onChangeText={setNote}
+                  multiline
+                  className="bg-white rounded-2xl p-3 border border-neutral-200 text-neutral-900 placeholder:font-satoshi"
+                  style={{ minHeight: 90 }}
+                />
+              </View>
+            }
+            ListEmptyComponent={
+              <View className="items-center mt-12">
+                <Image source={require("@/assets/images/trayy.png")} />
+                <Text className="text-neutral-500 mt-3">
+                  Your tray is empty, add meals to continue.
+                </Text>
+              </View>
+            }
+          />
+
+          {/* Bottom bar */}
+          <View className="absolute left-0 right-0 bottom-0 px-5 pb-6 pt-4 bg-[#FFFDF8]">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-neutral-700 font-satoshi">
+                Items ({totalItems})
+              </Text>
+              <Text className="text-neutral-900 font-satoshiBold">
+                {formatNGN(subtotal)}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => setTab("DELIVERY")}
+              className="bg-primary rounded-2xl py-4 items-center justify-center"
+            >
+              <Text className="text-white font-satoshiBold">Make Payment</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : (
+        <View className="flex-1 px-5">
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: 200 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Info banner / warning */}
+            <View className="flex-row items-start bg-[#FFF1F2] border border-[#FEE2E2] rounded-2xl px-3 py-3 mb-4">
+              <Ionicons
+                name="alert-circle"
+                size={18}
+                color="#ef4444"
+                style={{ marginTop: 2 }}
+              />
+              <Text className="ml-2 text-[13px] text-[#ef4444] font-satoshiMedium">
+                Pay for delivery when you get your food
+              </Text>
+            </View>
+
+            {/* Form fields */}
+            <View className="space-y-3">
+              {/* Address */}
+              <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4 flex-row items-center">
+                <Ionicons name="location-outline" size={18} color="#9CA3AF" />
+                <TextInput
+                  value={address}
+                  onChangeText={setAddress}
+                  placeholder="Enter Delivery Address"
+                  className="ml-3 flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                />
+              </View>
+
+              {/* Contact */}
+              <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4 flex-row items-center">
+                <Ionicons name="call-outline" size={18} color="#9CA3AF" />
+                <TextInput
+                  value={contact}
+                  onChangeText={setContact}
+                  placeholder="Enter Contact"
+                  keyboardType="phone-pad"
+                  className="ml-3 flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                />
+              </View>
+
+              {/* Message for the rider (dispatch_rider_note REQUIRED by API) */}
+              <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4 flex-row items-center">
+                <Ionicons name="bicycle-outline" size={18} color="#9CA3AF" />
+                <TextInput
+                  value={riderNote}
+                  onChangeText={setRiderNote}
+                  placeholder="Message for the rider"
+                  className="ml-3 flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                />
+              </View>
+
+              {/* Message for kitchen (optional, UI parity) */}
+              <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4 flex-row items-center">
+                <Ionicons name="restaurant-outline" size={18} color="#9CA3AF" />
+                <TextInput
+                  value={kitchenNote}
+                  onChangeText={setKitchenNote}
+                  placeholder="Message for Kitchen"
+                  className="ml-3 flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                />
+              </View>
+
+              {/* Voucher code */}
+              <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4">
+                <View className="flex-row items-center">
+                  <Ionicons
+                    name="pricetags-outline"
+                    size={18}
+                    color="#9CA3AF"
+                  />
+                  <TextInput
+                    value={voucher}
+                    onChangeText={setVoucher}
+                    placeholder="Enter Voucher Code"
+                    className="ml-3 flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                  />
+                </View>
+                <Text className="text-[12px] text-neutral-400 mt-2">
+                  Ends on {voucherEndsOn}
+                </Text>
+              </View>
+            </View>
+
+            {/* Payment Summary */}
+            <View className="mt-5">
+              <SectionHeader title="Payment Summary" />
+              <View className="bg-white rounded-2xl border border-neutral-100 p-3">
+                <SummaryRow
+                  label={`Sub-total (${totalItems} item${totalItems === 1 ? "" : "s"})`}
+                  value={formatNGN(subtotal)}
+                />
+                <SummaryRow
+                  label="Delivery Fee"
+                  value={formatNGN(deliveryFee)}
+                />
+                <SummaryRow label="Service fee" value={formatNGN(serviceFee)} />
+                <View className="h-[1px] bg-neutral-100 my-2" />
+                <SummaryRow
+                  label="Total Payment"
+                  value={formatNGN(total)}
+                  bold
+                />
+              </View>
+            </View>
+
+            {/* Payment Method */}
+            <View className="mt-5">
+              <SectionHeader title="Payment Summary" />
+              <View className="bg-white rounded-2xl border border-neutral-100 px-3">
+                <Radio
+                  label="Pay Online"
+                  selected={paymentMethod === "ONLINE"}
+                  onPress={() => setPaymentMethod("ONLINE")}
+                  rightEl={
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={16}
+                      color="#16a34a"
+                    />
+                  }
+                />
+                <View className="h-[1px] bg-neutral-100" />
+                <Radio
+                  label="Pay For Me"
+                  selected={paymentMethod === "WALLET"}
+                  onPress={() => setPaymentMethod("WALLET")}
+                  rightEl={
+                    <Ionicons
+                      name="ellipse-outline"
+                      size={16}
+                      color="#9CA3AF"
+                    />
+                  }
+                />
+              </View>
+            </View>
+
+            {/* (Optional) If multiple kitchens, show a name picker below to match flows */}
+            {kitchenIds.length > 1 && (
+              <View className="mt-5">
+                <Text className="text-neutral-700 mb-2">Select Kitchen</Text>
+                <View className="bg-white rounded-2xl border border-neutral-200">
+                  {kitchenIds.map((kid) => {
+                    const label = useAppSelector(
+                      (s) => s.cart.byKitchenId[kid]?.kitchen?.name ?? kid
+                    );
+                    return (
+                      <Pressable
+                        key={kid}
+                        onPress={() => setKitchenId(kid)}
+                        className="flex-row items-center justify-between px-3 py-4"
+                      >
+                        <Text className="text-neutral-800">{label}</Text>
+                        <Ionicons
+                          name={
+                            kitchenId === kid
+                              ? "radio-button-on"
+                              : "radio-button-off"
+                          }
+                          size={18}
+                          color={kitchenId === kid ? "#ffa800" : "#9ca3af"}
+                        />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Bottom buttons */}
+          <View className="absolute left-0 right-0 bottom-0 px-5 pb-6 pt-4 bg-[#FFFDF8]">
+            <View className="flex-row">
+              <Pressable
+                onPress={() => setTab("ORDER")}
+                className="flex-1 mr-3 rounded-2xl py-4 items-center justify-center bg-[#FFF1E0] border border-primary-500"
+              >
+                <Text className="font-satoshiMedium text-primary">Return</Text>
+              </Pressable>
+
+              <Pressable
+                disabled={!canPlace}
+                onPress={handlePlaceOrder}
+                className={`flex-1 rounded-2xl py-4 items-center justify-center ${
+                  canPlace ? "bg-primary" : "bg-neutral-300"
+                }`}
+              >
+                {isBusy ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text className="text-white font-satoshiBold">
+                    Place Order
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+
+            <Text className="mt-3 text-[12px] text-neutral-500 text-center">
+              By proceeding, you agree to our{" "}
+              <Text className="text-primary">Terms Of Use</Text> and{" "}
+              <Text className="text-primary">Privacy Policy</Text>
+            </Text>
+          </View>
+        </View>
+      )}
+    </KeyboardAvoidingView>
+  );
+}

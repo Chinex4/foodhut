@@ -20,6 +20,7 @@ import { removeCartItem, setCartItem } from "@/redux/cart/cart.thunks";
 import { formatNGN } from "@/utils/money";
 import { showError, showSuccess } from "@/components/ui/toast";
 import QuantityStepper from "@/components/ui/QuantityStepper";
+import { router } from "expo-router";
 
 function CartItemCard({
   id,
@@ -218,10 +219,10 @@ export default function MyCartsTab() {
           shadowOffset: { width: 0, height: 6 },
         }}
       >
-        <View className="flex-row items-center">
+        <Pressable onPress={() => router.push("/users/checkout" as any)} className="flex-row items-center">
           <Ionicons name="bag-handle" size={18} color="#fff" />
           <Text className="ml-2 text-white font-satoshiBold">Checkout</Text>
-        </View>
+        </Pressable>
       </Pressable>
     </View>
   );

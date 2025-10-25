@@ -20,9 +20,7 @@ export const fetchActiveCart = createAsyncThunk<
     const res = await api.get(`${BASE}`);
     return res.data as ActiveCartResponse;
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to load cart"
-    );
+    return rejectWithValue(err?.response?.data?.error || "Failed to load cart");
   }
 });
 
@@ -46,7 +44,7 @@ export const setCartItem = createAsyncThunk<
       quantity,
     };
   } catch (err: any) {
-    console.log(err)
+    console.log(err);
     return rejectWithValue(
       err?.response?.data?.error || "Failed to update cart"
     );
@@ -68,7 +66,7 @@ export const removeCartItem = createAsyncThunk<
       mealId,
     };
   } catch (err: any) {
-    console.log(err)
+    console.log(err);
     return rejectWithValue(
       err?.response?.data?.error || "Failed to remove item"
     );
@@ -101,18 +99,25 @@ export const checkoutActiveCart = createAsyncThunk<
   { rejectValue: string }
 >("cart/checkoutActiveCart", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/active/checkout`, body);
-    const after = await api.get(`${BASE}`);
+    const { kitchen_id, ...rest } = body;
+    const res = await api.post(`/carts/kitchens/${kitchen_id}/checkout`, rest);
+    const after = await api.get(`/carts`);
     return {
       result: {
         id: res.data?.id,
-        message: res.data?.message ?? "Cart checkedout successfully",
+        message: res.data?.message ?? "Cart checked out successfully",
       },
       cart: after.data as ActiveCartResponse,
     };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to checkout"
-    );
+    const d = err?.response?.data;
+    const msg =
+      d?.error ||
+      d?.message ||
+      (Array.isArray(d?.errors) && d.errors[0]) ||
+      (typeof d === "string" && d) ||
+      "Failed to checkout";
+    return rejectWithValue(msg);
   }
 });
+

@@ -27,6 +27,7 @@ import AdsCarousel from "@/components/home/AdsCarousel";
 import MealCardSkeleton from "@/components/home/MealCardSkeleton";
 import { useRouter } from "expo-router";
 import SearchBar from "@/components/search/SearchBar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const dispatch = useAppDispatch();
@@ -56,12 +57,12 @@ export default function HomeScreen() {
   }, [fetchMestatus, dispatch]);
 
   return (
-    <View className="flex-1 bg-primary-50">
+    <SafeAreaView className="flex-1 bg-primary-50">
       <StatusBar style="dark" />
       <ScrollView
         contentContainerStyle={{
           paddingBottom: 120,
-          paddingTop: Platform.select({ android: 40, ios: 60 }),
+          // paddingTop: Platform.select({ android: 40, ios: 60 }),
         }}
       >
         {/* top greeting + location */}
@@ -139,6 +140,6 @@ export default function HomeScreen() {
           <Text className="px-4 mt-6 text-red-600">{error}</Text>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

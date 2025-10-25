@@ -4,7 +4,7 @@
     "slug": "foodhut",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo-transparent.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "foodhut",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,7 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffa800",
-        "foregroundImage": "./assets/images/logo-transparent.png"
+        "foregroundImage": "./assets/images/icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -29,7 +29,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logo-transparent.png",
+          "image": "./assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffa800",
