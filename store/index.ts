@@ -11,6 +11,7 @@ import ordersReducer from "@/redux/orders/orders.slice";
 import walletReducer from "@/redux/wallet/wallet.slice";
 import transactionsReducer from "@/redux/transactions/transactions.slice";
 import searchReducer from "@/redux/search/search.slice";
+import riderReducer from "@/redux/rider/rider.slice";
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     wallet: walletReducer,
     transactions: transactionsReducer,
     search: searchReducer,
+    rider: riderReducer,
   },
   middleware: (gdm) =>
     gdm({

@@ -185,14 +185,27 @@ export default function MealDetailsScreen() {
               <Line w="w-5/6" className="mt-2" />
             </>
           ) : (
-            <>
-              <Text className="text-3xl font-satoshiBold text-neutral-900">
-                {capitalizeFirst(meal!.name)}
-              </Text>
-              <Text className="mt-2 text-xl text-neutral-600">
-                {capitalizeFirst(meal!.description)}
-              </Text>
-            </>
+            <View className="flex flex-row items-center justify-between">
+              <View>
+                <Text className="text-3xl font-satoshiBold text-neutral-900">
+                  {capitalizeFirst(meal!.name)}
+                </Text>
+                <Text className="mt-2 text-xl text-neutral-600">
+                  {capitalizeFirst(meal!.description)}
+                </Text>
+              </View>
+              <View className="rounded-2xl border border-primary px-5 py-3">
+                <Text className="text-primary text-2xl font-satoshiBold">
+                  {formatNGN(meal!.price)}
+                  {isDiscount && (
+                    <Text className="text-neutral-400 line-through ml-2">
+                      {"  "}
+                      {formatNGN(meal!.original_price!)}
+                    </Text>
+                  )}
+                </Text>
+              </View>
+            </View>
           )}
 
           {/* meta row */}
@@ -213,24 +226,14 @@ export default function MealDetailsScreen() {
       </ScrollView>
 
       {/* bottom bar */}
-      <View className="absolute bottom-8 left-0 right-0 p-4 bg-primary-50 border-t border-neutral-100 flex-row items-center justify-between">
-        <View className="rounded-2xl border border-primary px-5 py-3">
-          <Text className="text-primary font-satoshiBold">
-            {formatNGN(meal!.price)}
-            {isDiscount && (
-              <Text className="text-neutral-400 line-through ml-2">
-                {"  "}
-                {formatNGN(meal!.original_price!)}
-              </Text>
-            )}
-          </Text>
-        </View>
-
+      <View className="absolute bottom-8 right-0 left-0 p-4 bg-primary-50 border-t border-neutral-100 flex-row items-center justify-between">
         <Pressable
           onPress={addOne}
-          className="bg-primary rounded-2xl px-8 py-3"
+          className="bg-primary w-full rounded-2xl px-8 py-4"
         >
-          <Text className="text-white font-satoshiBold">Add to Cart</Text>
+          <Text className="text-white text-center font-satoshiBold">
+            Add to Cart
+          </Text>
         </Pressable>
       </View>
     </View>

@@ -1,3 +1,4 @@
+// app/splash.tsx (your current file)
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -14,13 +15,20 @@ export default function Splash() {
 
     const go = async () => {
       try {
-        await new Promise((r) => setTimeout(r, 3000));
+        // tiny splash hold
+        await new Promise((r) => setTimeout(r, 1200));
 
-        const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+        const [token, hasOnboarded] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
+          AsyncStorage.getItem(STORAGE_KEYS.HAS_ONBOARDED),
+        ]);
 
         if (!isMounted) return;
+
         if (token) {
           router.replace("/users/(tabs)");
+        } else if (!hasOnboarded) {
+          router.replace("/onboarding");
         } else {
           router.replace("/(auth)/login");
         }

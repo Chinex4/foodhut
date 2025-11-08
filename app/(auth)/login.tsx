@@ -99,7 +99,7 @@ export default function LoginScreen() {
     if (sendSignInOtp.fulfilled.match(res)) {
       router.push({
         pathname: "/(auth)/verify",
-        params: { phone: fullPhone(local) },
+        params: { phone: fullPhone(local), intent: "login" },
       });
     }
   });

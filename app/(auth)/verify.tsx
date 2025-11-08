@@ -33,7 +33,10 @@ const digitsOnly = (s: string) => s.replace(/\D+/g, "");
 
 export default function VerifyScreen() {
   const router = useRouter();
-  const { phone = "" } = useLocalSearchParams<{ phone?: string }>(); // full E.164 passed from login/register
+  const { phone = "", intent = "login" } = useLocalSearchParams<{
+    phone?: string;
+    intent?: "login" | "register";
+  }>(); // full E.164 passed from login/register
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectAuthStatus);
   const error = useAppSelector(selectAuthError);
@@ -82,7 +85,12 @@ export default function VerifyScreen() {
     if (otp.length !== 4) return;
     const res = await dispatch(verifyOtp({ phone_number: String(phone), otp }));
     if (verifyOtp.fulfilled.match(res)) {
-      router.replace("/users/(tabs)");
+      // router.replace("/users/(tabs)");
+      if (intent === "register") {
+        router.replace("/(auth)/choose-role");
+      } else {
+        router.replace("/users/(tabs)");
+      }
     }
   });
 
