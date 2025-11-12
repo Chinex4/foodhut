@@ -1,4 +1,3 @@
-// app/(tabs)/index.tsx
 import React, { useEffect, useMemo } from "react";
 import {
   View,
@@ -140,6 +139,19 @@ export default function HomeScreen() {
           <Text className="px-4 mt-6 text-red-600">{error}</Text>
         )}
       </ScrollView>
+
+      <View className="absolute bottom-6 right-4">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open orders"
+          onPress={() => router.push("/users/(tabs)/orders")}
+          android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
+          className="w-20 h-20 rounded-full bg-primary items-center justify-center shadow-lg"
+          style={Platform.select({ android: { elevation: 8 } })}
+        >
+          <Ionicons name="cart" size={30} color="#fff" />
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }

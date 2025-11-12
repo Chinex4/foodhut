@@ -17,6 +17,7 @@ import { useAppSelector } from "@/store/hooks";
 import { selectMe } from "@/redux/users/users.selectors";
 import * as MailComposer from "expo-mail-composer";
 import * as Clipboard from "expo-clipboard";
+import { router } from "expo-router";
 
 type FaqItem = { id: string; title: string; answer: string };
 
@@ -273,6 +274,19 @@ My name is ${[me?.first_name, me?.last_name].filter(Boolean).join(" ") || "—"}
           </Pressable>
         </View>
       </ScrollView>
+
+      <View className="absolute bottom-6 right-4">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open orders"
+          onPress={() => router.push("/users/(tabs)/orders")}
+          android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
+          className="w-20 h-20 rounded-full bg-primary items-center justify-center shadow-lg"
+          style={Platform.select({ android: { elevation: 8 } })}
+        >
+          <Ionicons name="cart" size={30} color="#fff" />
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }

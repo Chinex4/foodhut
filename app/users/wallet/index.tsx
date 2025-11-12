@@ -1,5 +1,12 @@
-import React, { useEffect } from "react";
-import { View, Text, Pressable, FlatList } from "react-native";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  FlatList,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -13,19 +20,97 @@ import {
 } from "@/redux/wallet/wallet.selectors";
 import { formatNGN } from "@/utils/money";
 
+/* ───── Transactions wiring ───── */
+import {
+  selectTransactionsList,
+  selectTransactionsListStatus,
+  selectTransactionsError,
+  selectTransactionsMeta,
+} from "@/redux/transactions/transactions.selectors";
+import { fetchTransactions } from "@/redux/transactions/transactions.thunks";
+import type { Transaction } from "@/redux/transactions/transactions.types";
+
 export default function WalletScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
+  /* Wallet profile */
   const balance = useAppSelector(selectWalletBalanceNumber);
   const profileStatus = useAppSelector(selectWalletProfileStatus);
+
+  /* Transactions store */
+  const items = useAppSelector(selectTransactionsList);
+  const listStatus = useAppSelector(selectTransactionsListStatus);
+  const error = useAppSelector(selectTransactionsError);
+  const meta = useAppSelector(selectTransactionsMeta);
+
+  /* Local UI */
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (profileStatus === "idle") dispatch(fetchWalletProfile());
   }, [profileStatus, dispatch]);
 
-  // TODO: Replace this with real transaction history when the API is ready
-  const transactions: Array<{ id: string; title: string; amount: number }> = [];
+  // Load txns on first visit
+  useEffect(() => {
+    if (listStatus === "idle") {
+      dispatch(fetchTransactions({ page: 1, per_page: 20 }));
+    }
+  }, [listStatus, dispatch]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(
+        fetchTransactions({ page: 1, per_page: meta?.per_page ?? 20 })
+      ).unwrap();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch, meta?.per_page]);
+
+  // Preview = latest 5
+  const preview = useMemo(() => items.slice(0, 5), [items]);
+
+  const renderTx = ({ item }: { item: Transaction }) => {
+    const isCredit = item.direction === "INCOMING";
+    const label = item.note ?? (isCredit ? "Wallet Top-up" : "Order Payment");
+    const amountNum = Number(item.amount);
+
+    return (
+      <View
+        className="bg-white rounded-2xl border border-neutral-100 px-3 py-4 mb-3 flex-row items-center justify-between"
+        style={{
+          shadowOpacity: 0.03,
+          shadowRadius: 8,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 3 },
+        }}
+      >
+        <View className="flex-row items-center">
+          <Ionicons
+            name={
+              isCredit ? "arrow-down-circle-outline" : "arrow-up-circle-outline"
+            }
+            size={18}
+            color={isCredit ? "#16a34a" : "#ef4444"}
+          />
+          <View className="ml-3">
+            <Text className="font-satoshi text-neutral-900">{label}</Text>
+            <Text className="text-[12px] font-satoshi text-neutral-500">
+              {new Date(item.created_at).toLocaleString()} • {item.id}
+            </Text>
+          </View>
+        </View>
+        <Text
+          className={`font-satoshiMedium ${isCredit ? "text-green-600" : "text-neutral-900"}`}
+        >
+          {isCredit ? "+" : "-"}
+          {formatNGN(amountNum)}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-primary-50">
@@ -54,6 +139,7 @@ export default function WalletScreen() {
             <Text className="text-white/80 font-satoshi">
               Available Balance
             </Text>
+
             <Pressable
               onPress={() => router.push("/users/wallet/transactions")}
             >
@@ -62,6 +148,7 @@ export default function WalletScreen() {
               </Text>
             </Pressable>
           </View>
+
           <Text className="text-white text-[28px] font-satoshiBold mt-2">
             {formatNGN(balance)}
           </Text>
@@ -92,35 +179,48 @@ export default function WalletScreen() {
         </View>
       </View>
 
-      {/* Transactions preview (placeholder list) */}
+      {/* Transactions preview */}
       <View className="px-5 mt-6">
-        <Text className="text-neutral-500 font-satoshiBold mb-2">
-          Transaction History
-        </Text>
+        <View className="flex-row items-center justify-between mb-2">
+          <Text className="text-neutral-500 font-satoshiBold">
+            Transaction History
+          </Text>
+          <Pressable onPress={() => router.push("/users/wallet/transactions")}>
+            <Text className="text-primary font-satoshiMedium">See all</Text>
+          </Pressable>
+        </View>
+
         <FlatList
-          data={transactions}
+          data={preview}
           keyExtractor={(x) => x.id}
-          renderItem={({ item }) => (
-            <View className="bg-white rounded-2xl border border-neutral-100 px-3 py-4 mb-3 flex-row items-center justify-between">
-              <View className="flex-row items-center">
-                <Ionicons
-                  name="document-text-outline"
-                  size={18}
-                  color="#0F172A"
-                />
-                <Text className="ml-3 font-satoshi text-neutral-900">
-                  {item.title}
+          renderItem={renderTx}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            listStatus === "loading" ? (
+              <View className="mt-6 items-center">
+                <ActivityIndicator color="#0F172A" />
+                <Text className="mt-2 text-neutral-500 font-satoshi">
+                  Loading transactions…
                 </Text>
               </View>
-              <Text className="font-satoshiMedium text-neutral-900">
-                {formatNGN(item.amount)}
+            ) : error ? (
+              <View className="mt-6 items-center">
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={36}
+                  color="#ef4444"
+                />
+                <Text className="mt-2 text-neutral-500 font-satoshi">
+                  {error}
+                </Text>
+              </View>
+            ) : (
+              <Text className="text-neutral-500 font-satoshi">
+                No transactions yet.
               </Text>
-            </View>
-          )}
-          ListEmptyComponent={
-            <Text className="text-neutral-500 font-satoshi">
-              No transactions yet.
-            </Text>
+            )
           }
           contentContainerStyle={{ paddingBottom: 40 }}
         />

@@ -97,6 +97,7 @@ export type CheckoutPayload = {
   dispatch_rider_note: string;
   delivery_address: string;
   delivery_date?: number;
+  rider_id?: string; 
 };
 
 export type CheckoutResult = {

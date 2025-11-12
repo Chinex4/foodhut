@@ -9,6 +9,56 @@ import { showError, showSuccess } from "../ui/toast";
 import { selectCartItemQuantity } from "@/redux/cart/cart.selectors";
 import { capitalizeFirst } from "@/utils/capitalize";
 
+function AddToCartButton({
+  itemId,
+  qty,
+  onAdd,
+}: {
+  itemId: string;
+  qty: number;
+  onAdd: () => Promise<void> | void;
+}) {
+  const [pending, setPending] = React.useState(false);
+  const added = qty > 0;
+
+  const handlePress = async () => {
+    if (pending) return;
+    setPending(true);
+    try {
+      await onAdd();
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <Pressable
+      onPress={added ? undefined : handlePress}
+      disabled={pending || added}
+      accessibilityRole="button"
+      accessibilityLabel={added ? "Added to cart" : "Add to cart"}
+      className={[
+        "rounded-full px-3 py-1 flex-row items-center",
+        added ? "bg-secondary" : "bg-primary",
+        pending || added ? "opacity-90" : "",
+      ].join(" ")}
+      style={{ justifyContent: "center" }}
+    >
+      {added ? (
+        <>
+          <Text className="ml-1 text-black font-satoshiMedium text-[12px]">
+            Added to Cart
+          </Text>
+        </>
+      ) : (
+        <Text className="text-white font-satoshiMedium text-[12px]">
+          {pending ? "Adding..." : "Add To Cart"}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
 export default function MealCard({
   item,
   onPress,
@@ -84,14 +134,9 @@ export default function MealCard({
               </Text>
             )}
           </View>
-          <Pressable
-            onPress={addOne}
-            className="bg-primary rounded-full px-3 py-1"
-          >
-            <Text className="text-white font-satoshiMedium text-[12px]">
-              Add To Cart
-            </Text>
-          </Pressable>
+
+          {/* Add / Added button */}
+          <AddToCartButton itemId={item.id} qty={qty} onAdd={addOne} />
         </View>
       </View>
     </Pressable>

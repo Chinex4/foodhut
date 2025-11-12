@@ -159,7 +159,7 @@ export default function ProfileHomeScreen() {
             <Ionicons name="help-circle-outline" size={18} color="#9CA3AF" />
           }
           label="FAQ’s"
-          onPress={() => {}}
+          onPress={() => router.push("/users/support")}
         />
         <Row
           icon={

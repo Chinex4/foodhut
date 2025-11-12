@@ -34,10 +34,21 @@ const transactionsSlice = createSlice({
       .addCase(fetchTransactions.fulfilled, (state, a) => {
         state.listStatus = "succeeded";
         const { items, meta } = a.payload;
-        state.lastListIds = items.map((x) => x.id);
-        state.lastListMeta = meta;
         items.forEach((x) => upsert(state, x));
+        if (meta?.page && meta.page > 1) {
+          const nextIds = items.map((x) => x.id);
+          const merged = [...state.lastListIds, ...nextIds];
+          const seen = new Set<string>();
+          state.lastListIds = merged.filter((id) =>
+            seen.has(id) ? false : (seen.add(id), true)
+          );
+        } else {
+          state.lastListIds = items.map((x) => x.id);
+        }
+
+        state.lastListMeta = meta || null;
       })
+
       .addCase(fetchTransactions.rejected, (state, a) => {
         state.listStatus = "failed";
         state.error = (a.payload as string) || "Failed to fetch transactions";

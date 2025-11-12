@@ -1,5 +1,13 @@
 import React from "react";
-import { ActivityIndicator, FlatList, Image, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import { useAppSelector } from "@/store/hooks";
 import {
   selectSearchStatus,
@@ -9,6 +17,7 @@ import {
 import MealCard from "@/components/home/MealCard";
 import SearchBar from "@/components/search/SearchBar";
 import { router } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function SearchResultsScreen() {
   const status = useAppSelector(selectSearchStatus);
@@ -61,6 +70,19 @@ export default function SearchResultsScreen() {
           </View>
         }
       />
+
+      <View className="absolute bottom-6 right-4">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open orders"
+          onPress={() => router.push("/users/(tabs)/orders")}
+          android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
+          className="w-20 h-20 rounded-full bg-primary items-center justify-center shadow-lg"
+          style={Platform.select({ android: { elevation: 8 } })}
+        >
+          <Ionicons name="cart" size={30} color="#fff" />
+        </Pressable>
+      </View>
     </View>
   );
 }

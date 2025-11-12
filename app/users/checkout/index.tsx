@@ -1,3 +1,6 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,28 +14,27 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  selectCartKitchenIds,
+  selectCartCheckoutStatus,
   selectCartItemsForKitchen,
+  selectCartKitchenIds,
   selectCartSubtotal,
   selectCartTotalItems,
-  selectCartCheckoutStatus,
 } from "@/redux/cart/cart.selectors";
 import { checkoutActiveCart } from "@/redux/cart/cart.thunks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
-import { payForOrder } from "@/redux/orders/orders.thunks"; // <- ensure you export payForOrder from orders.thunks
-import { formatNGN } from "@/utils/money";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { makeSelectPayStatus } from "@/redux/orders/orders.selectors";
-import { StatusBar } from "expo-status-bar";
+import { payForOrder } from "@/redux/orders/orders.thunks"; // <- ensure you export payForOrder from orders.thunks
 import { capitalizeFirst } from "@/utils/capitalize";
+import { formatNGN } from "@/utils/money";
+import { StatusBar } from "expo-status-bar";
 
-import dayjs from "dayjs";
+import { useLocalSearchParams } from "expo-router";
+
+import { listenRiderPicked } from "@/utils/riderBus.native";
 
 type PaymentUI = "ONLINE" | "WALLET";
 
@@ -96,9 +98,41 @@ function Radio({
   );
 }
 
+type Rider = {
+  id: string;
+  name: string;
+  city: string;
+  priceLabel: string;
+  rating: number;
+  avatar?: string;
+};
+
 export default function CheckoutScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+
+  // inside component
+  const { kitchen_id } = useLocalSearchParams<{ kitchen_id?: string }>();
+  const kitchenIds = useAppSelector(selectCartKitchenIds);
+
+  const [kitchenId, setKitchenId] = useState<string | null>(
+    kitchen_id ?? kitchenIds[0] ?? null
+  );
+  useEffect(() => {
+    if (!kitchenId && kitchenIds[0]) setKitchenId(kitchenIds[0]);
+  }, [kitchenId, kitchenIds]);
+
+  const orderRows = useAppSelector((s) => {
+    if (!kitchenId) return [];
+    const items = selectCartItemsForKitchen(kitchenId)(s);
+    return items.map((it) => ({
+      id: String(it.meal.id),
+      title: it.meal.name,
+      qty: it.quantity,
+      price: Number(it.meal.price),
+      cover: it.meal.cover_image?.url ?? null,
+    }));
+  });
 
   const subtotal = useAppSelector(selectCartSubtotal);
   const totalItems = useAppSelector(selectCartTotalItems);
@@ -117,6 +151,8 @@ export default function CheckoutScreen() {
   const [voucher, setVoucher] = useState<string>("");
   const voucherEndsOn = "02/10/2025";
 
+  const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
+
   const [scheduledAt, setScheduledAt] = useState<number | undefined>(undefined);
 
   // simple static fees (replace if backend returns these)
@@ -129,18 +165,19 @@ export default function CheckoutScreen() {
 
   const [placing, setPlacing] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
-  const payStatus =
-    useAppSelector(orderId ? makeSelectPayStatus(orderId) : () => "idle") ??
-    "idle";
+  const paySelector = useMemo(
+    () => (orderId ? makeSelectPayStatus(orderId) : null),
+    [orderId]
+  );
+  const payStatus = useAppSelector(paySelector ?? (() => "idle")) ?? "idle";
+
   const isBusy =
     placing || checkoutStatus === "loading" || payStatus === "loading";
 
-  //   const canPlace = subtotal > 0 && !!address.trim() && !isBusy;
-
-  const kitchenIds = useAppSelector(selectCartKitchenIds);
-  const [kitchenId, setKitchenId] = useState<string | null>(
-    kitchenIds[0] ?? null
-  );
+  useEffect(() => {
+    const off = listenRiderPicked((r) => setSelectedRider(r));
+    return off;
+  }, []);
 
   useEffect(() => {
     setKitchenId((k) => k ?? kitchenIds[0] ?? null);
@@ -152,29 +189,6 @@ export default function CheckoutScreen() {
     !!kitchenId &&
     !(when === "SCHEDULE" && !scheduledAt) &&
     !isBusy;
-
-  const orderRows = useAppSelector((s) => {
-    const rows: {
-      id: string;
-      title: string;
-      qty: number;
-      price: number;
-      cover?: string | null;
-    }[] = [];
-    for (const kid of kitchenIds) {
-      const items = selectCartItemsForKitchen(kid)(s);
-      for (const it of items) {
-        rows.push({
-          id: String(it.meal.id),
-          title: it.meal.name,
-          qty: it.quantity,
-          price: Number(it.meal.price),
-          cover: it.meal.cover_image?.url ?? null,
-        });
-      }
-    }
-    return rows;
-  });
 
   const handlePlaceOrder = async () => {
     try {
@@ -188,6 +202,7 @@ export default function CheckoutScreen() {
         delivery_address: address.trim(),
         dispatch_rider_note: (riderNote ?? "").trim(),
         delivery_date: when === "SCHEDULE" ? scheduledAt : undefined,
+        rider_id: selectedRider?.id || undefined,
       } as const;
 
       const checkoutRes = await dispatch(checkoutActiveCart(payload)).unwrap();
@@ -228,6 +243,19 @@ export default function CheckoutScreen() {
     }
   };
 
+  // read store once
+  const byKitchenId = useAppSelector((s) => s.cart.byKitchenId);
+
+  // build a plain array for the picker
+  const kitchensForPicker = useMemo(
+    () =>
+      kitchenIds.map((kid) => ({
+        id: kid,
+        label: byKitchenId[kid]?.kitchen?.name ?? kid,
+      })),
+    [kitchenIds, byKitchenId]
+  );
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.select({ ios: "padding", android: undefined })}
@@ -235,7 +263,7 @@ export default function CheckoutScreen() {
     >
       <StatusBar style="dark" />
       {/* Header */}
-      <View className="pt-14 pb-3 px-5 bg-[#FFFDF8]">
+      <View className="pt-20 pb-3 px-5 bg-[#FFFDF8]">
         <View className="flex-row items-center justify-between">
           <Pressable onPress={() => router.back()} className="mr-2">
             <Ionicons name="chevron-back" size={22} color="#0F172A" />
@@ -401,7 +429,7 @@ export default function CheckoutScreen() {
                   value={address}
                   onChangeText={setAddress}
                   placeholder="Enter Delivery Address"
-                  className="ml-3 flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                  className="ml-3 flex-1 font-satoshi text-neutral-900"
                 />
               </View>
 
@@ -413,7 +441,7 @@ export default function CheckoutScreen() {
                   onChangeText={setContact}
                   placeholder="Enter Contact"
                   keyboardType="phone-pad"
-                  className="ml-3 flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                  className="ml-3 flex-1 font-satoshi text-neutral-900"
                 />
               </View>
 
@@ -424,7 +452,7 @@ export default function CheckoutScreen() {
                   value={riderNote}
                   onChangeText={setRiderNote}
                   placeholder="Message for the rider"
-                  className="ml-3 flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                  className="ml-3 flex-1 font-satoshi text-neutral-900"
                 />
               </View>
 
@@ -435,7 +463,7 @@ export default function CheckoutScreen() {
                   value={kitchenNote}
                   onChangeText={setKitchenNote}
                   placeholder="Message for Kitchen"
-                  className="ml-3 flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                  className="ml-3 flex-1 font-satoshi text-neutral-900"
                 />
               </View>
 
@@ -451,13 +479,59 @@ export default function CheckoutScreen() {
                     value={voucher}
                     onChangeText={setVoucher}
                     placeholder="Enter Voucher Code"
-                    className="ml-3 flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                    className="ml-3 flex-1 font-satoshi text-neutral-900"
                   />
                 </View>
                 <Text className="text-[12px] text-neutral-400 mt-2">
                   Ends on {voucherEndsOn}
                 </Text>
               </View>
+            </View>
+
+            {/* Riders */}
+            <View className="mt-5">
+              <SectionHeader title="Delivery Rider" />
+              {selectedRider ? (
+                <View className="bg-white rounded-2xl border border-neutral-100 p-3 flex-row items-center justify-between">
+                  <View className="flex-row items-center">
+                    <Image
+                      source={
+                        selectedRider.avatar
+                          ? { uri: selectedRider.avatar }
+                          : require("@/assets/images/logo-transparent.png")
+                      }
+                      className="w-10 h-10 rounded-full bg-neutral-100"
+                    />
+                    <View className="ml-3">
+                      <Text className="font-satoshiMedium text-neutral-900">
+                        {selectedRider.name}
+                      </Text>
+                      <Text className="text-[12px] text-neutral-500">
+                        {selectedRider.city} • {selectedRider.priceLabel}
+                      </Text>
+                    </View>
+                  </View>
+                  <Pressable
+                    onPress={() => router.push("/users/riders")}
+                    className="px-3 py-2 rounded-xl bg-primary"
+                  >
+                    <Text className="text-white font-satoshiMedium">
+                      Change
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View className="flex-row">
+                  <Pressable
+                    onPress={() => router.push("/users/riders")}
+                    className="flex-1 bg-primary rounded-2xl py-4 items-center justify-center"
+                  >
+                    <Text className="text-white font-satoshiBold">
+                      Find Riders
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
 
             {/* Payment Summary */}
@@ -519,29 +593,24 @@ export default function CheckoutScreen() {
               <View className="mt-5">
                 <Text className="text-neutral-700 mb-2">Select Kitchen</Text>
                 <View className="bg-white rounded-2xl border border-neutral-200">
-                  {kitchenIds.map((kid) => {
-                    const label = useAppSelector(
-                      (s) => s.cart.byKitchenId[kid]?.kitchen?.name ?? kid
-                    );
-                    return (
-                      <Pressable
-                        key={kid}
-                        onPress={() => setKitchenId(kid)}
-                        className="flex-row items-center justify-between px-3 py-4"
-                      >
-                        <Text className="text-neutral-800">{label}</Text>
-                        <Ionicons
-                          name={
-                            kitchenId === kid
-                              ? "radio-button-on"
-                              : "radio-button-off"
-                          }
-                          size={18}
-                          color={kitchenId === kid ? "#ffa800" : "#9ca3af"}
-                        />
-                      </Pressable>
-                    );
-                  })}
+                  {kitchensForPicker.map(({ id, label }) => (
+                    <Pressable
+                      key={id}
+                      onPress={() => setKitchenId(id)}
+                      className="flex-row items-center justify-between px-3 py-4"
+                    >
+                      <Text className="text-neutral-800">{label}</Text>
+                      <Ionicons
+                        name={
+                          kitchenId === id
+                            ? "radio-button-on"
+                            : "radio-button-off"
+                        }
+                        size={18}
+                        color={kitchenId === id ? "#ffa800" : "#9ca3af"}
+                      />
+                    </Pressable>
+                  ))}
                 </View>
               </View>
             )}

@@ -38,6 +38,7 @@ export default function MealDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const mealId = id!;
   const dispatch = useAppDispatch();
+  const [adding, setAdding] = useState(false);
 
   const meal = useAppSelector(selectMealById(mealId));
   const likeStatusSel = useMemo(
@@ -123,6 +124,8 @@ export default function MealDetailsScreen() {
   };
 
   const addOne = async () => {
+    if (adding) return;
+    setAdding(true);
     try {
       const res = await dispatch(
         setCartItem({ mealId, quantity: qty + 1 })
@@ -130,6 +133,8 @@ export default function MealDetailsScreen() {
       showSuccess(res.message || "Added to cart");
     } catch (err: any) {
       showError(err);
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -226,14 +231,35 @@ export default function MealDetailsScreen() {
       </ScrollView>
 
       {/* bottom bar */}
-      <View className="absolute bottom-8 right-0 left-0 p-4 bg-primary-50 border-t border-neutral-100 flex-row items-center justify-between">
+      {/* bottom bar */}
+      <View className="absolute bottom-8 right-0 left-0 p-4 bg-primary-50 border-t border-neutral-100">
+        {/** If qty > 0, show "Added to Cart" and disable the button */}
         <Pressable
-          onPress={addOne}
-          className="bg-primary w-full rounded-2xl px-8 py-4"
+          onPress={qty > 0 ? undefined : addOne}
+          disabled={qty > 0 || adding}
+          accessibilityRole="button"
+          accessibilityLabel={qty > 0 ? "Added to cart" : "Add to cart"}
+          className={[
+            "w-full rounded-2xl px-8 py-4 flex-row items-center justify-center",
+            qty > 0 ? "bg-secondary" : "bg-primary",
+            qty > 0 || adding ? "opacity-90" : "",
+          ].join(" ")}
         >
-          <Text className="text-white text-center font-satoshiBold">
-            Add to Cart
-          </Text>
+          {qty > 0 ? (
+            <>
+              <Ionicons name="checkmark-circle" size={18} color="#000" />
+              <Text className="ml-2 text-black font-satoshiBold">
+                Added to Cart
+              </Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="cart" size={18} color="#fff" />
+              <Text className="ml-2 text-white font-satoshiBold">
+                {adding ? "Adding..." : "Add to Cart"}
+              </Text>
+            </>
+          )}
         </Pressable>
       </View>
     </View>

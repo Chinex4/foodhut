@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.chinexx.foodhut"
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +35,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffa800",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#ffa800"
           }
         }
       ],
