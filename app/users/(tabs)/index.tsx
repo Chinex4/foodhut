@@ -27,6 +27,7 @@ import MealCardSkeleton from "@/components/home/MealCardSkeleton";
 import { useRouter } from "expo-router";
 import SearchBar from "@/components/search/SearchBar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import KitchenVendorsSection from "@/components/home/KitchenVendorSection";
 
 export default function HomeScreen() {
   const dispatch = useAppDispatch();
@@ -117,23 +118,7 @@ export default function HomeScreen() {
           }
         />
 
-        <Section
-          title="Vendors Close By"
-          onSeeAll={() => router.push("/users/category/vendors")}
-          data={status === "loading" ? Array.from({ length: 4 }) : vendors}
-          horizontal
-          renderItem={({ item }: any) =>
-            status === "loading" ? (
-              <MealCardSkeleton compact />
-            ) : (
-              <MealCard
-                item={item}
-                onPress={() => router.push(`/users/meal/${item.id}` as any)}
-                compact
-              />
-            )
-          }
-        />
+        <KitchenVendorsSection />
 
         {status === "failed" && !!error && (
           <Text className="px-4 mt-6 text-red-600">{error}</Text>

@@ -21,6 +21,7 @@ import {
   selectCartKitchenIds,
   selectCartSubtotal,
   selectCartTotalItems,
+  selectOrderRowsForKitchen,
 } from "@/redux/cart/cart.selectors";
 import { checkoutActiveCart } from "@/redux/cart/cart.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -122,17 +123,24 @@ export default function CheckoutScreen() {
     if (!kitchenId && kitchenIds[0]) setKitchenId(kitchenIds[0]);
   }, [kitchenId, kitchenIds]);
 
-  const orderRows = useAppSelector((s) => {
-    if (!kitchenId) return [];
-    const items = selectCartItemsForKitchen(kitchenId)(s);
-    return items.map((it) => ({
-      id: String(it.meal.id),
-      title: it.meal.name,
-      qty: it.quantity,
-      price: Number(it.meal.price),
-      cover: it.meal.cover_image?.url ?? null,
-    }));
-  });
+  const orderRowsSelector = useMemo(
+    () => selectOrderRowsForKitchen(kitchenId),
+    [kitchenId]
+  );
+
+  const orderRows = useAppSelector(orderRowsSelector);
+
+  // const orderRows = useAppSelector((s) => {
+  //   if (!kitchenId) return [];
+  //   const items = selectCartItemsForKitchen(kitchenId)(s);
+  //   return items.map((it) => ({
+  //     id: String(it.meal.id),
+  //     title: it.meal.name,
+  //     qty: it.quantity,
+  //     price: Number(it.meal.price),
+  //     cover: it.meal.cover_image?.url ?? null,
+  //   }));
+  // });
 
   const subtotal = useAppSelector(selectCartSubtotal);
   const totalItems = useAppSelector(selectCartTotalItems);

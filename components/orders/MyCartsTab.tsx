@@ -31,7 +31,7 @@ function KitchenCartCard({ kitchenId }: { kitchenId: string }) {
     (t, it) => t + Number(it.meal.price) * (it.quantity ?? 0),
     0
   );
-  console.log(group.kitchen);
+  // console.log(group.kitchen);
 
   const cover = group?.kitchen?.cover_image || undefined;
   const kitchenName = group?.kitchen?.name ?? "Kitchen";
