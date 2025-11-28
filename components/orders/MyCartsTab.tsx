@@ -26,15 +26,25 @@ function KitchenCartCard({ kitchenId }: { kitchenId: string }) {
   const group = useAppSelector((s) => s.cart.byKitchenId[kitchenId]);
   const items = useAppSelector(selectCartItemsForKitchen(kitchenId));
 
+  // If for some reason this kitchen no longer exists in cart, don't render
+  if (!group) {
+    return null;
+  }
+
   const itemCount = items.reduce((t, it) => t + (it.quantity ?? 0), 0);
   const subTotal = items.reduce(
     (t, it) => t + Number(it.meal.price) * (it.quantity ?? 0),
     0
   );
-  // console.log(group.kitchen);
 
-  const cover = group?.kitchen?.cover_image || undefined;
-  const kitchenName = group?.kitchen?.name ?? "Kitchen";
+  // ✅ Strong guard on cover image
+  const rawCover = group.kitchen?.cover_image;
+  const coverUri =
+    typeof rawCover === "string" && rawCover.trim().length > 0
+      ? rawCover
+      : null;
+
+  const kitchenName = group.kitchen?.name ?? "Kitchen";
 
   const onClear = async () => {
     try {
@@ -62,11 +72,12 @@ function KitchenCartCard({ kitchenId }: { kitchenId: string }) {
         <View className="flex-row items-center flex-1">
           <Image
             source={
-              cover
-                ? { uri: cover }
+              coverUri
+                ? { uri: coverUri }
                 : require("@/assets/images/logo-transparent.png")
             }
             className="w-8 h-8 rounded-lg bg-neutral-100"
+            resizeMode="cover"
           />
           <View className="ml-2">
             <Text className="font-satoshiBold text-neutral-900">
