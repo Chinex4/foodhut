@@ -85,17 +85,18 @@ export default function RiderRegisterScreen() {
 
   const onSubmit = handleSubmit(async (v) => {
     const local = sanitizeLocal(country.dial, v.phone_local);
-    const res = await dispatch(
-      createRider({
-        full_name: v.full_name.trim(),
-        email: v.email.trim(),
-        phone_number: fullPhone(local),
-      })
-    );
-    if (createRider.fulfilled.match(res)) {
-      // after rider creation you may want verification again or go to rider dashboard
-      router.replace("/users/(tabs)");
-    }
+    // const res = await dispatch(
+    //   createRider({
+    //     full_name: v.full_name.trim(),
+    //     email: v.email.trim(),
+    //     phone_number: fullPhone(local),
+    //   })
+    // );
+    // if (createRider.fulfilled.match(res)) {
+    //   // after rider creation you may want verification again or go to rider dashboard
+    //   router.replace("/riders/(tabs)");
+    // }
+    router.replace("/riders/(tabs)");
   });
 
   return (

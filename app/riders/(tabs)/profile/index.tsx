@@ -45,7 +45,7 @@ function Row({
   );
 }
 
-export default function ProfileHomeScreen() {
+export default function RiderProfileScreen() {
   const router = useRouter();
   const me = useAppSelector(selectMe);
   const fetchMe = useAppSelector(selectFetchMeStatus);
@@ -58,16 +58,17 @@ export default function ProfileHomeScreen() {
     try {
       await dispatch(logout()).unwrap();
       router.replace("/(auth)/login");
-    } catch (error) {
-      // err handled in thunk
+    } catch {
+      // errors handled in thunk
     }
   };
 
   return (
     <View className="flex-1 bg-white">
       <StatusBar style="dark" />
-      {/* Header / Hero */}
-      <View className="bg-primary-500 px-5 pb-5 pt-20">
+
+      {/* header / hero */}
+      <View className="bg-primary-500 px-5 pb-6 pt-20 rounded-b-3xl">
         <View className="items-center">
           <Image
             source={
@@ -80,6 +81,9 @@ export default function ProfileHomeScreen() {
           <Text className="mt-3 text-neutral-900 text-[18px] font-satoshiBold">
             {fetchMe === "loading" ? "Loading..." : fullName}
           </Text>
+          <Text className="mt-1 text-[12px] text-neutral-600 font-satoshi">
+            Rider account • ID #{me?.id ?? "—"}
+          </Text>
 
           {/* CTA buttons */}
           <View className="flex-row mt-4">
@@ -88,117 +92,96 @@ export default function ProfileHomeScreen() {
               className="bg-primary rounded-full px-4 py-2 mr-3 items-center justify-center border border-primary-500"
             >
               <View className="flex-row items-center">
-                <Ionicons name="bag-outline" size={16} color="#fff" />
+                <Ionicons name="radio-outline" size={16} color="#fff" />
                 <Text className="ml-2 text-white font-satoshiMedium">
-                  Place Order
+                  Go Online
                 </Text>
               </View>
             </Pressable>
 
             <Pressable
-              onPress={() => router.push("/users/wallet" as any)}
+              onPress={() => router.push("/riders/earnings" as any)}
               className="bg-white rounded-full px-4 py-2 items-center justify-center border border-neutral-200"
             >
               <View className="flex-row items-center">
-                <Ionicons name="wallet-outline" size={16} color="#0F172A" />
+                <Ionicons name="cash-outline" size={16} color="#0F172A" />
                 <Text className="ml-2 text-neutral-900 font-satoshiMedium">
-                  View Wallet
-                </Text>
-              </View>
-            </Pressable>
-          </View>
-          <View className="flex-col mt-4 gap-4">
-            <Pressable
-              onPress={() => router.push("/admin/(tabs)" as any)}
-              className="bg-primary rounded-full px-4 py-2 items-center justify-center border border-primary-500"
-            >
-              <View className="flex-row items-center">
-                <Ionicons name="bag-outline" size={16} color="#fff" />
-                <Text className="ml-2 text-white font-satoshiMedium">
-                  View Admin Dashboard
-                </Text>
-              </View>
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push("/riders/(tabs)" as any)}
-              className="bg-white rounded-full px-4 py-2 items-center justify-center border border-neutral-200"
-            >
-              <View className="flex-row items-center">
-                <Ionicons name="wallet-outline" size={16} color="#0F172A" />
-                <Text className="ml-2 text-neutral-900 font-satoshiMedium">
-                  View Riders Dashboard
+                  View Earnings
                 </Text>
               </View>
             </Pressable>
           </View>
         </View>
       </View>
+
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
       >
-        {/* Personal */}
+        {/* Account */}
         <Text className="text-neutral-500 font-satoshi px-1 mb-2">
-          Personal
+          Account
         </Text>
+        <Row
+          icon={<Ionicons name="document-text-outline" size={18} color="#9CA3AF" />}
+          label="KYC & Verification"
+          onPress={() => router.push("/riders/kyc")}
+        />
+        <Row
+          icon={<Ionicons name="bicycle-outline" size={18} color="#9CA3AF" />}
+          label="Vehicle Details"
+          onPress={() => router.push("/riders/vehicle" as any)}
+        />
         <Row
           icon={<Ionicons name="person-outline" size={18} color="#9CA3AF" />}
           label="Personal Details"
-          onPress={() => router.push("/users/profile/details")}
-        />
-        <Row
-          icon={<Ionicons name="location-outline" size={18} color="#9CA3AF" />}
-          label="Addresses"
-          onPress={() => {}}
+          onPress={() => router.push("/riders/profile/details" as any)}
         />
 
-        {/* Services */}
+        {/* Deliveries */}
         <Text className="text-neutral-500 font-satoshi px-1 mt-4 mb-2">
-          Services
+          Deliveries
         </Text>
         <Row
-          icon={
-            <Ionicons name="share-social-outline" size={18} color="#9CA3AF" />
-          }
-          label="Referrals"
-          onPress={() => router.push("/users/rewards")}
+          icon={<Ionicons name="stats-chart-outline" size={18} color="#9CA3AF" />}
+          label="Earnings & Payouts"
+          onPress={() => router.push("/riders/earnings" as any)}
         />
         <Row
-          icon={<Ionicons name="card-outline" size={18} color="#9CA3AF" />}
-          label="Gift Cards"
-          onPress={() => router.push("/users/support")}
+          icon={<Ionicons name="time-outline" size={18} color="#9CA3AF" />}
+          label="Ride History"
+          onPress={() => router.push("/riders/rides/history" as any)}
         />
 
-        {/* More */}
+        {/* App & support */}
         <Text className="text-neutral-500 font-satoshi px-1 mt-4 mb-2">
-          Services
+          App & Support
         </Text>
         <Row
           icon={<Ionicons name="sparkles-outline" size={18} color="#9CA3AF" />}
           label="What’s New"
-          onPress={() => router.push("/users/support")}
+          onPress={() => router.push("/riders/whats-new" as any)}
         />
         <Row
           icon={
             <Ionicons name="help-circle-outline" size={18} color="#9CA3AF" />
           }
           label="FAQ’s"
-          onPress={() => router.push("/users/support")}
+          onPress={() => router.push("/riders/support" as any)}
         />
         <Row
           icon={
             <Ionicons name="chatbubbles-outline" size={18} color="#9CA3AF" />
           }
           label="Get Help"
-          onPress={() => router.push("/users/support")}
+          onPress={() => router.push("/riders/support" as any)}
         />
         <Row
           icon={
-            <Ionicons name="document-text-outline" size={18} color="#9CA3AF" />
+            <Ionicons name="shield-checkmark-outline" size={18} color="#9CA3AF" />
           }
-          label="Legal"
-          onPress={() => router.push("/users/support")}
+          label="Legal & Privacy"
+          onPress={() => router.push("/riders/legal" as any)}
         />
 
         {/* Danger / sign out */}

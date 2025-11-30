@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ChooseRoleScreen() {
@@ -25,9 +25,9 @@ export default function ChooseRoleScreen() {
         {/* Middle icon / placeholder copy */}
         <View className="flex-1 items-center justify-center">
           <View className="items-center">
-            <Text className="text-6xl">🍽️</Text>
+            <Image source={require("../../assets/images/onb1.png")} />
             <Text className="text-gray-700 font-satoshi mt-3">
-              FOODHUT — flexible for everyone
+              FOODHUT - flexible for everyone
             </Text>
           </View>
         </View>

@@ -1,0 +1,151 @@
+// components/riders/kyc/DocumentsStep.tsx
+import React from "react";
+import { Alert, Image, Pressable, Text, TextInput, View } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import * as ImagePicker from "expo-image-picker";
+import { ID_TYPES, SimpleSelect } from "./sharedSelect";
+import { UploadFile } from "./kycTypes";
+
+type Props = {
+  idType: string | null;
+  setIdType: (v: string | null) => void;
+  idNumber: string;
+  setIdNumber: (v: string) => void;
+  files: UploadFile[];
+  setFiles: (files: UploadFile[]) => void;
+};
+
+export default function DocumentsStep({
+  idType,
+  setIdType,
+  idNumber,
+  setIdNumber,
+  files,
+  setFiles,
+}: Props) {
+  const canAddMore = files.length < 2;
+
+  const handlePickImages = async () => {
+    if (!canAddMore) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permission.status !== "granted") {
+      Alert.alert(
+        "Permission needed",
+        "Please allow access to your photos to upload your ID card."
+      );
+      return;
+    }
+
+    const remaining = 2 - files.length;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: remaining,
+    });
+
+    if (result.canceled) return;
+
+    const picked: UploadFile[] = result.assets.slice(0, remaining).map((a) => {
+      const sizeKb =
+        typeof a.fileSize === "number"
+          ? `${Math.round(a.fileSize / 1024)} KB`
+          : "— KB";
+
+      return {
+        id: `${Date.now()}-${a.assetId ?? a.uri}`,
+        uri: a.uri,
+        name: idType || a.fileName || "ID Card",
+        sizeLabel: sizeKb,
+      };
+    });
+
+    setFiles([...files, ...picked]);
+  };
+
+  const removeFile = (id: string) => {
+    setFiles(files.filter((f) => f.id !== id));
+  };
+
+  return (
+    <View className="mt-4">
+      <Text className="text-sm font-satoshiMedium text-black mb-2">
+        ID Type
+      </Text>
+      <SimpleSelect
+        placeholder="Select ID Type"
+        value={idType}
+        options={ID_TYPES}
+        onChange={setIdType}
+      />
+
+      <Text className="text-sm font-satoshiMedium text-black mt-6 mb-2">
+        ID Number
+      </Text>
+      <TextInput
+        value={idNumber}
+        onChangeText={setIdNumber}
+        placeholder="Enter ID Number"
+        className="bg-[#ececec] rounded-2xl px-4 py-3 font-satoshi text-base mb-5"
+      />
+
+      <Text className="text-sm font-satoshiMedium text-black mb-2">
+        Upload Document
+      </Text>
+
+      <Pressable
+        disabled={!canAddMore}
+        onPress={handlePickImages}
+        className={`rounded-3xl border-2 border-dashed px-4 py-6 items-center ${
+          canAddMore ? "border-primary" : "border-gray-300 opacity-60"
+        }`}
+      >
+        <Text className="text-sm font-satoshi text-gray-700 mb-4">
+          Drag and drop pictures here
+        </Text>
+        <View className="px-6 py-2 rounded-2xl bg-primary">
+          <Text className="text-white font-satoshiMedium text-sm">
+            Upload File
+          </Text>
+        </View>
+        <Text className="text-xs font-satoshi text-gray-400 mt-3">
+          Maximum Of 2 Pictures
+        </Text>
+      </Pressable>
+
+      <View className="mt-4">
+        {files.map((file) => (
+          <View
+            key={file.id}
+            className="flex-row bg-white rounded-3xl px-4 py-3 mb-3 items-center"
+          >
+            <View className="w-12 h-12 rounded-xl overflow-hidden mr-3 bg-gray-200">
+              <Image
+                source={{ uri: file.uri }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-satoshiMedium text-black">
+                {file.name}
+              </Text>
+              <Text className="text-xs font-satoshi text-gray-500 mb-1">
+                {file.sizeLabel}
+              </Text>
+              <Text className="text-xs font-satoshi text-primary">
+                Tap preview above to view full image
+              </Text>
+            </View>
+
+            <Pressable onPress={() => removeFile(file.id)}>
+              <Ionicons name="trash-outline" size={18} color="#111827" />
+            </Pressable>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
