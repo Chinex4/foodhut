@@ -14,12 +14,19 @@ import { hydrateFromStorage } from "@/redux/auth/auth.slice";
 import { getStoredAuth } from "@/storage/auth";
 
 import "../global.css";
+import { useRegisterPushToken } from "@/hooks/useRegisterFcmToken";
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // ignore if already prevented
 });
 
 attachStore(store);
+
+function PushTokenRegistrar() {
+  // this now runs INSIDE the Provider
+  useRegisterPushToken();
+  return null;
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -32,6 +39,7 @@ export default function RootLayout() {
     "Satoshi-Light": require("../assets/fonts/Satoshi-Light.otf"),
     "Satoshi-Bold": require("../assets/fonts/Satoshi-Bold.otf"),
   });
+
 
   useEffect(() => {
     (async () => {
@@ -52,6 +60,7 @@ export default function RootLayout() {
 
   return (
     <Provider store={store}>
+      <PushTokenRegistrar />
       <View style={{ flex: 1 }}>
         <Slot />
         <Toast

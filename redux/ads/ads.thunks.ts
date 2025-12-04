@@ -45,6 +45,7 @@ export const createAd = createAsyncThunk<
       message: res.data?.message ?? res.data?.data ?? "Ad created!",
     };
   } catch (err: any) {
+    console.log("createAd response", err);
     return rejectWithValue(err?.response?.data?.error || "Failed to create ad");
   }
 });

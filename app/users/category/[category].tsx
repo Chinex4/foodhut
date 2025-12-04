@@ -54,7 +54,7 @@ export default function CategoryListScreen() {
   const selector = useMemo(() => {
     switch (cat) {
       case "popular":
-        return makeSelectMostPopular(200);
+        return makeSelectMostPopular(200, "");
       case "vendors":
         return makeSelectVendorsCloseBy(200);
       default:

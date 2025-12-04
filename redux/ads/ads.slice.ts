@@ -61,10 +61,28 @@ const adsSlice = createSlice({
       .addCase(fetchAds.fulfilled, (state, a) => {
         state.listStatus = "succeeded";
         const { items, meta } = a.payload;
-        state.lastListIds = items.map((x) => x.id);
+
         state.lastListMeta = meta;
-        items.forEach((x) => upsert(state, x));
+
+        if (meta.page && meta.page > 1) {
+          // append for pagination
+          const existing = new Set(state.lastListIds);
+          const newIds: string[] = [];
+          items.forEach((x) => {
+            if (!existing.has(x.id)) {
+              newIds.push(x.id);
+              existing.add(x.id);
+            }
+            upsert(state, x);
+          });
+          state.lastListIds = [...state.lastListIds, ...newIds];
+        } else {
+          // first page or no meta.page → replace
+          state.lastListIds = items.map((x) => x.id);
+          items.forEach((x) => upsert(state, x));
+        }
       })
+
       .addCase(fetchAds.rejected, (state, a) => {
         state.listStatus = "failed";
         state.error = (a.payload as string) || "Failed to fetch ads";

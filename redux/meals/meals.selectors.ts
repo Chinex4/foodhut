@@ -11,6 +11,21 @@ export const selectMealsArray = createSelector(
   (entities): Meal[] => Object.values(entities ?? {})
 );
 
+// simple deterministic hash
+const hashString = (str: string) => {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) | 0;
+  }
+  return h >>> 0; // unsigned
+};
+
+// turn hash into [0, 1)
+const jitterFor = (id: string, salt: string) => {
+  const h = hashString(id + salt);
+  return (h % 1000) / 1000; // 0..0.999
+};
+
 // === FACTORY SELECTORS (memoized) ===
 export const makeSelectTrendingDiscounts = (limit = 10) =>
   createSelector([selectMealsArray], (arr) => {
@@ -28,7 +43,8 @@ export const makeSelectTrendingDiscounts = (limit = 10) =>
       .map((x) => x.m);
 
     if (discounted.length) return discounted;
-    // fallback – popular
+
+    // fallback – popular (same as before)
     return arr
       .slice()
       .sort(
@@ -38,16 +54,26 @@ export const makeSelectTrendingDiscounts = (limit = 10) =>
       .slice(0, limit);
   });
 
-export const makeSelectMostPopular = (limit = 10) =>
-  createSelector([selectMealsArray], (arr) =>
-    arr
-      .slice()
-      .sort(
-        (a, b) =>
-          toNum(b.rating) - toNum(a.rating) || toNum(b.likes) - toNum(a.likes)
-      )
+export const makeSelectMostPopular = (limit = 10, salt = "day-1") => {
+  const selectTrending = makeSelectTrendingDiscounts(limit);
+
+  return createSelector([selectMealsArray, selectTrending], (arr, trending) => {
+    const excludeIds = new Set(trending.map((m) => m.id));
+    const candidates = arr.filter((m) => !excludeIds.has(m.id));
+    if (!candidates.length) return trending;
+
+    const scored = candidates.map((m) => {
+      const baseScore = toNum(m.rating) * 3 + toNum(m.likes); // your main metric
+      const jitter = jitterFor(m.id, salt) * 0.2; // small 0–0.2 bonus
+      return { m, score: baseScore + jitter };
+    });
+
+    return scored
+      .sort((a, b) => b.score - a.score)
       .slice(0, limit)
-  );
+      .map((x) => x.m);
+  });
+};
 
 export const makeSelectVendorsCloseBy = (limitKitchens = 10) =>
   createSelector([selectMealsArray], (arr) => {
