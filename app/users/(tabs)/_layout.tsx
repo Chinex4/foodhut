@@ -2,10 +2,13 @@
 import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Platform } from "react-native";
+import { useAppSelector } from "@/store/hooks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 export default function TabLayout() {
-  const tint = "#ffa800"; // primary
-  const inactive = "#8E8E93";
+  const isDark = useAppSelector(selectThemeMode) === "dark";
+  const tint = isDark ? "#fbbf24" : "#ffa800"; // primary
+  const inactive = isDark ? "#9CA3AF" : "#8E8E93";
 
   return (
     <Tabs
@@ -17,13 +20,14 @@ export default function TabLayout() {
           height: 78,
           paddingTop: 8,
           paddingBottom: Platform.select({ ios: 18, default: 14 }),
-          backgroundColor: "#FFF8EC", // a soft off-white like your mock
+          backgroundColor: isDark ? "#0a0a0a" : "#FFF8EC",
           borderTopWidth: 1,
+          borderTopColor: isDark ? "#0a0a0a" : "#f3f4f6",
           elevation: 0,
         },
         tabBarLabelStyle: {
           fontFamily: "Satoshi-Medium",
-          fontSize: 14,
+          fontSize: 13,
         },
       }}
     >

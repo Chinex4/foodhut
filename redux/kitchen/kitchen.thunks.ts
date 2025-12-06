@@ -30,6 +30,7 @@ export const createKitchen = createAsyncThunk<
 >("kitchen/createKitchen", async (body, { rejectWithValue }) => {
   try {
     const res = await api.post(`${BASE}`, body);
+    console.log(res)
     const message = res.data?.message ?? res.data?.data ?? "Kitchen created!";
     return { message };
   } catch (err: any) {

@@ -16,6 +16,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Image,
 } from "react-native";
 
 type City = {
@@ -319,12 +320,20 @@ export default function KitchenDetailScreen() {
                   onPress={() => {}}
                   className={`rounded-2xl border overflow-hidden flex-row ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
                 >
-                  {item.cover_image?.url && (
-                    <CachedImage
-                      uri={item.cover_image.url}
-                      className={`w-24 h-24 ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
-                    />
-                  )}
+                  <View className={`w-24 h-24 ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}>
+                    {item.cover_image?.url ? (
+                      <CachedImage
+                        uri={item.cover_image.url}
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      <Image
+                        source={require("@/assets/images/logo-transparent.png")}
+                        className="w-full h-full"
+                        resizeMode="cover"
+                      />
+                    )}
+                  </View>
                   <View className="flex-1 p-3 justify-between">
                     <View>
                       <Text

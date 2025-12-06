@@ -155,7 +155,7 @@ export default function ProfileDetailsScreen() {
           value={me?.email ?? ""}
           placeholder="Email"
           editable={false}
-          rightEl={<Iconicons name="create-outline" size={16} color={isDark ? "#6B7280" : "#E5E7EB"} />}
+          rightEl={<Ionicons name="create-outline" size={16} color={isDark ? "#6B7280" : "#E5E7EB"} />}
           isDark={isDark}
         />
 

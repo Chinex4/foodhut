@@ -29,7 +29,7 @@ export default function SearchResultsScreen() {
   const meals = items.filter((x) => x.kind === "meal");
 
   return (
-    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"} pt-6`}>
+    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"} pt-16`}>
       {/* Always visible */}
       <View className="mt-6 px-5 mb-4">
         <SearchBar className="mt-4" />

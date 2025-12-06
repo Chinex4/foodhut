@@ -44,7 +44,9 @@ function Segmented({ tab, setTab, isDark }: { tab: Tab; setTab: (t: Tab) => void
           className={`text-[13px] ${
             tab === "REFER"
               ? "text-white font-satoshiBold"
-              : "text-neutral-600 font-satoshi"
+              : isDark
+                ? "text-neutral-300 font-satoshi"
+                : "text-neutral-600 font-satoshi"
           }`}
         >
           Refer
@@ -60,7 +62,9 @@ function Segmented({ tab, setTab, isDark }: { tab: Tab; setTab: (t: Tab) => void
           className={`text-[13px] ${
             tab === "EARN"
               ? "text-white font-satoshiBold"
-              : "text-neutral-600 font-satoshi"
+              : isDark
+                ? "text-neutral-300 font-satoshi"
+                : "text-neutral-600 font-satoshi"
           }`}
         >
           Earn
@@ -74,23 +78,37 @@ function CopyField({
   label,
   value,
   onCopy,
+  isDark,
 }: {
   label: string;
   value: string;
   onCopy: () => void;
+  isDark: boolean;
 }) {
   return (
     <View className="mt-4">
-      <Text className="mb-2 text-neutral-800 font-satoshi">{label}</Text>
-      <View className="bg-neutral-100 rounded-2xl px-3 py-4 flex-row items-center justify-between">
+      <Text
+        className={`mb-2 font-satoshi ${
+          isDark ? "text-neutral-200" : "text-neutral-800"
+        }`}
+      >
+        {label}
+      </Text>
+      <View
+        className={`rounded-2xl px-3 py-4 flex-row items-center justify-between ${
+          isDark ? "bg-neutral-900 border border-neutral-800" : "bg-neutral-100"
+        }`}
+      >
         <Text
           numberOfLines={1}
-          className="flex-1 mr-3 text-neutral-900 font-satoshi"
+          className={`flex-1 mr-3 font-satoshi ${
+            isDark ? "text-white" : "text-neutral-900"
+          }`}
         >
           {value}
         </Text>
         <Pressable onPress={onCopy} className="px-2 py-2">
-          <Ionicons name="copy-outline" size={18} color="#0F172A" />
+          <Ionicons name="copy-outline" size={18} color={isDark ? "#E5E7EB" : "#0F172A"} />
         </Pressable>
       </View>
     </View>
@@ -100,12 +118,18 @@ function CopyField({
 function InfoAccordion({
   open,
   setOpen,
+  isDark,
 }: {
   open: boolean;
   setOpen: (b: boolean) => void;
+  isDark: boolean;
 }) {
   return (
-    <View className="mt-4 bg-white rounded-2xl border border-neutral-200">
+    <View
+      className={`mt-4 rounded-2xl border ${
+        isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+      }`}
+    >
       <Pressable
         onPress={() => setOpen(!open)}
         className="flex-row items-center justify-between px-3 py-4"
@@ -114,19 +138,21 @@ function InfoAccordion({
           <Ionicons
             name="information-circle-outline"
             size={18}
-            color="#0F172A"
+            color={isDark ? "#E5E7EB" : "#0F172A"}
           />
-          <Text className="ml-2 font-satoshi">How you can earn</Text>
+          <Text className={`ml-2 font-satoshi ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
+            How you can earn
+          </Text>
         </View>
         <Ionicons
           name={open ? "chevron-up" : "chevron-down"}
           size={18}
-          color="#0F172A"
+          color={isDark ? "#E5E7EB" : "#0F172A"}
         />
       </Pressable>
       {open && (
         <View className="px-3 pb-4">
-          <Text className="text-neutral-600 font-satoshi">
+          <Text className={`font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-600"}`}>
             • Share your code with friends{`\n`}• They get discounts on first
             order{`\n`}• You earn wallet credits after their first successful
             order
@@ -141,17 +167,25 @@ function RewardTile({
   icon,
   title,
   subtitle,
+  isDark,
 }: {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
+  isDark: boolean;
 }) {
   return (
-    <View className="bg-[#FFF5E6] border border-[#FFE7C2] rounded-xl px-3 py-3 flex-row items-center mb-3">
+    <View
+      className={`rounded-xl px-3 py-3 flex-row items-center mb-3 border ${
+        isDark ? "bg-neutral-900 border-neutral-800" : "bg-[#FFF5E6] border-[#FFE7C2]"
+      }`}
+    >
       {icon}
       <View className="ml-3">
-        <Text className="text-neutral-900 font-satoshiMedium">{title}</Text>
-        <Text className="text-neutral-600 text-[12px] font-satoshi">
+        <Text className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
+          {title}
+        </Text>
+        <Text className={`text-[12px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
           {subtitle}
         </Text>
       </View>
@@ -205,13 +239,13 @@ export default function ReferralsScreen() {
             onPress={() => router.push("/users/(tabs)/profile")}
             className="mr-2"
           >
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
+            <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
           </Pressable>
           <View>
-            <Text className="text-[22px] font-satoshiBold text-neutral-900">
+            <Text className={`text-[22px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
               Rewards
             </Text>
-            <Text className="mt-1 text-neutral-600 font-satoshi">
+            <Text className={`mt-1 font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
               Earn rewards as you order! Save with coupons, wallet credits, and
               free treats
             </Text>
@@ -232,7 +266,9 @@ export default function ReferralsScreen() {
           {/* Optional rewards popover */}
           {showRewards && (
             <View
-              className="relative bg-white rounded-2xl border border-neutral-200 p-4 mt-4"
+              className={`relative rounded-2xl p-4 mt-4 border ${
+                isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+              }`}
               style={{
                 shadowOpacity: 0.05,
                 shadowRadius: 10,
@@ -244,7 +280,7 @@ export default function ReferralsScreen() {
                 onPress={() => setShowRewards(false)}
                 className="absolute right-2 top-2 p-1 rounded-full"
               >
-                <Ionicons name="close" size={16} color="#0F172A" />
+                <Ionicons name="close" size={16} color={isDark ? "#E5E7EB" : "#0F172A"} />
               </Pressable>
 
               <RewardTile
@@ -252,25 +288,28 @@ export default function ReferralsScreen() {
                   <Ionicons
                     name="person-add-outline"
                     size={18}
-                    color="#0F172A"
+                    color={isDark ? "#FBBF24" : "#0F172A"}
                   />
                 }
                 title="Refer a friend"
                 subtitle="Get ₦1000"
+                isDark={isDark}
               />
               <RewardTile
                 icon={
-                  <Ionicons name="gift-outline" size={18} color="#0F172A" />
+                  <Ionicons name="gift-outline" size={18} color={isDark ? "#FBBF24" : "#0F172A"} />
                 }
                 title="First Order bonus"
                 subtitle="Free delivery + ₦500 wallet credit"
+                isDark={isDark}
               />
               <RewardTile
                 icon={
-                  <Ionicons name="beer-outline" size={18} color="#0F172A" />
+                  <Ionicons name="beer-outline" size={18} color={isDark ? "#FBBF24" : "#0F172A"} />
                 }
                 title="Order 5 times"
                 subtitle="Get free drinks"
+                isDark={isDark}
               />
             </View>
           )}
@@ -281,7 +320,7 @@ export default function ReferralsScreen() {
               source={require("@/assets/images/giftbox.png")}
               className="w-24 h-24"
             />
-            <Text className="mt-2 font-satoshiMedium text-neutral-900">
+            <Text className={`mt-2 font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
               Refer & Earn
             </Text>
           </View>
@@ -291,11 +330,13 @@ export default function ReferralsScreen() {
             label="Referral Code"
             value={code}
             onCopy={() => copy(code)}
+            isDark={isDark}
           />
           <CopyField
             label="Referral Link"
             value={link}
             onCopy={() => copy(link)}
+            isDark={isDark}
           />
 
           {/* Share */}
@@ -315,7 +356,11 @@ export default function ReferralsScreen() {
             ListHeaderComponent={
               <View>
                 {/* Balance card */}
-                <View className="bg-neutral-900 rounded-2xl p-5 mt-4">
+                <View
+                  className={`rounded-2xl p-5 mt-4 ${
+                    isDark ? "bg-neutral-900 border border-neutral-800" : "bg-neutral-900"
+                  }`}
+                >
                   <Text className="text-white/80 font-satoshi">
                     Available Balance
                   </Text>
@@ -326,11 +371,11 @@ export default function ReferralsScreen() {
                 </View>
 
                 {/* How you can earn (accordion) */}
-                <InfoAccordion open={openInfo} setOpen={setOpenInfo} />
+                <InfoAccordion open={openInfo} setOpen={setOpenInfo} isDark={isDark} />
 
                 {/* Section header */}
                 <View className="flex-row items-center justify-between mt-6 mb-2">
-                  <Text className="text-neutral-900 font-satoshiBold">
+                  <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
                     Your Referrals
                   </Text>
                   <Pressable className="px-2 py-1">
@@ -342,32 +387,36 @@ export default function ReferralsScreen() {
               </View>
             }
             renderItem={({ item }) => (
-              <View className="bg-white rounded-2xl border border-neutral-100 px-3 py-3 mb-3 flex-row items-center justify-between">
+              <View
+                className={`rounded-2xl border px-3 py-3 mb-3 flex-row items-center justify-between ${
+                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+                }`}
+              >
                 <View className="flex-row items-center">
                   <CachedImage
                     uri={item.avatar || undefined}
                     fallback={
                       <Image
                         source={require("@/assets/images/avatar.png")}
-                        className="w-8 h-8 rounded-full bg-neutral-200"
+                        className={`w-8 h-8 rounded-full ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
                       />
                     }
-                    className="w-8 h-8 rounded-full bg-neutral-200"
+                    className={`w-8 h-8 rounded-full ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
                   />
                   <View className="ml-3">
-                    <Text className="text-neutral-900 font-satoshiMedium">
+                    <Text className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
                       {item.name}
                     </Text>
-                    <Text className="text-neutral-500 text-[12px] font-satoshi">
+                    <Text className={`text-[12px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                       {item.joinedLabel}
                     </Text>
                   </View>
                 </View>
                 <View>
-                  <Text className="text-neutral-500 text-[12px] font-satoshi self-end">
+                  <Text className={`text-[12px] font-satoshi self-end ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                     You Earned
                   </Text>
-                  <Text className="text-neutral-900 font-satoshiBold">
+                  <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
                     ₦{item.youEarned.toFixed(2)}
                   </Text>
                 </View>
@@ -379,10 +428,14 @@ export default function ReferralsScreen() {
                   source={require("@/assets/images/empty-box.png")}
                   className="w-28 h-28"
                 />
-                <Text className="mt-3 text-neutral-900 font-satoshiMedium">
+                <Text className={`mt-3 font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
                   Share your code!
                 </Text>
-                <Text className="text-neutral-500 font-satoshi text-center px-8 mt-1">
+                <Text
+                  className={`font-satoshi text-center px-8 mt-1 ${
+                    isDark ? "text-neutral-400" : "text-neutral-500"
+                  }`}
+                >
                   No one has used your referral code yet. Share it now and start
                   earning rewards.
                 </Text>

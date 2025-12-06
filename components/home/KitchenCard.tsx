@@ -93,7 +93,7 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
 
         <View className="mt-2 flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <View className="px-1.5 py-0.5 rounded-md bg-[#FFF7E6] mr-1.5">
+            <View className={`px-1.5 py-0.5 rounded-md ${isDark ? 'bg-slate-900' : 'bg-[#FFF7E6]'} mr-1.5`}>
               <Text className="text-[10px] font-satoshiBold text-primary">
                 {rating}
               </Text>
@@ -105,7 +105,7 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
 
           <View
             className={`px-2 py-1 rounded-full ${
-              kitchen.is_available ? "bg-[#E5F9F0]" : isDark ? "bg-neutral-800" : "bg-neutral-200"
+              kitchen.is_available && isDark ? "bg-neutral-800" : "bg-[#f3f3f3]"
             }`}
           >
             <Text

@@ -146,16 +146,30 @@ export default function CreateKitchenScreen() {
     cities.find((c) => c.id === selectedCityId)?.name || selectedCityId;
 
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const surfaceCard = `${isDark ? "bg-neutral-900 border border-neutral-800" : "bg-white border border-neutral-200"}`;
+  const labelText = isDark ? "text-neutral-200" : "text-neutral-700";
+  const helperText = isDark ? "text-neutral-400" : "text-neutral-500";
+  const placeholderColor = isDark ? "#6B7280" : "#D1D5DB";
+  const divider = isDark ? "bg-neutral-800" : "bg-neutral-100";
+
   return (
     <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-4 border-b border-neutral-100">
+      <View
+        className={`flex-row items-center justify-between px-5 py-4 border-b ${
+          isDark ? "border-neutral-900" : "border-neutral-100"
+        }`}
+      >
         <Pressable onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={28} color="#0F172A" />
+          <Ionicons name="chevron-back" size={28} color={isDark ? "#E5E7EB" : "#0F172A"} />
         </Pressable>
-        <Text className="font-satoshiBold text-[18px] text-neutral-900">
+        <Text
+          className={`font-satoshiBold text-[18px] ${
+            isDark ? "text-white" : "text-neutral-900"
+          }`}
+        >
           Create Kitchen
         </Text>
         <View className="w-7" />
@@ -170,33 +184,33 @@ export default function CreateKitchenScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Section Title */}
-          <Text className="text-neutral-500 font-satoshi text-[12px] uppercase mb-4">
+          <Text className={`${helperText} font-satoshi text-[12px] uppercase mb-4`}>
             Kitchen Information
           </Text>
 
           {/* Kitchen Name */}
           <View className="mb-4">
-            <Text className="text-neutral-700 font-satoshiMedium mb-2">
+            <Text className={`${labelText} font-satoshiMedium mb-2`}>
               Kitchen Name
             </Text>
-            <View className="bg-white rounded-2xl border border-neutral-200 px-4 py-3 flex-row items-center">
+            <View className={`${surfaceCard} rounded-2xl px-4 py-3 flex-row items-center`}>
               <Ionicons name="storefront-outline" size={18} color="#9CA3AF" />
               <TextInput
                 value={name}
                 onChangeText={setName}
                 placeholder="e.g. Mama's Kitchen"
-                placeholderTextColor="#D1D5DB"
-                className="flex-1 ml-3 font-satoshi text-neutral-900"
+                placeholderTextColor={placeholderColor}
+                className={`flex-1 ml-3 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
               />
             </View>
           </View>
 
           {/* Address */}
           <View className="mb-4">
-            <Text className="text-neutral-700 font-satoshiMedium mb-2">
+            <Text className={`${labelText} font-satoshiMedium mb-2`}>
               Address
             </Text>
-            <View className="bg-white rounded-2xl border border-neutral-200 px-4 py-3 flex-row items-start">
+            <View className={`${surfaceCard} rounded-2xl px-4 py-3 flex-row items-start`}>
               <Ionicons
                 name="location-outline"
                 size={18}
@@ -207,54 +221,58 @@ export default function CreateKitchenScreen() {
                 value={address}
                 onChangeText={setAddress}
                 placeholder="e.g. 123 Lekki Phase 1"
-                placeholderTextColor="#D1D5DB"
+                placeholderTextColor={placeholderColor}
                 multiline
                 numberOfLines={2}
-                className="flex-1 ml-3 font-satoshi text-neutral-900"
+                className={`flex-1 ml-3 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
               />
             </View>
           </View>
 
           {/* Phone Number */}
           <View className="mb-4">
-            <Text className="text-neutral-700 font-satoshiMedium mb-2">
+            <Text className={`${labelText} font-satoshiMedium mb-2`}>
               Phone Number
             </Text>
-            <View className="bg-white rounded-2xl border border-neutral-200 px-4 py-3 flex-row items-center">
+            <View className={`${surfaceCard} rounded-2xl px-4 py-3 flex-row items-center`}>
               <Ionicons name="call-outline" size={18} color="#9CA3AF" />
               <TextInput
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
                 placeholder="e.g. +234 123 456 7890"
-                placeholderTextColor="#D1D5DB"
+                placeholderTextColor={placeholderColor}
                 keyboardType="phone-pad"
-                className="flex-1 ml-3 font-satoshi text-neutral-900"
+                className={`flex-1 ml-3 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
               />
             </View>
           </View>
 
           {/* Divider */}
-          <View className="h-[1px] bg-neutral-100 my-4" />
+          <View className={`h-[1px] my-4 ${divider}`} />
 
           {/* Section Title */}
-          <Text className="text-neutral-500 font-satoshi text-[12px] uppercase mb-4">
+          <Text className={`${helperText} font-satoshi text-[12px] uppercase mb-4`}>
             Kitchen Details
           </Text>
 
           {/* Kitchen Type */}
           <View className="mb-4">
-            <Text className="text-neutral-700 font-satoshiMedium mb-2">
+            <Text className={`${labelText} font-satoshiMedium mb-2`}>
               Kitchen Type
             </Text>
             <Pressable
               onPress={() => setShowTypeModal(true)}
-              className="bg-white rounded-2xl border border-neutral-200 px-4 py-3 flex-row items-center justify-between"
+              className={`${surfaceCard} rounded-2xl px-4 py-3 flex-row items-center justify-between`}
             >
               <View className="flex-row items-center flex-1">
                 <Ionicons name="list-outline" size={18} color="#9CA3AF" />
                 <Text
                   className={`ml-3 font-satoshi flex-1 ${
-                    selectedType ? "text-neutral-900" : "text-neutral-400"
+                    selectedType
+                      ? isDark
+                        ? "text-neutral-100"
+                        : "text-neutral-900"
+                      : helperText
                   }`}
                 >
                   {selectedTypeName || "Select type"}
@@ -266,18 +284,22 @@ export default function CreateKitchenScreen() {
 
           {/* City */}
           <View className="mb-4">
-            <Text className="text-neutral-700 font-satoshiMedium mb-2">
+            <Text className={`${labelText} font-satoshiMedium mb-2`}>
               City
             </Text>
             <Pressable
               onPress={() => setShowCityModal(true)}
-              className="bg-white rounded-2xl border border-neutral-200 px-4 py-3 flex-row items-center justify-between"
+              className={`${surfaceCard} rounded-2xl px-4 py-3 flex-row items-center justify-between`}
             >
               <View className="flex-row items-center flex-1">
                 <Ionicons name="map-outline" size={18} color="#9CA3AF" />
                 <Text
                   className={`ml-3 font-satoshi flex-1 ${
-                    selectedCityId ? "text-neutral-900" : "text-neutral-400"
+                    selectedCityId
+                      ? isDark
+                        ? "text-neutral-100"
+                        : "text-neutral-900"
+                      : helperText
                   }`}
                 >
                   {selectedCityName || "Select city"}
@@ -288,16 +310,16 @@ export default function CreateKitchenScreen() {
           </View>
 
           {/* Divider */}
-          <View className="h-[1px] bg-neutral-100 my-4" />
+          <View className={`h-[1px] my-4 ${divider}`} />
 
           {/* Section Title */}
-          <Text className="text-neutral-500 font-satoshi text-[12px] uppercase mb-4">
+          <Text className={`${helperText} font-satoshi text-[12px] uppercase mb-4`}>
             Operating Hours
           </Text>
 
           {/* Opening Time */}
           <View className="mb-4">
-            <Text className="text-neutral-700 font-satoshiMedium mb-2">
+            <Text className={`${labelText} font-satoshiMedium mb-2`}>
               Opening Time
             </Text>
             <Pressable
@@ -305,11 +327,11 @@ export default function CreateKitchenScreen() {
                 setCurrentTimeType("opening");
                 setShowTimePicker(true);
               }}
-              className="bg-white rounded-2xl border border-neutral-200 px-4 py-3 flex-row items-center justify-between"
+              className={`${surfaceCard} rounded-2xl px-4 py-3 flex-row items-center justify-between`}
             >
               <View className="flex-row items-center">
                 <Ionicons name="time-outline" size={18} color="#FFA800" />
-                <Text className="ml-3 font-satoshi text-neutral-900">
+                <Text className={`ml-3 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}>
                   {formatTimeForDisplay(openingTime)}
                 </Text>
               </View>
@@ -319,7 +341,7 @@ export default function CreateKitchenScreen() {
 
           {/* Closing Time */}
           <View className="mb-4">
-            <Text className="text-neutral-700 font-satoshiMedium mb-2">
+            <Text className={`${labelText} font-satoshiMedium mb-2`}>
               Closing Time
             </Text>
             <Pressable
@@ -327,11 +349,11 @@ export default function CreateKitchenScreen() {
                 setCurrentTimeType("closing");
                 setShowTimePicker(true);
               }}
-              className="bg-white rounded-2xl border border-neutral-200 px-4 py-3 flex-row items-center justify-between"
+              className={`${surfaceCard} rounded-2xl px-4 py-3 flex-row items-center justify-between`}
             >
               <View className="flex-row items-center">
                 <Ionicons name="time-outline" size={18} color="#FFA800" />
-                <Text className="ml-3 font-satoshi text-neutral-900">
+                <Text className={`ml-3 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}>
                   {formatTimeForDisplay(closingTime)}
                 </Text>
               </View>
@@ -340,45 +362,45 @@ export default function CreateKitchenScreen() {
           </View>
 
           {/* Divider */}
-          <View className="h-[1px] bg-neutral-100 my-4" />
+          <View className={`h-[1px] my-4 ${divider}`} />
 
           {/* Section Title */}
-          <Text className="text-neutral-500 font-satoshi text-[12px] uppercase mb-4">
+          <Text className={`${helperText} font-satoshi text-[12px] uppercase mb-4`}>
             Delivery Settings
           </Text>
 
           {/* Delivery Time */}
           <View className="mb-4">
-            <Text className="text-neutral-700 font-satoshiMedium mb-2">
+            <Text className={`${labelText} font-satoshiMedium mb-2`}>
               Delivery Time (minutes)
             </Text>
-            <View className="bg-white rounded-2xl border border-neutral-200 px-4 py-3 flex-row items-center">
+            <View className={`${surfaceCard} rounded-2xl px-4 py-3 flex-row items-center`}>
               <Ionicons name="bicycle-outline" size={18} color="#9CA3AF" />
               <TextInput
                 value={deliveryTime}
                 onChangeText={setDeliveryTime}
                 placeholder="e.g. 30"
-                placeholderTextColor="#D1D5DB"
+                placeholderTextColor={placeholderColor}
                 keyboardType="number-pad"
-                className="flex-1 ml-3 font-satoshi text-neutral-900"
+                className={`flex-1 ml-3 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
               />
             </View>
           </View>
 
           {/* Preparation Time */}
           <View className="mb-4">
-            <Text className="text-neutral-700 font-satoshiMedium mb-2">
+            <Text className={`${labelText} font-satoshiMedium mb-2`}>
               Preparation Time (minutes)
             </Text>
-            <View className="bg-white rounded-2xl border border-neutral-200 px-4 py-3 flex-row items-center">
+            <View className={`${surfaceCard} rounded-2xl px-4 py-3 flex-row items-center`}>
               <Ionicons name="restaurant-outline" size={18} color="#9CA3AF" />
               <TextInput
                 value={preparationTime}
                 onChangeText={setPreparationTime}
                 placeholder="e.g. 15"
-                placeholderTextColor="#D1D5DB"
+                placeholderTextColor={placeholderColor}
                 keyboardType="number-pad"
-                className="flex-1 ml-3 font-satoshi text-neutral-900"
+                className={`flex-1 ml-3 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
               />
             </View>
           </View>
@@ -386,12 +408,16 @@ export default function CreateKitchenScreen() {
       </KeyboardAvoidingView>
 
       {/* Bottom Button */}
-      <View className="absolute left-0 right-0 bottom-0 px-5 pb-6 pt-4 bg-[#FFFDF8] border-t border-neutral-100">
+      <View
+        className={`absolute left-0 right-0 bottom-0 px-5 pb-6 pt-4 border-t ${
+          isDark ? "bg-neutral-950 border-neutral-800" : "bg-[#FFFDF8] border-neutral-100"
+        }`}
+      >
         <Pressable
           onPress={handleCreateKitchen}
           disabled={!canSubmit}
           className={`rounded-2xl py-4 items-center justify-center ${
-            canSubmit ? "bg-primary" : "bg-neutral-300"
+            canSubmit ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-300"
           }`}
         >
           {createStatus === "loading" ? (
@@ -415,13 +441,17 @@ export default function CreateKitchenScreen() {
         animationType="slide"
       >
         <View className="flex-1 bg-black/40 justify-end">
-          <View className="bg-white rounded-t-3xl pt-4 pb-6">
+          <View
+            className={`rounded-t-3xl pt-4 pb-6 ${
+              isDark ? "bg-neutral-900 border-t border-neutral-800" : "bg-white"
+            }`}
+          >
             <View className="flex-row items-center justify-between px-5 mb-4">
-              <Text className="font-satoshiBold text-[16px]">
+              <Text className={`font-satoshiBold text-[16px] ${isDark ? "text-white" : "text-neutral-900"}`}>
                 Select Kitchen Type
               </Text>
               <Pressable onPress={() => setShowTypeModal(false)}>
-                <Ionicons name="close-circle" size={24} color="#9CA3AF" />
+                <Ionicons name="close-circle" size={24} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
               </Pressable>
             </View>
 
@@ -439,14 +469,18 @@ export default function CreateKitchenScreen() {
                   className={`py-4 px-4 rounded-2xl mb-2 flex-row items-center justify-between border ${
                     selectedType === item
                       ? "bg-primary-50 border-primary"
-                      : "bg-neutral-50 border-neutral-200"
+                      : isDark
+                        ? "bg-neutral-800 border-neutral-700"
+                        : "bg-neutral-50 border-neutral-200"
                   }`}
                 >
                   <Text
                     className={`font-satoshi ${
                       selectedType === item
                         ? "text-primary font-satoshiBold"
-                        : "text-neutral-700"
+                        : isDark
+                          ? "text-neutral-200"
+                          : "text-neutral-700"
                     }`}
                   >
                     {item}
@@ -469,11 +503,17 @@ export default function CreateKitchenScreen() {
         animationType="slide"
       >
         <View className="flex-1 bg-black/40 justify-end">
-          <View className="bg-white rounded-t-3xl pt-4 pb-6 max-h-[80%]">
+          <View
+            className={`rounded-t-3xl pt-4 pb-6 max-h-[80%] ${
+              isDark ? "bg-neutral-900 border-t border-neutral-800" : "bg-white"
+            }`}
+          >
             <View className="flex-row items-center justify-between px-5 mb-4">
-              <Text className="font-satoshiBold text-[16px]">Select City</Text>
+              <Text className={`font-satoshiBold text-[16px] ${isDark ? "text-white" : "text-neutral-900"}`}>
+                Select City
+              </Text>
               <Pressable onPress={() => setShowCityModal(false)}>
-                <Ionicons name="close-circle" size={24} color="#9CA3AF" />
+                <Ionicons name="close-circle" size={24} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
               </Pressable>
             </View>
 
@@ -491,7 +531,9 @@ export default function CreateKitchenScreen() {
                   className={`py-4 px-4 rounded-2xl mb-2 flex-row items-center justify-between border ${
                     selectedCityId === item.id
                       ? "bg-primary-50 border-primary"
-                      : "bg-neutral-50 border-neutral-200"
+                      : isDark
+                        ? "bg-neutral-800 border-neutral-700"
+                        : "bg-neutral-50 border-neutral-200"
                   }`}
                 >
                   <View>
@@ -499,12 +541,14 @@ export default function CreateKitchenScreen() {
                       className={`font-satoshi ${
                         selectedCityId === item.id
                           ? "text-primary font-satoshiBold"
-                          : "text-neutral-700"
+                          : isDark
+                            ? "text-neutral-200"
+                            : "text-neutral-700"
                       }`}
                     >
                       {item.name}
                     </Text>
-                    <Text className="text-[12px] text-neutral-500">
+                    <Text className={`text-[12px] ${helperText}`}>
                       {item.state}
                     </Text>
                   </View>
@@ -525,15 +569,19 @@ export default function CreateKitchenScreen() {
           mode="time"
           display={Platform.OS === "ios" ? "spinner" : "default"}
           onChange={handleTimeChange}
-          themeVariant="light"
+          themeVariant={isDark ? "dark" : "light"}
         />
       )}
 
       {Platform.OS === "ios" && showTimePicker && (
-        <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-neutral-200">
+        <View
+          className={`absolute bottom-0 left-0 right-0 border-t ${
+            isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+          }`}
+        >
           <View className="flex-row items-center justify-between px-5 py-3">
             <Pressable onPress={() => setShowTimePicker(false)}>
-              <Text className="text-neutral-600 font-satoshiMedium">Cancel</Text>
+              <Text className={`${helperText} font-satoshiMedium`}>Cancel</Text>
             </Pressable>
             <Pressable onPress={() => setShowTimePicker(false)}>
               <Text className="text-primary font-satoshiBold">Done</Text>

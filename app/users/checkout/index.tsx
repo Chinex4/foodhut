@@ -99,7 +99,7 @@ function Radio({
             selected ? "border-primary bg-primary" : isDark ? "border-neutral-600" : "border-neutral-400"
           }`}
         />
-        <Text className="text-neutral-800 font-satoshiMedium">{label}</Text>
+        <Text className={` ${isDark ? 'text-neutral-400' : 'text-neutral-800'} font-satoshiMedium`}>{label}</Text>
       </View>
       {rightEl}
     </Pressable>
@@ -481,14 +481,24 @@ export default function CheckoutScreen() {
             keyboardShouldPersistTaps="handled"
           >
             {/* Info banner / warning */}
-            <View className="flex-row items-start bg-[#FFF1F2] border border-[#FEE2E2] rounded-2xl px-3 py-3 mb-4">
+            <View
+              className={`flex-row items-start rounded-2xl px-3 py-3 mb-4 ${
+                isDark
+                  ? "bg-neutral-900 border border-neutral-800"
+                  : "bg-[#FFF1F2] border border-[#FEE2E2]"
+              }`}
+            >
               <Ionicons
                 name="alert-circle"
                 size={18}
-                color="#ef4444"
+                color={isDark ? "#f87171" : "#ef4444"}
                 style={{ marginTop: 2 }}
               />
-              <Text className="ml-2 text-[13px] text-[#ef4444] font-satoshiMedium">
+              <Text
+                className={`ml-2 text-[13px] font-satoshiMedium ${
+                  isDark ? "text-neutral-200" : "text-[#ef4444]"
+                }`}
+              >
                 Pay for delivery when you get your food
               </Text>
             </View>
@@ -496,66 +506,91 @@ export default function CheckoutScreen() {
             {/* Form fields */}
             <View className="space-y-3">
               {/* Address */}
-              <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4 flex-row items-center">
-                <Ionicons name="location-outline" size={18} color="#9CA3AF" />
+              <View
+                className={`rounded-2xl border px-3 py-4 flex-row items-center ${
+                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+                }`}
+              >
+                <Ionicons name="location-outline" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
                 <TextInput
                   value={address}
                   onChangeText={setAddress}
                   placeholder="Enter Delivery Address"
-                  className="ml-3 flex-1 font-satoshi text-neutral-900"
+                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
                 />
               </View>
 
               {/* Contact */}
-              <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4 flex-row items-center">
-                <Ionicons name="call-outline" size={18} color="#9CA3AF" />
+              <View
+                className={`rounded-2xl border px-3 py-4 flex-row items-center ${
+                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+                }`}
+              >
+                <Ionicons name="call-outline" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
                 <TextInput
                   value={contact}
                   onChangeText={setContact}
                   placeholder="Enter Contact"
                   keyboardType="phone-pad"
-                  className="ml-3 flex-1 font-satoshi text-neutral-900"
+                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
                 />
               </View>
 
               {/* Message for the rider (dispatch_rider_note REQUIRED by API) */}
-              <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4 flex-row items-center">
-                <Ionicons name="bicycle-outline" size={18} color="#9CA3AF" />
+              <View
+                className={`rounded-2xl border px-3 py-4 flex-row items-center ${
+                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+                }`}
+              >
+                <Ionicons name="bicycle-outline" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
                 <TextInput
                   value={riderNote}
                   onChangeText={setRiderNote}
                   placeholder="Message for the rider"
-                  className="ml-3 flex-1 font-satoshi text-neutral-900"
+                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
                 />
               </View>
 
               {/* Message for kitchen (optional, UI parity) */}
-              <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4 flex-row items-center">
-                <Ionicons name="restaurant-outline" size={18} color="#9CA3AF" />
+              <View
+                className={`rounded-2xl border px-3 py-4 flex-row items-center ${
+                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+                }`}
+              >
+                <Ionicons name="restaurant-outline" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
                 <TextInput
                   value={kitchenNote}
                   onChangeText={setKitchenNote}
                   placeholder="Message for Kitchen"
-                  className="ml-3 flex-1 font-satoshi text-neutral-900"
+                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
                 />
               </View>
 
               {/* Voucher code */}
-              <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4">
+              <View
+                className={`rounded-2xl border px-3 py-4 ${
+                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+                }`}
+              >
                 <View className="flex-row items-center">
                   <Ionicons
                     name="pricetags-outline"
                     size={18}
-                    color="#9CA3AF"
+                    color={isDark ? "#9CA3AF" : "#9CA3AF"}
                   />
                   <TextInput
                     value={voucher}
                     onChangeText={setVoucher}
                     placeholder="Enter Voucher Code"
-                    className="ml-3 flex-1 font-satoshi text-neutral-900"
+                    placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                    className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
                   />
                 </View>
-                <Text className="text-[12px] text-neutral-400 mt-2">
+                <Text className={`text-[12px] mt-2 ${isDark ? "text-neutral-500" : "text-neutral-400"}`}>
                   Ends on {voucherEndsOn}
                 </Text>
               </View>
@@ -565,23 +600,27 @@ export default function CheckoutScreen() {
             <View className="mt-5">
               <SectionHeader title="Delivery Rider" isDark={isDark} />
               {selectedRider ? (
-                <View className="bg-white rounded-2xl border border-neutral-100 p-3 flex-row items-center justify-between">
+                <View
+                  className={`rounded-2xl border p-3 flex-row items-center justify-between ${
+                    isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+                  }`}
+                >
                   <View className="flex-row items-center">
                     <CachedImage
                       uri={selectedRider.avatar}
                       fallback={
                         <Image
                           source={require("@/assets/images/logo-transparent.png")}
-                          className="w-10 h-10 rounded-full bg-neutral-100"
+                          className={`w-10 h-10 rounded-full ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
                         />
                       }
-                      className="w-10 h-10 rounded-full bg-neutral-100"
+                      className={`w-10 h-10 rounded-full ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
                     />
                     <View className="ml-3">
-                      <Text className="font-satoshiMedium text-neutral-900">
+                      <Text className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
                         {selectedRider.name}
                       </Text>
-                      <Text className="text-[12px] text-neutral-500">
+                      <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                         {selectedRider.city} • {selectedRider.priceLabel}
                       </Text>
                     </View>
@@ -612,13 +651,17 @@ export default function CheckoutScreen() {
             {/* Payment Summary */}
             <View className="mt-5">
               <SectionHeader title="Payment Summary" isDark={isDark} />
-              <View className="bg-white rounded-2xl border border-neutral-100 p-3">
+              <View
+                className={`rounded-2xl border p-3 ${
+                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+                }`}
+              >
                 <SummaryRow
                   label={`Sub-total (${totalItems} item${totalItems === 1 ? "" : "s"})`}
                   value={formatNGN(subtotal)}
                   isDark={isDark}
                 />
-                <View className="h-[1px] bg-neutral-100 my-2" />
+                <View className={`h-[1px] my-2 ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`} />
                 <SummaryRow label="Total Payment" value={formatNGN(total)} bold isDark={isDark} />
               </View>
             </View>
@@ -626,7 +669,11 @@ export default function CheckoutScreen() {
             {/* Payment Method */}
             <View className="mt-5">
               <SectionHeader title="Payment Method" isDark={isDark} />
-              <View className="bg-white rounded-2xl border border-neutral-100 px-3">
+              <View
+                className={`rounded-2xl border px-3 ${
+                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+                }`}
+              >
                 {/* Pay Online */}
                 <Radio
                   label="Pay Online (Paystack)"
@@ -670,15 +717,21 @@ export default function CheckoutScreen() {
             {/* (Optional) If multiple kitchens, show a name picker below to match flows */}
             {kitchenIds.length > 1 && (
               <View className="mt-5">
-                <Text className="text-neutral-700 mb-2">Select Kitchen</Text>
-                <View className="bg-white rounded-2xl border border-neutral-200">
+                <Text className={`mb-2 ${isDark ? "text-neutral-200" : "text-neutral-700"}`}>
+                  Select Kitchen
+                </Text>
+                <View
+                  className={`rounded-2xl border ${
+                    isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+                  }`}
+                >
                   {kitchensForPicker.map(({ id, label }) => (
                     <Pressable
                       key={id}
                       onPress={() => setKitchenId(id)}
                       className="flex-row items-center justify-between px-3 py-4"
                     >
-                      <Text className="text-neutral-800">{label}</Text>
+                      <Text className={isDark ? "text-neutral-100" : "text-neutral-800"}>{label}</Text>
                       <Ionicons
                         name={
                           kitchenId === id
@@ -686,7 +739,7 @@ export default function CheckoutScreen() {
                             : "radio-button-off"
                         }
                         size={18}
-                        color={kitchenId === id ? "#ffa800" : "#9ca3af"}
+                        color={kitchenId === id ? "#ffa800" : isDark ? "#6b7280" : "#9ca3af"}
                       />
                     </Pressable>
                   ))}
@@ -696,20 +749,32 @@ export default function CheckoutScreen() {
           </ScrollView>
 
           {/* Bottom buttons */}
-          <View className="absolute left-0 right-0 bottom-0 px-5 pb-6 pt-4 bg-[#FFFDF8]">
+          <View
+            className={`absolute left-0 right-0 bottom-0 px-5 pb-6 pt-4 ${
+              isDark ? "bg-neutral-950 border-t border-neutral-800" : "bg-[#FFFDF8]"
+            }`}
+          >
             <View className="flex-row">
               <Pressable
                 onPress={() => setTab("ORDER")}
-                className="flex-1 mr-3 rounded-2xl py-4 items-center justify-center bg-[#FFF1E0] border border-primary-500"
+                className={`flex-1 mr-3 rounded-2xl py-4 items-center justify-center border ${
+                  isDark ? "bg-neutral-900 border-neutral-700" : "bg-[#FFF1E0] border-primary-500"
+                }`}
               >
-                <Text className="font-satoshiMedium text-primary">Return</Text>
+                <Text
+                  className={`font-satoshiMedium ${
+                    isDark ? "text-neutral-100" : "text-primary"
+                  }`}
+                >
+                  Return
+                </Text>
               </Pressable>
 
               <Pressable
                 disabled={!canPlace}
                 onPress={handlePlaceOrder}
                 className={`flex-1 rounded-2xl py-4 items-center justify-center ${
-                  canPlace ? "bg-primary" : "bg-neutral-300"
+                  canPlace ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-300"
                 }`}
               >
                 {isBusy ? (

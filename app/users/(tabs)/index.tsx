@@ -24,13 +24,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View
-} from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
@@ -68,7 +62,9 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <SafeAreaView
+      className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}
+    >
       <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView
         contentContainerStyle={{
@@ -80,10 +76,14 @@ export default function HomeScreen() {
         <View className="px-4 pt-6">
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-1">
-              <Text className={`font-satoshiMedium ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+              <Text
+                className={`font-satoshiMedium ${isDark ? "text-neutral-400" : "text-neutral-500"}`}
+              >
                 Welcome, {me?.first_name}
               </Text>
-              <Text className={`text-[32px] font-satoshiBold mt-1 ${isDark ? "text-white" : "text-neutral-900"}`}>
+              <Text
+                className={`text-[32px] font-satoshiBold mt-1 ${isDark ? "text-white" : "text-neutral-900"}`}
+              >
                 Eat Your Fav!
               </Text>
             </View>
@@ -91,7 +91,7 @@ export default function HomeScreen() {
             {/* Location Icon Button */}
             <Pressable
               onPress={() => setLocationModalVisible(true)}
-              className="ml-4 w-14 h-14 rounded-full bg-white items-center justify-center shadow-md active:bg-neutral-50"
+              className={`ml-4 w-14 h-14 rounded-full ${isDark ? "bg-neutral-800" : "bg-white"} bg-white items-center justify-center shadow-md ${isDark ? "active:bg-neutral-800" : "active:bg-neutral-50"}`}
               style={Platform.select({ android: { elevation: 3 } })}
             >
               <View>
@@ -115,13 +115,17 @@ export default function HomeScreen() {
 
           {/* Display selected city */}
           {selectedCity && (
-            <View className={`flex-row items-center rounded-full px-4 py-2 mb-4 shadow-sm ${isDark ? "bg-neutral-800 border border-neutral-700" : "bg-white border-0"}`}>
+            <View
+              className={`flex-row items-center rounded-full px-4 py-2 mb-4 shadow-sm ${isDark ? "bg-neutral-800 border border-neutral-700" : "bg-white border-0"}`}
+            >
               <MaterialCommunityIcons
                 name="map-marker"
                 size={16}
                 color="#ffa800"
               />
-              <Text className={`ml-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-700"}`}>
+              <Text
+                className={`ml-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-700"}`}
+              >
                 {selectedCity.name}
               </Text>
               <Pressable

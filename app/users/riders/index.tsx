@@ -11,6 +11,8 @@ import {
     View,
 } from "react-native";
 import CachedImage from "@/components/ui/CachedImage";
+import { useAppSelector } from "@/store/hooks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 type Rider = {
   id: string;
@@ -39,6 +41,7 @@ const MOCK: Rider[] = [
 
 export default function RidersList() {
   const [q, setQ] = useState("");
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const data = useMemo(() => {
     const s = q.trim().toLowerCase();
     return s ? MOCK.filter((r) => r.name.toLowerCase().includes(s)) : MOCK;
@@ -57,7 +60,9 @@ export default function RidersList() {
             params: { id: item.id },
           })
         }
-        className="bg-white rounded-2xl border border-neutral-100 px-3 py-3 mb-3"
+        className={`rounded-2xl px-3 py-3 mb-3 border ${
+          isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+        }`}
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center">
@@ -66,16 +71,16 @@ export default function RidersList() {
                   fallback={
                     <CachedImage
                       uri={null}
-                      className="w-10 h-10 rounded-full bg-neutral-100"
+                      className={`w-10 h-10 rounded-full ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
                     />
                   }
-                  className="w-10 h-10 rounded-full bg-neutral-100"
+                  className={`w-10 h-10 rounded-full ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
                 />
             <View className="ml-3">
-              <Text className="font-satoshiMedium text-neutral-900">
+              <Text className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
                 {item.name}
               </Text>
-              <Text className="text-[12px] text-neutral-500">
+              <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                 Location: {item.city}
               </Text>
               <View className="flex-row mt-1">
@@ -84,15 +89,19 @@ export default function RidersList() {
                     key={i}
                     name={i < item.rating ? "star" : "star-outline"}
                     size={14}
-                    color={i < item.rating ? "#f59e0b" : "#d1d5db"}
+                    color={i < item.rating ? "#f59e0b" : isDark ? "#4b5563" : "#d1d5db"}
                   />
                 ))}
               </View>
             </View>
           </View>
 
-          <View className="px-3 py-1 rounded-lg bg-black">
-            <Text className="text-white font-satoshiMedium">
+          <View
+            className={`px-3 py-1 rounded-lg ${
+              isDark ? "bg-neutral-800" : "bg-neutral-900"
+            }`}
+          >
+            <Text className={`font-satoshiMedium ${isDark ? "text-neutral-100" : "text-white"}`}>
               {item.priceLabel}
             </Text>
           </View>
@@ -110,30 +119,35 @@ export default function RidersList() {
   };
 
   return (
-    <View className="flex-1 pt-20 bg-primary-50 px-5">
+    <View className={`flex-1 pt-20 px-5 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
       <View className="flex-row items-center mb-4">
         <Pressable onPress={() => router.back()} className="mr-2">
-          <Ionicons name="chevron-back" size={22} color="#0F172A" />
+          <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
         </Pressable>
-        <Text className="text-[18px] font-satoshiBold text-neutral-900">
+        <Text className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
           Your Orders
         </Text>
         <View className="flex-1" />
-        <Text className="text-neutral-900 font-satoshi">
+        <Text className={`font-satoshi ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
           Delivery & Payment
         </Text>
       </View>
 
       {/* search */}
-      <View className="flex-row items-center bg-neutral-100 rounded-full px-3 py-2 mb-3">
-        <Ionicons name="search" size={16} color="#9CA3AF" />
+      <View
+        className={`flex-row items-center rounded-full px-3 py-2 mb-3 border ${
+          isDark ? "bg-neutral-900 border-neutral-800" : "bg-neutral-100 border-transparent"
+        }`}
+      >
+        <Ionicons name="search" size={16} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
         <TextInput
           placeholder="Search for Riders"
           value={q}
           onChangeText={setQ}
-          className="ml-2 flex-1 font-satoshi"
+          placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+          className={`ml-2 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
         />
-        <Ionicons name="options-outline" size={16} color="#9CA3AF" />
+        <Ionicons name="options-outline" size={16} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
       </View>
 
       <FlatList

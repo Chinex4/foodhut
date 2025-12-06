@@ -3,16 +3,31 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 
 import { showError, showSuccess } from "@/components/ui/toast";
 import { logout } from "@/redux/auth/auth.thunks";
-import { selectFetchMeStatus, selectMe, selectUploadPicStatus } from "@/redux/users/users.selectors";
+import {
+  selectFetchMeStatus,
+  selectMe,
+  selectUploadPicStatus,
+} from "@/redux/users/users.selectors";
 import { uploadProfilePicture } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import CachedImage from "@/components/ui/CachedImage";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { persistThemePreference, setThemeMode } from "@/redux/theme/theme.slice";
+import {
+  persistThemePreference,
+  setThemeMode,
+} from "@/redux/theme/theme.slice";
 
 function Row({
   icon,
@@ -33,7 +48,9 @@ function Row({
     <Pressable
       onPress={onPress}
       className={`flex-row items-center justify-between px-4 py-4 rounded-2xl mb-3 border ${
-        isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+        isDark
+          ? "bg-neutral-900 border-neutral-800"
+          : "bg-white border-neutral-100"
       }`}
       android_ripple={{ color: isDark ? "#2d2d2d" : "#eee" }}
     >
@@ -89,6 +106,10 @@ export default function ProfileHomeScreen() {
     dispatch(persistThemePreference(next));
   };
 
+  const profileSource = me?.profile_picture?.url
+    ? { uri: me.profile_picture.url }
+    : require("@/assets/images/avatar.png");
+
   const handleUploadProfilePicture = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -101,7 +122,7 @@ export default function ProfileHomeScreen() {
       if (!result.canceled) {
         const asset = result.assets[0];
         const fileName = asset.uri.split("/").pop() || "avatar.jpg";
-        
+
         await dispatch(
           uploadProfilePicture({
             uri: asset.uri,
@@ -109,7 +130,7 @@ export default function ProfileHomeScreen() {
             type: asset.type || "image/jpeg",
           })
         ).unwrap();
-        
+
         showSuccess("Profile picture updated successfully!");
       }
     } catch (err: any) {
@@ -127,16 +148,11 @@ export default function ProfileHomeScreen() {
       >
         <View className="items-center">
           <View className="relative">
-            <CachedImage
-              uri={me?.profile_picture.url}
-              fallback={
-                <Image
-                  source={require("@/assets/images/avatar.png")}
-                  className="w-24 h-24 rounded-full bg-neutral-200"
-                />
-              }
+            <Image
+              source={profileSource}
               className="w-24 h-24 rounded-full bg-neutral-200"
             />
+
             <Pressable
               onPress={handleUploadProfilePicture}
               disabled={uploadPicStatus === "loading"}
@@ -183,7 +199,7 @@ export default function ProfileHomeScreen() {
               </View>
             </Pressable>
           </View>
-          
+
           {/* Kitchen Dashboard Button */}
           <View className="flex-col mt-4 gap-4">
             {me?.has_kitchen ? (

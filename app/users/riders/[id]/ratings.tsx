@@ -10,11 +10,14 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useAppSelector } from "@/store/hooks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 export default function RiderRatings() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [stars, setStars] = useState(0);
   const [text, setText] = useState("");
+  const isDark = useAppSelector(selectThemeMode) === "dark";
 
   const reviews = Array.from({ length: 5 }).map((_, i) => ({
     id: String(i),
@@ -25,18 +28,26 @@ export default function RiderRatings() {
   }));
 
   const render = ({ item }: any) => (
-    <View className="bg-white rounded-2xl border border-neutral-100 p-3 mb-3">
+    <View
+      className={`rounded-2xl border p-3 mb-3 ${
+        isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+      }`}
+    >
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center">
           <Image
             source={require("@/assets/images/logo-transparent.png")}
-            className="w-8 h-8 rounded-full bg-neutral-100"
+            className={`w-8 h-8 rounded-full ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
           />
-          <Text className="ml-2 font-satoshiMedium text-neutral-900">
+          <Text
+            className={`ml-2 font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}
+          >
             {item.name}
           </Text>
         </View>
-        <Text className="text-[12px] text-neutral-400">{item.when}</Text>
+        <Text className={`text-[12px] ${isDark ? "text-neutral-500" : "text-neutral-400"}`}>
+          {item.when}
+        </Text>
       </View>
       <View className="flex-row mt-1">
         {Array.from({ length: 5 }).map((_, i) => (
@@ -44,26 +55,26 @@ export default function RiderRatings() {
             key={i}
             name={i < item.rating ? "star" : "star-outline"}
             size={14}
-            color={i < item.rating ? "#f59e0b" : "#d1d5db"}
+            color={i < item.rating ? "#f59e0b" : isDark ? "#4b5563" : "#d1d5db"}
           />
         ))}
       </View>
-      <Text className="mt-2 text-neutral-600">
+      <Text className={`mt-2 ${isDark ? "text-neutral-300" : "text-neutral-600"}`}>
         {item.text} <Text className="text-primary">See all</Text>
       </Text>
     </View>
   );
 
   return (
-    <View className="flex-1 bg-primary-50 px-5 pt-20">
+    <View className={`flex-1 px-5 pt-20 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
       <Pressable onPress={() => router.back()} className="mb-3">
-        <Ionicons name="chevron-back" size={22} color="#0F172A" />
+        <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
       </Pressable>
 
-      <Text className="text-2xl font-satoshiBold text-neutral-900 mb-2">
+      <Text className={`text-2xl font-satoshiBold mb-2 ${isDark ? "text-white" : "text-neutral-900"}`}>
         Riders Ratings
       </Text>
-      <Text className="text-neutral-600 mb-2">
+      <Text className={`mb-2 ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
         Rate Your Experience With Rider
       </Text>
 
@@ -74,7 +85,7 @@ export default function RiderRatings() {
             <Ionicons
               name={i < stars ? "star" : "star-outline"}
               size={24}
-              color={i < stars ? "#f59e0b" : "#d1d5db"}
+              color={i < stars ? "#f59e0b" : isDark ? "#4b5563" : "#d1d5db"}
             />
           </Pressable>
         ))}
@@ -87,7 +98,12 @@ export default function RiderRatings() {
           value={text}
           onChangeText={setText}
           multiline
-          className="flex-1 bg-neutral-100 rounded-2xl px-3 py-3"
+          placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+          className={`flex-1 rounded-2xl px-3 py-3 border ${
+            isDark
+              ? "bg-neutral-900 border-neutral-800 text-white"
+              : "bg-neutral-100 border-transparent text-neutral-900"
+          }`}
           style={{ minHeight: 80 }}
         />
         <View className="w-3" />
