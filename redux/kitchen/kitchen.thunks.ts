@@ -189,8 +189,8 @@ export const uploadKitchenCoverByProfile = createAsyncThunk<
   async ({ uri, name, type }, { rejectWithValue }) => {
     try {
       const form = new FormData();
+      // @ts-ignore RN FormData shape
       form.append("cover_image" as any, {
-        // @ts-ignore RN FormData shape
         uri,
         name: name ?? "cover.jpg",
         type: type ?? "image/jpeg",
@@ -223,8 +223,8 @@ export const uploadKitchenCoverById = createAsyncThunk<
   async ({ id, uri, name, type }, { rejectWithValue }) => {
     try {
       const form = new FormData();
+      // @ts-ignore RN FormData shape
       form.append("cover_image" as any, {
-        // @ts-ignore RN FormData shape
         uri,
         name: name ?? "cover.jpg",
         type: type ?? "image/jpeg",

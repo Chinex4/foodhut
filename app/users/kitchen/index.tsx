@@ -8,7 +8,6 @@ import {
   View,
   ScrollView,
 } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 
@@ -21,14 +20,17 @@ import {
   selectTypes,
   selectTypesStatus,
 } from "@/redux/kitchen/kitchen.selectors"; // or kitchen.selectors
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 type KitchensStatus = "idle" | "loading" | "succeeded" | "failed";
 
 export default function AllKitchensScreen() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
 
-  const types = useSelector(selectTypes);
-  const typesStatus = useSelector(selectTypesStatus) as KitchensStatus;
+  const types = useAppSelector(selectTypes);
+  const typesStatus = useAppSelector(selectTypesStatus) as KitchensStatus;
 
   const [loading, setLoading] = useState(true);
   const [kitchens, setKitchens] = useState<any[]>([]);
@@ -44,7 +46,6 @@ export default function AllKitchensScreen() {
         params: {
           per_page: 100,
           page: 1,
-          is_available: true,
         },
       });
 
@@ -100,14 +101,14 @@ export default function AllKitchensScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white pt-20">
+    <View className={`flex-1 pt-20 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
       {/* Header */}
       <View className="flex-row items-center">
         <Pressable onPress={() => router.back()} className="px-4 mb-4">
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={isDark ? "#E5E7EB" : "#000"} />
         </Pressable>
 
-        <Text className="flex-1 text-2xl font-satoshiBold mb-4 mr-8">
+        <Text className={`flex-1 text-2xl font-satoshiBold mb-4 mr-8 ${isDark ? "text-white" : "text-neutral-900"}`}>
           All Kitchens
         </Text>
       </View>
@@ -117,7 +118,7 @@ export default function AllKitchensScreen() {
         {typesStatus === "loading" ? (
           <View className="flex-row items-center py-2">
             <ActivityIndicator size="small" color="#ffa800" />
-            <Text className="ml-2 text-xs text-neutral-500 font-satoshiMedium">
+            <Text className={`ml-2 text-xs font-satoshiMedium ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
               Loading kitchen types...
             </Text>
           </View>
@@ -148,8 +149,11 @@ export default function AllKitchensScreen() {
       {/* Search */}
       <View className="px-4 mb-4">
         <TextInput
-          className="bg-[#F5F5F5] px-4 py-3 rounded-2xl font-satoshiMedium"
+          className={`px-4 py-3 rounded-2xl font-satoshiMedium border ${
+            isDark ? "bg-neutral-900 border-neutral-800 text-white" : "bg-[#F5F5F5] border-transparent"
+          }`}
           placeholder="Search kitchens..."
+          placeholderTextColor={isDark ? "#6B7280" : undefined}
           value={search}
           onChangeText={handleSearch}
         />
@@ -168,7 +172,7 @@ export default function AllKitchensScreen() {
         renderItem={({ item }) => <KitchenCard kitchen={item} />}
         ListEmptyComponent={
           <View className="p-6">
-            <Text className="text-center text-neutral-400">
+            <Text className={`text-center ${isDark ? "text-neutral-500" : "text-neutral-400"}`}>
               No kitchens match your search.
             </Text>
           </View>
@@ -185,18 +189,21 @@ type FilterChipProps = {
 };
 
 const FilterChip = ({ label, isActive, onPress }: FilterChipProps) => {
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   return (
     <Pressable
       onPress={onPress}
       className={`mr-2 px-4 py-2 rounded-full border ${
         isActive
           ? "bg-primary border-primary"
-          : "bg-[#F5F5F5] border-[#E5E7EB]"
+          : isDark
+            ? "bg-neutral-900 border-neutral-800"
+            : "bg-[#F5F5F5] border-[#E5E7EB]"
       }`}
     >
       <Text
         className={`text-xs font-satoshiMedium ${
-          isActive ? "text-white" : "text-neutral-700"
+          isActive ? "text-white" : isDark ? "text-neutral-300" : "text-neutral-700"
         }`}
       >
         {label}

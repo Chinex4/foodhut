@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
@@ -19,8 +19,11 @@ import {
   makeSelectVendorsCloseBy,
   selectMealsError,
   selectMealsListStatus,
+  selectMealsArray,
 } from "@/redux/meals/meals.selectors";
+import { fetchMeals } from "@/redux/meals/meals.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { useAppDispatch } from "@/store/hooks";
 import { useAppSelector } from "@/store/hooks";
 
 import AdsCarousel from "@/components/home/AdsCarousel";
@@ -48,6 +51,7 @@ type SortKey = (typeof SORTS)[number]["key"];
 export default function CategoryListScreen() {
   const { category } = useLocalSearchParams<{ category: CategoryKey }>();
   const cat = (category as CategoryKey) ?? "trending";
+  const dispatch = useAppDispatch();
 
   // Memoize selector instance once per category
   const selector = useMemo(() => {
@@ -64,17 +68,29 @@ export default function CategoryListScreen() {
   const status = useAppSelector(selectMealsListStatus);
   const error = useAppSelector(selectMealsError);
   const base = useAppSelector(selector); // derived list for this category
+  const mealsArray = useAppSelector(selectMealsArray);
 
   // Local search + filters
   const [q, setQ] = useState("");
   const [sortOpen, setSortOpen] = useState(false);
   const [sort, setSort] = useState<SortKey>("relevance");
   const [discountOnly, setDiscountOnly] = useState(cat === "trending");
+  const hasDiscounts = useMemo(
+    () =>
+      base.some((m) => toNum(m.original_price) > toNum(m.price)),
+    [base]
+  );
+
+  useEffect(() => {
+    if (discountOnly && !hasDiscounts) {
+      setDiscountOnly(false);
+    }
+  }, [discountOnly, hasDiscounts]);
 
   const filtered = useMemo(() => {
     let arr = base;
 
-    if (discountOnly) {
+    if (discountOnly && hasDiscounts) {
       arr = arr.filter((m) => toNum(m.original_price) > toNum(m.price));
     }
 
@@ -118,7 +134,14 @@ export default function CategoryListScreen() {
     }
 
     return arr;
-  }, [base, q, sort, discountOnly]);
+  }, [base, q, sort, discountOnly, hasDiscounts]);
+
+  // Ensure data exists when landing directly
+  useEffect(() => {
+    if (status === "idle" || mealsArray.length === 0) {
+      dispatch(fetchMeals({ page: 1, per_page: 100 }));
+    }
+  }, [dispatch, status, mealsArray.length]);
 
   const isDark = useAppSelector(selectThemeMode) === "dark";
   return (

@@ -3,20 +3,27 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
 
 import Line from "@/components/ui/Line";
 import QuantityStepper from "@/components/ui/QuantityStepper";
 import Skeleton from "@/components/ui/Skeleton";
 import { showError, showSuccess } from "@/components/ui/toast";
-import { selectCartFetchStatus, selectCartItemQuantity } from "@/redux/cart/cart.selectors";
+import {
+  selectCartFetchStatus,
+  selectCartItemQuantity,
+} from "@/redux/cart/cart.selectors";
 import { fetchActiveCart, setCartItem } from "@/redux/cart/cart.thunks";
 import {
   makeSelectMealByIdStatus,
   makeSelectMealLikeStatus,
   selectMealById,
 } from "@/redux/meals/meals.selectors";
-import { fetchMealById, likeMeal, unlikeMeal } from "@/redux/meals/meals.thunks";
+import {
+  fetchMealById,
+  likeMeal,
+  unlikeMeal,
+} from "@/redux/meals/meals.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { capitalizeFirst } from "@/utils/capitalize";
@@ -137,8 +144,8 @@ export default function MealDetailsScreen() {
         {!imageLoaded && <Skeleton className="absolute inset-0" />}
 
         {!!meal!.cover_image?.url && (
-          <CachedImage
-            uri={meal!.cover_image.url}
+          <Image
+            source={{ uri: meal!.cover_image.url }}
             className="w-full h-full"
             onLoadEnd={() => setImageLoaded(true)}
           />
@@ -181,18 +188,28 @@ export default function MealDetailsScreen() {
           ) : (
             <View className="flex flex-row items-center justify-between">
               <View className="flex-1">
-                <Text className={`text-3xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
+                <Text
+                  className={`text-3xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}
+                >
                   {capitalizeFirst(meal!.name)}
                 </Text>
-                <Text className={`mt-2 text-xl ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
+                <Text
+                  className={`mt-2 text-xl ${isDark ? "text-neutral-400" : "text-neutral-600"}`}
+                >
                   {capitalizeFirst(meal!.description)}
                 </Text>
               </View>
-              <View className={`rounded-2xl border px-5 py-3 ${isDark ? "border-neutral-700 bg-neutral-800" : "border-primary bg-white"}`}>
-                <Text className={`text-2xl font-satoshiBold ${isDark ? "text-primary" : "text-primary"}`}>
+              <View
+                className={`rounded-2xl border px-5 py-3 ${isDark ? "border-neutral-700 bg-neutral-800" : "border-primary bg-white"}`}
+              >
+                <Text
+                  className={`text-2xl font-satoshiBold ${isDark ? "text-primary" : "text-primary"}`}
+                >
                   {formatNGN(meal!.price)}
                   {isDiscount && (
-                    <Text className={`line-through ml-2 ${isDark ? "text-neutral-600" : "text-neutral-400"}`}>
+                    <Text
+                      className={`line-through ml-2 ${isDark ? "text-neutral-600" : "text-neutral-400"}`}
+                    >
                       {"  "}
                       {formatNGN(meal!.original_price!)}
                     </Text>
@@ -203,16 +220,24 @@ export default function MealDetailsScreen() {
           )}
 
           {/* meta row */}
-          <View className={`mt-4 rounded-2xl px-4 py-3 flex-row items-center justify-between ${isDark ? "bg-neutral-800" : "bg-white"}`}>
+          <View
+            className={`mt-4 rounded-2xl px-4 py-3 flex-row items-center justify-between ${isDark ? "bg-neutral-800" : "bg-white"}`}
+          >
             <View className="flex-row items-center">
               <Ionicons name="star" size={16} color="#ffa800" />
-              <Text className={`ml-2 ${isDark ? "text-neutral-100" : "text-neutral-800"}`}>
+              <Text
+                className={`ml-2 ${isDark ? "text-neutral-100" : "text-neutral-800"}`}
+              >
                 {String(meal!.rating)} Ratings
               </Text>
             </View>
             <View className="flex-row items-center">
               <Ionicons name="heart" size={16} color="#ffa800" />
-              <Text className={`ml-2 ${isDark ? "text-neutral-100" : "text-neutral-800"}`}>{meal!.likes} Likes</Text>
+              <Text
+                className={`ml-2 ${isDark ? "text-neutral-100" : "text-neutral-800"}`}
+              >
+                {meal!.likes} Likes
+              </Text>
             </View>
             <QuantityStepper value={qty} onChange={setQty} />
           </View>
@@ -221,7 +246,9 @@ export default function MealDetailsScreen() {
 
       {/* bottom bar */}
       {/* bottom bar */}
-      <View className={`absolute bottom-8 right-0 left-0 p-4 border-t ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-primary-50 border-neutral-100"}`}>
+      <View
+        className={`absolute bottom-8 right-0 left-0 p-4 border-t ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-primary-50 border-neutral-100"}`}
+      >
         {/** If qty > 0, show "Added to Cart" and disable the button */}
         <Pressable
           onPress={qty > 0 ? undefined : addOne}

@@ -23,7 +23,9 @@ export type Kitchen = {
   likes: number;
   rating: string | number;
   owner_id: string;
-  cover_image: string | null;
+  cover_image: {
+    url: string | null;
+  };
 
   city_id: CityId | null;
   city?: KitchenCity;
