@@ -39,7 +39,9 @@
           }
         }
       ],
-      "expo-build-properties"
+      "expo-build-properties",
+      "expo-mail-composer",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
