@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import DateTimePicker, {
-  DateTimePickerEvent,
+    DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -72,6 +72,8 @@ export default function RegisterScreen() {
   const status = useAppSelector(selectAuthStatus);
   const error = useAppSelector(selectAuthError);
   const loading = status === "loading";
+  const themeMode = useAppSelector((state) => state.theme.mode);
+  const isDark = themeMode === "dark";
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [country, setCountry] = useState<{
@@ -142,23 +144,23 @@ export default function RegisterScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAwareScrollView
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
       >
-        <Text className="text-3xl font-satoshiBold text-black mt-2">
+        <Text className={`text-3xl font-satoshiBold mt-2 ${isDark ? "text-neutral-100" : "text-black"}`}>
           Create an Account
         </Text>
-        <Text className="text-base text-gray-600 font-satoshi mt-1">
+        <Text className={`text-base font-satoshi mt-1 ${isDark ? "text-neutral-300" : "text-gray-600"}`}>
           Please enter your details to create an account with FOODHUT
         </Text>
 
         {/* First Name */}
-        <Text className="mt-6 mb-2 text-sm text-black font-satoshiMedium">
+        <Text className={`mt-6 mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>
           First Name
         </Text>
         <Controller
@@ -167,10 +169,11 @@ export default function RegisterScreen() {
           render={({ field: { value, onChange, onBlur } }) => (
             <TextInput
               placeholder="Enter First Name"
+              placeholderTextColor={isDark ? "#888" : undefined}
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+              className={`rounded-xl px-4 py-3 text-base font-satoshi ${isDark ? "bg-neutral-900 text-neutral-100" : "bg-gray-100 text-black"}`}
             />
           )}
         />
@@ -181,7 +184,7 @@ export default function RegisterScreen() {
         )}
 
         {/* Last Name */}
-        <Text className="mt-4 mb-2 text-sm text-black font-satoshiMedium">
+        <Text className={`mt-4 mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>
           Last Name
         </Text>
         <Controller
@@ -190,10 +193,11 @@ export default function RegisterScreen() {
           render={({ field: { value, onChange, onBlur } }) => (
             <TextInput
               placeholder="Enter Username"
+              placeholderTextColor={isDark ? "#888" : undefined}
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+              className={`rounded-xl px-4 py-3 text-base font-satoshi ${isDark ? "bg-neutral-900 text-neutral-100" : "bg-gray-100 text-black"}`}
             />
           )}
         />
@@ -204,7 +208,7 @@ export default function RegisterScreen() {
         )}
 
         {/* Email */}
-        <Text className="mt-4 mb-2 text-sm text-black font-satoshiMedium">
+        <Text className={`mt-4 mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>
           Email Address
         </Text>
         <Controller
@@ -213,12 +217,13 @@ export default function RegisterScreen() {
           render={({ field: { value, onChange, onBlur } }) => (
             <TextInput
               placeholder="Enter Email Address"
+              placeholderTextColor={isDark ? "#888" : undefined}
               keyboardType="email-address"
               autoCapitalize="none"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+              className={`rounded-xl px-4 py-3 text-base font-satoshi ${isDark ? "bg-neutral-900 text-neutral-100" : "bg-gray-100 text-black"}`}
             />
           )}
         />
@@ -229,16 +234,16 @@ export default function RegisterScreen() {
         )}
 
         {/* Phone */}
-        <Text className="mt-4 mb-2 text-sm text-black font-satoshiMedium">
+        <Text className={`mt-4 mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>
           Phone Number
         </Text>
-        <View className="bg-gray-100 rounded-xl px-3 py-1 flex-row items-center">
+        <View className={`${isDark ? "bg-neutral-900" : "bg-gray-100"} rounded-xl px-3 py-1 flex-row items-center`}>
           <Pressable
             onPress={() => setPickerOpen(true)}
             className="flex-row items-center px-2 py-2 mr-2 rounded-lg"
           >
             <Text className="text-lg mr-2">{country.flag}</Text>
-            <Text className="text-base font-satoshiMedium">{country.dial}</Text>
+            <Text className={`text-base font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>{country.dial}</Text>
             <Ionicons name="chevron-down" size={16} style={{ marginLeft: 4 }} />
           </Pressable>
           <Controller
@@ -251,11 +256,12 @@ export default function RegisterScreen() {
                     ? "e.g. 7049938128"
                     : "Enter phone (no leading 0)"
                 }
+                placeholderTextColor={isDark ? "#888" : undefined}
                 keyboardType={Platform.OS === "ios" ? "number-pad" : "numeric"}
                 value={value}
                 onChangeText={onLocalChange}
                 onBlur={onBlur}
-                className="flex-1 text-base font-satoshi py-2"
+                className={`flex-1 text-base font-satoshi py-2 ${isDark ? "text-neutral-100" : "text-black"}`}
               />
             )}
           />
@@ -267,7 +273,7 @@ export default function RegisterScreen() {
         )}
 
         {/* Referral */}
-        <Text className="mt-4 mb-2 text-sm text-black font-satoshiMedium">
+        <Text className={`mt-4 mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>
           Referral Code <Text className="text-gray-500">(Optional)</Text>
         </Text>
         <Controller
@@ -276,16 +282,17 @@ export default function RegisterScreen() {
           render={({ field: { value, onChange, onBlur } }) => (
             <TextInput
               placeholder="Enter Code"
+              placeholderTextColor={isDark ? "#888" : undefined}
               value={value ?? ""}
               onChangeText={onChange}
               onBlur={onBlur}
-              className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+              className={`rounded-xl px-4 py-3 text-base font-satoshi ${isDark ? "bg-neutral-900 text-neutral-100" : "bg-gray-100 text-black"}`}
             />
           )}
         />
 
         {/* Birthday */}
-        <Text className="mt-4 mb-2 text-sm text-black font-satoshiMedium">
+        <Text className={`mt-4 mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>
           Birthday
         </Text>
         <Controller
@@ -295,10 +302,10 @@ export default function RegisterScreen() {
             <>
               <Pressable
                 onPress={() => setShowDate(true)}
-                className="bg-gray-100 rounded-xl px-4 py-3"
+                className={`${isDark ? "bg-neutral-900" : "bg-gray-100"} rounded-xl px-4 py-3`}
               >
                 <Text
-                  className={`text-base ${value ? "text-black" : "text-gray-400"} font-satoshi`}
+                  className={`text-base font-satoshi ${value ? (isDark ? "text-neutral-100" : "text-black") : "text-gray-400"}`}
                 >
                   {value || "YYYY-MM-DD"}
                 </Text>
@@ -338,7 +345,7 @@ export default function RegisterScreen() {
         <FoodhutButton title="Continue" loading={loading} onPress={onSubmit} />
 
         <Text
-          className="text-center mt-4 font-satoshi"
+          className={`text-center mt-4 font-satoshi ${isDark ? "text-neutral-200" : "text-black"}`}
           onPress={() => router.replace("/(auth)/login")}
         >
           Already have an account?{" "}

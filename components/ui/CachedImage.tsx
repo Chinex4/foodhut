@@ -11,7 +11,7 @@ const PLACEHOLDER_BLURHASH = "L5H2EC=PM+yV0g-mq.wG9c010J}I";
 
 /**
  * Wrapper around expo-image with disk+memory caching and a soft placeholder.
- * Keeps a single place to tweak caching behaviour across the app.
+ * Falls back to the provided placeholder if the remote image fails to load.
  */
 export function CachedImage({
   uri,
@@ -19,7 +19,10 @@ export function CachedImage({
   contentFit = "cover",
   ...imageProps
 }: CachedImageProps) {
-  if (!uri) {
+  const [failed, setFailed] = React.useState(false);
+  const showFallback = failed || !uri;
+
+  if (showFallback) {
     if (fallback) return <>{fallback}</>;
     return (
       <View
@@ -36,6 +39,7 @@ export function CachedImage({
       cachePolicy="memory-disk"
       transition={200}
       contentFit={contentFit}
+      onError={() => setFailed(true)}
       {...imageProps}
     />
   );

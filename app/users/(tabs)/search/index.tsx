@@ -1,3 +1,14 @@
+import MealCard from "@/components/home/MealCard";
+import SearchBar from "@/components/search/SearchBar";
+import {
+  selectSearchError,
+  selectSearchItems,
+  selectSearchStatus,
+} from "@/redux/search/search.selectors";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { useAppSelector } from "@/store/hooks";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { router } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -8,18 +19,9 @@ import {
   Text,
   View,
 } from "react-native";
-import { useAppSelector } from "@/store/hooks";
-import {
-  selectSearchStatus,
-  selectSearchError,
-  selectSearchItems,
-} from "@/redux/search/search.selectors";
-import MealCard from "@/components/home/MealCard";
-import SearchBar from "@/components/search/SearchBar";
-import { router } from "expo-router";
-import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function SearchResultsScreen() {
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const status = useAppSelector(selectSearchStatus);
   const error = useAppSelector(selectSearchError);
   const items = useAppSelector(selectSearchItems);
@@ -27,7 +29,7 @@ export default function SearchResultsScreen() {
   const meals = items.filter((x) => x.kind === "meal");
 
   return (
-    <View className="flex-1 bg-primary-50 pt-6">
+    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"} pt-6`}>
       {/* Always visible */}
       <View className="mt-6 px-5 mb-4">
         <SearchBar className="mt-4" />

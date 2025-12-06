@@ -15,6 +15,7 @@ import {
   selectMealsListStatus,
 } from "@/redux/meals/meals.selectors";
 import { fetchMeals } from "@/redux/meals/meals.thunks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { selectFetchMeStatus, selectMe } from "@/redux/users/users.selectors";
 import { fetchMyProfile } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -34,6 +35,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const status = useAppSelector(selectMealsListStatus);
   const fetchMestatus = useAppSelector(selectFetchMeStatus);
   const error = useAppSelector(selectMealsError);
@@ -66,8 +68,8 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView
         contentContainerStyle={{
           paddingBottom: 120,

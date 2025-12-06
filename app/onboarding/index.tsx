@@ -1,15 +1,18 @@
-import React, { useRef, useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  Image,
-  FlatList,
-  TouchableOpacity,
-  useWindowDimensions,
-} from "react-native";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { STORAGE_KEYS } from "@/storage/keys";
+import { useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { STORAGE_KEYS } from "@/storage/keys";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useRef, useState } from "react";
+import {
+    FlatList,
+    Image,
+    Text,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
+} from "react-native";
 
 const SLIDES = [
   {
@@ -34,6 +37,8 @@ export default function Onboarding() {
   const { width } = useWindowDimensions();
   const listRef = useRef<FlatList>(null);
   const [index, setIndex] = useState(0);
+  const themeMode = useAppSelector(selectThemeMode);
+  const isDark = themeMode === "dark";
 
   const goRegister = useCallback(async () => {
     await AsyncStorage.setItem(STORAGE_KEYS.HAS_ONBOARDED, "1");
@@ -61,9 +66,8 @@ export default function Onboarding() {
   };
 
   return (
-    <View className="flex-1 bg-[#FFF6E7]">
-      {" "}
-      {/* light warm background */}
+    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-[#FFF6E7]"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       {/* Top bar with Skip */}
       <View className="flex-row justify-end items-center px-4 py-3 mt-20">
         {index < SLIDES.length - 1 ? (
@@ -96,7 +100,7 @@ export default function Onboarding() {
             </View>
 
             <View className="mt-10 px-2">
-              <Text className="text-center text-[22px] leading-7 text-black font-satoshiBold">
+              <Text className={`text-center text-[22px] leading-7 font-satoshiBold ${isDark ? "text-neutral-100" : "text-black"}`}>
                 {item.title}
               </Text>
             </View>
@@ -111,6 +115,8 @@ export default function Onboarding() {
                     className={
                       active
                         ? "h-2 w-10 rounded-full bg-primary"
+                        : isDark
+                        ? "h-2 w-2 rounded-full bg-neutral-700"
                         : "h-2 w-2 rounded-full bg-[#F1C56F]"
                     }
                   />

@@ -31,6 +31,7 @@ import {
     fetchKitchenTypes,
 } from "@/redux/kitchen/kitchen.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 type TimeType = "opening" | "closing";
 
@@ -123,6 +124,7 @@ export default function CreateKitchenScreen() {
           closing_time: formatTimeForAPI(closingTime),
           delivery_time: deliveryTime,
           preparation_time: preparationTime,
+          city_id: selectedCityId,
         })
       ).unwrap();
 
@@ -143,9 +145,10 @@ export default function CreateKitchenScreen() {
   const selectedCityName =
     cities.find((c) => c.id === selectedCityId)?.name || selectedCityId;
 
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-4 border-b border-neutral-100">

@@ -1,18 +1,18 @@
+import CountryCodePickerModal from "@/components/auth/CountryCodePickerModal";
+import FoodhutButton from "@/components/ui/FoodhutButton";
+import {
+    createKitchen,
+    fetchKitchenCities,
+    fetchKitchenTypes,
+} from "@/redux/kitchen/kitchen.thunks";
+import { useAppDispatch } from "@/store/hooks";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import FoodhutButton from "@/components/ui/FoodhutButton";
-import CountryCodePickerModal from "@/components/auth/CountryCodePickerModal";
-import { useAppDispatch } from "@/store/hooks";
-import {
-  createKitchen,
-  fetchKitchenCities,
-  fetchKitchenTypes,
-} from "@/redux/kitchen/kitchen.thunks";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type FormValues = {
   name: string;
@@ -101,15 +101,17 @@ export default function KitchenRegisterScreen() {
       closing_time: v.closing_time,
       delivery_time: v.delivery_time,
       preparation_time: v.preparation_time,
+      city_id: v.cityId,
     };
     await dispatch(createKitchen(body)).unwrap();
     // go to tabs (or a success screen)
     // router.replace("/users/(tabs)");
   });
 
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <KeyboardAwareScrollView
         enableOnAndroid
         keyboardShouldPersistTaps="handled"

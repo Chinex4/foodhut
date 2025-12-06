@@ -1,32 +1,31 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { router, useLocalSearchParams } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useMemo, useState } from "react";
 import {
-  View,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
   Text,
   TextInput,
-  Pressable,
-  FlatList,
-  Modal,
-  Image,
-  Platform,
+  View,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
-import { useLocalSearchParams, router } from "expo-router";
-import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { useAppSelector } from "@/store/hooks";
 import {
-  selectMealsListStatus,
-  selectMealsError,
-} from "@/redux/meals/meals.selectors";
-import {
-  makeSelectTrendingDiscounts,
   makeSelectMostPopular,
+  makeSelectTrendingDiscounts,
   makeSelectVendorsCloseBy,
+  selectMealsError,
+  selectMealsListStatus,
 } from "@/redux/meals/meals.selectors";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { useAppSelector } from "@/store/hooks";
 
+import AdsCarousel from "@/components/home/AdsCarousel";
 import MealCard from "@/components/home/MealCard";
 import MealCardSkeleton from "@/components/home/MealCardSkeleton";
-import AdsCarousel from "@/components/home/AdsCarousel";
 import { toNum } from "@/utils/money";
 
 type CategoryKey = "trending" | "popular" | "vendors";
@@ -121,9 +120,10 @@ export default function CategoryListScreen() {
     return arr;
   }, [base, q, sort, discountOnly]);
 
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   return (
-    <View className="flex-1 bg-white">
-      <StatusBar style="dark" />
+    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       {/* Header */}
       <View
         style={{ marginTop: Platform.select({ android: 40, ios: 60 }) }}

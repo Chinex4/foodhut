@@ -1,30 +1,31 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  FlatList,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import {
   selectWalletBalanceNumber,
   selectWalletProfileStatus,
 } from "@/redux/wallet/wallet.selectors";
+import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatNGN } from "@/utils/money";
 
 /* ───── Transactions wiring ───── */
 import {
+  selectTransactionsError,
   selectTransactionsList,
   selectTransactionsListStatus,
-  selectTransactionsError,
   selectTransactionsMeta,
 } from "@/redux/transactions/transactions.selectors";
 import { fetchTransactions } from "@/redux/transactions/transactions.thunks";
@@ -33,6 +34,7 @@ import type { Transaction } from "@/redux/transactions/transactions.types";
 export default function WalletScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
 
   /* Wallet profile */
   const balance = useAppSelector(selectWalletBalanceNumber);
@@ -113,8 +115,8 @@ export default function WalletScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
       <View className="px-5 pt-4 pb-3">

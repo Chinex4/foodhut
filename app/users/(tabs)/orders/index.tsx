@@ -1,19 +1,17 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, Pressable, TextInput, Platform } from "react-native";
-import { Tabs as RN } from "react-native-collapsible-tab-view";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchActiveCart } from "@/redux/cart/cart.thunks";
 import { fetchOrders } from "@/redux/orders/orders.thunks";
-import { selectOrdersListStatus } from "@/redux/orders/orders.selectors";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import React, { useEffect, useState } from "react";
+import { Platform, Pressable, Text, View } from "react-native";
 
+import CompletedTab from "@/components/orders/CompletedTab";
 import MyCartsTab from "@/components/orders/MyCartsTab";
 import OngoingTab from "@/components/orders/OngoingTab";
-import CompletedTab from "@/components/orders/CompletedTab";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import SearchBar from "@/components/search/SearchBar";
 
 export default function OrdersScreen() {
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(state => state.theme.mode) === "dark";
   const [tab, setTab] = useState<"carts" | "ongoing" | "completed">("carts");
 
   useEffect(() => {
@@ -22,7 +20,7 @@ export default function OrdersScreen() {
   }, [dispatch]);
 
   return (
-    <View className="flex-1 bg-[#FFF8EC]">
+    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-[#FFF8EC]"}`}>
       {/* search */}
       <View
         style={{ marginTop: Platform.select({ android: 60, ios: 80 }) }}

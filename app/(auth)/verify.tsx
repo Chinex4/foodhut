@@ -1,24 +1,24 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import {
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-  NativeSyntheticEvent,
-  TextInputKeyPressEventData,
-} from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import * as yup from "yup";
-import { yupResolver } from "@hookform/resolvers/yup";
 import FoodhutButton from "@/components/ui/FoodhutButton";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectAuthError, selectAuthStatus } from "@/redux/auth/auth.selectors";
 import { resendVerificationOtp, verifyOtp } from "@/redux/auth/auth.thunks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import {
+    NativeSyntheticEvent,
+    Platform,
+    Pressable,
+    Text,
+    TextInput,
+    TextInputKeyPressEventData,
+    View,
+} from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as yup from "yup";
 
 type FormValues = { d1: string; d2: string; d3: string; d4: string };
 
@@ -41,6 +41,8 @@ export default function VerifyScreen() {
   const status = useAppSelector(selectAuthStatus);
   const error = useAppSelector(selectAuthError);
   const loading = status === "loading";
+  const themeMode = useAppSelector((state) => state.theme.mode);
+  const isDark = themeMode === "dark";
 
   const { control, handleSubmit, setValue, getValues, watch } =
     useForm<FormValues>({
@@ -153,20 +155,20 @@ export default function VerifyScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <KeyboardAwareScrollView
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
       >
-        <Text className="text-3xl font-satoshiBold text-black mt-2">
+        <Text className={`text-3xl font-satoshiBold mt-2 ${isDark ? "text-neutral-100" : "text-black"}`}>
           Verify phone
         </Text>
-        <Text className="text-base text-gray-600 font-satoshi mt-1">
+        <Text className={`text-base font-satoshi mt-1 ${isDark ? "text-neutral-300" : "text-gray-600"}`}>
           We sent a 4-digit code to{" "}
-          <Text className="font-satoshiMedium text-black">{String(phone)}</Text>
+          <Text className={`font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>{String(phone)}</Text>
         </Text>
 
         {/* OTP boxes */}
@@ -184,13 +186,12 @@ export default function VerifyScreen() {
                   onBlur={onBlur}
                   onKeyPress={(e) => handleKeyPress(idx, e)}
                   keyboardType={
-                    Platform.OS === "ios" ? "number-pad" : "numeric"
-                  }
+                    Platform.OS === "ios" ? "number-pad" : "numeric"}
                   textContentType="oneTimeCode"
                   inputMode="numeric"
                   maxLength={1}
                   autoFocus={idx === 0}
-                  className="w-16 h-16 rounded-2xl bg-white text-center text-2xl font-satoshiBold shadow"
+                  className={`w-16 h-16 rounded-2xl text-center text-2xl font-satoshiBold shadow ${isDark ? "bg-neutral-900 text-neutral-100" : "bg-white text-black"}`}
                 />
               )}
             />
@@ -206,7 +207,7 @@ export default function VerifyScreen() {
 
         {/* Resend */}
         <View className="mt-4 flex-row items-center justify-center">
-          <Text className="font-satoshi text-gray-700">
+          <Text className={`font-satoshi ${isDark ? "text-neutral-200" : "text-gray-700"}`}>
             Didn't receive code?{" "}
           </Text>
           <Pressable
@@ -225,7 +226,7 @@ export default function VerifyScreen() {
           onPress={() => router.replace("/(auth)/login")}
           className="mt-6 self-center"
         >
-          <Text className="text-gray-700 font-satoshi">
+          <Text className={`font-satoshi ${isDark ? "text-neutral-200" : "text-gray-700"}`}>
             Use a different number
           </Text>
         </Pressable>

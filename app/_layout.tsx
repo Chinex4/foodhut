@@ -1,12 +1,12 @@
 import "react-native-gesture-handler";
 import React, { useEffect } from "react";
-import { Platform, View } from "react-native";
+import { Appearance, Platform, View } from "react-native";
 import { Slot } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { Provider } from "react-redux";
 import Toast from "react-native-toast-message";
-import { NativeWindStyleSheet } from "nativewind";
+import { useColorScheme } from "nativewind";
 
 import { store } from "@/store";
 import { attachStore } from "@/api/axios";
@@ -41,7 +41,7 @@ function ThemeHydrator() {
   }, [dispatch]);
 
   useEffect(() => {
-    NativeWindStyleSheet.setColorScheme(mode);
+    Appearance.setColorScheme?.(mode as any);
   }, [mode]);
 
   return null;

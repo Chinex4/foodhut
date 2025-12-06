@@ -1,19 +1,20 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useMemo, useState } from "react";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  selectMe,
-  selectUpdateMeStatus,
-  selectDeleteMeStatus,
-} from "@/redux/users/users.selectors";
-import { updateMyProfile, deleteMyProfile } from "@/redux/users/users.thunks";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { logout } from "@/redux/auth/auth.thunks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import {
+    selectDeleteMeStatus,
+    selectMe,
+    selectUpdateMeStatus,
+} from "@/redux/users/users.selectors";
+import { deleteMyProfile, updateMyProfile } from "@/redux/users/users.thunks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 function Field({
   icon,
@@ -22,6 +23,7 @@ function Field({
   placeholder,
   editable = true,
   rightEl,
+  isDark,
 }: {
   icon: React.ReactNode;
   value?: string | null;
@@ -29,9 +31,10 @@ function Field({
   placeholder: string;
   editable?: boolean;
   rightEl?: React.ReactNode;
+  isDark: boolean;
 }) {
   return (
-    <View className="bg-neutral-100/70 rounded-2xl mb-3 overflow-hidden">
+    <View className={`rounded-2xl mb-3 overflow-hidden ${isDark ? "bg-neutral-800" : "bg-neutral-100/70"}`}>
       <View className="px-4 py-4 flex-row items-center justify-between">
         <View className="flex-row items-center flex-1">
           {icon}
@@ -40,7 +43,7 @@ function Field({
             onChangeText={onChangeText}
             placeholder={placeholder}
             editable={editable}
-            className={`ml-3 flex-1 ${editable ? "text-neutral-900" : "text-neutral-400"} font-satoshi`}
+            className={`ml-3 flex-1 font-satoshi ${editable ? (isDark ? "text-white" : "text-neutral-900") : (isDark ? "text-neutral-500" : "text-neutral-400")}`}
           />
         </View>
         {rightEl}
@@ -52,6 +55,7 @@ function Field({
 export default function ProfileDetailsScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const me = useAppSelector(selectMe);
   const updating = useAppSelector(selectUpdateMeStatus) === "loading";
   const deleting = useAppSelector(selectDeleteMeStatus) === "loading";

@@ -1,44 +1,32 @@
+import CachedImage from "@/components/ui/CachedImage";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { router, useLocalSearchParams } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useLocalSearchParams, router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import CachedImage from "@/components/ui/CachedImage";
 
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  selectMealById,
-  makeSelectMealLikeStatus,
-  makeSelectMealByIdStatus,
-} from "@/redux/meals/meals.selectors";
-import {
-  fetchMealById,
-  likeMeal,
-  unlikeMeal,
-} from "@/redux/meals/meals.thunks";
-
+import Line from "@/components/ui/Line";
 import QuantityStepper from "@/components/ui/QuantityStepper";
-import {
-  selectCartItemQuantity,
-  selectCartFetchStatus,
-} from "@/redux/cart/cart.selectors";
-import { fetchActiveCart, setCartItem } from "@/redux/cart/cart.thunks";
-
-import { formatNGN, toNum } from "@/utils/money";
+import Skeleton from "@/components/ui/Skeleton";
 import { showError, showSuccess } from "@/components/ui/toast";
+import { selectCartFetchStatus, selectCartItemQuantity } from "@/redux/cart/cart.selectors";
+import { fetchActiveCart, setCartItem } from "@/redux/cart/cart.thunks";
+import {
+  makeSelectMealByIdStatus,
+  makeSelectMealLikeStatus,
+  selectMealById,
+} from "@/redux/meals/meals.selectors";
+import { fetchMealById, likeMeal, unlikeMeal } from "@/redux/meals/meals.thunks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { capitalizeFirst } from "@/utils/capitalize";
-
-const Skeleton = ({ className = "" }: { className?: string }) => (
-  <View className={`bg-neutral-200 ${className}`} />
-);
-const Line = ({ w = "w-2/3", h = "h-4", className = "" }: any) => (
-  <Skeleton className={`${w} ${h} rounded ${className}`} />
-);
+import { formatNGN, toNum } from "@/utils/money";
 
 export default function MealDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const mealId = id!;
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const [adding, setAdding] = useState(false);
 
   const meal = useAppSelector(selectMealById(mealId));
@@ -69,8 +57,8 @@ export default function MealDetailsScreen() {
 
   if (!meal && stillFetching) {
     return (
-      <View className="flex-1 bg-primary-50">
-        <StatusBar style="light" />
+      <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+        <StatusBar style={isDark ? "light" : "light"} />
         {/* cover skeleton */}
         <Skeleton className="h-[25rem] w-full" />
         <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>

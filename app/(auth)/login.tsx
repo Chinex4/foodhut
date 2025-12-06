@@ -4,12 +4,11 @@ import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  Image,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
+    Platform,
+    Pressable,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -58,6 +57,8 @@ export default function LoginScreen() {
   const status = useAppSelector(selectAuthStatus);
   const error = useAppSelector(selectAuthError);
   const loading = status === "loading";
+  const themeMode = useAppSelector((state) => state.theme.mode);
+  const isDark = themeMode === "dark";
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [country, setCountry] = useState<{
@@ -105,30 +106,30 @@ export default function LoginScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <KeyboardAwareScrollView
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
       >
-        <Text className="text-3xl font-satoshiBold text-black mt-2">
+        <Text className={`text-3xl font-satoshiBold mt-2 ${isDark ? "text-neutral-100" : "text-black"}`}>
           Welcome back
         </Text>
-        <Text className="text-base text-gray-600 font-satoshi mt-1">
+        <Text className={`text-base font-satoshi mt-1 ${isDark ? "text-neutral-300" : "text-gray-600"}`}>
           Enter your phone number to continue.
         </Text>
 
-        <Text className="mt-6 mb-2 text-sm text-black font-satoshiMedium">
+        <Text className={`mt-6 mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>
           Phone Number
         </Text>
-        <View className="bg-gray-100 rounded-xl px-3 py-1 flex-row items-center">
+        <View className={`${isDark ? "bg-neutral-900" : "bg-gray-100"} rounded-xl px-3 py-1 flex-row items-center`}>
           <Pressable
             onPress={() => setPickerOpen(true)}
             className="flex-row items-center px-2 py-2 mr-2 rounded-lg"
           >
             <Text className="text-lg mr-2">{country.flag}</Text>
-            <Text className="text-base font-satoshiMedium">{country.dial}</Text>
+            <Text className={`text-base font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>{country.dial}</Text>
             <Ionicons name="chevron-down" size={16} style={{ marginLeft: 4 }} />
           </Pressable>
 
@@ -142,11 +143,12 @@ export default function LoginScreen() {
                     ? "e.g. 7049938128"
                     : "Enter phone (no leading 0)"
                 }
+                placeholderTextColor={isDark ? "#888" : undefined}
                 keyboardType={Platform.OS === "ios" ? "number-pad" : "numeric"}
                 value={value}
                 onChangeText={onLocalChange}
                 onBlur={onBlur}
-                className="flex-1 text-base font-satoshi py-2"
+                className={`flex-1 text-base font-satoshi py-2 ${isDark ? "text-neutral-100" : "text-black"}`}
               />
             )}
           />
@@ -163,7 +165,7 @@ export default function LoginScreen() {
         <FoodhutButton title="Continue" loading={loading} onPress={onSubmit} />
 
         <Text
-          className="text-center mt-4 font-satoshi"
+          className={`text-center mt-4 font-satoshi ${isDark ? "text-neutral-200" : "text-black"}`}
           onPress={() => router.replace("/(auth)/register")}
         >
           New here?{" "}

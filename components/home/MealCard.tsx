@@ -1,14 +1,14 @@
-import { Pressable, Text, View } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import React, { useState } from "react";
-import type { Meal } from "@/redux/meals/meals.types";
-import { formatNGN, toNum } from "@/utils/money";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setCartItem } from "@/redux/cart/cart.thunks";
-import { showError, showSuccess } from "../ui/toast";
 import { selectCartItemQuantity } from "@/redux/cart/cart.selectors";
+import { setCartItem } from "@/redux/cart/cart.thunks";
+import type { Meal } from "@/redux/meals/meals.types";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { capitalizeFirst } from "@/utils/capitalize";
-import CachedImage from "../ui/CachedImage";
+import { formatNGN, toNum } from "@/utils/money";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React from "react";
+import { Image, Pressable, Text, View } from "react-native";
+import { showError, showSuccess } from "../ui/toast";
 
 function AddToCartButton({
   itemId,
@@ -70,6 +70,7 @@ export default function MealCard({
   onPress?: () => void;
 }) {
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const kitchenId = item?.kitchen_id ?? "";
   const qty = useAppSelector(selectCartItemQuantity(kitchenId, item.id));
 
@@ -86,9 +87,9 @@ export default function MealCard({
   return (
     <Pressable
       onPress={onPress}
-      className={`bg-white rounded-2xl border border-neutral-100 overflow-hidden ${compact ? "w-[200px]" : "w-full"}`}
+      className={`${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"} rounded-2xl border overflow-hidden ${compact ? "w-[200px]" : "w-full"}`}
       style={{
-        shadowOpacity: 0.05,
+        shadowOpacity: isDark ? 0 : 0.05,
         shadowRadius: 10,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
@@ -97,13 +98,16 @@ export default function MealCard({
       {/* cover */}
       <View className={`${compact ? "h-36" : "h-44"} w-full`}>
         {item.cover_image?.url ? (
-          <CachedImage uri={item.cover_image.url} className="w-full h-full" />
+          <Image
+            source={{ uri: item.cover_image.url }}
+            className="w-full h-full"
+          />
         ) : (
-          <View className="flex-1 bg-neutral-100" />
+          <View className={`flex-1 ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`} />
         )}
-        <View className="absolute right-3 top-3 bg-white/90 rounded-full px-2 py-1 flex-row items-center">
+        <View className={`absolute right-3 top-3 ${isDark ? "bg-neutral-900/90" : "bg-white/90"} rounded-full px-2 py-1 flex-row items-center`}>
           <Ionicons name="star" size={14} color="#FFA800" />
-          <Text className="ml-1 font-satoshiMedium text-[12px] text-neutral-800">
+          <Text className={`ml-1 font-satoshiMedium text-[12px] ${isDark ? "text-neutral-200" : "text-neutral-800"}`}>
             {String(item.rating ?? "0")}
           </Text>
         </View>
@@ -112,22 +116,22 @@ export default function MealCard({
       {/* info */}
       <View className="p-3">
         <Text
-          className="font-satoshiMedium text-neutral-900 text-[16px]"
+          className={`font-satoshiMedium text-[16px] ${isDark ? "text-white" : "text-neutral-900"}`}
           numberOfLines={1}
         >
           {capitalizeFirst(item.name)}
         </Text>
-        <Text className="text-neutral-500 text-[12px] mt-0.5" numberOfLines={1}>
+        <Text className={`text-[12px] mt-0.5 ${isDark ? "text-neutral-400" : "text-neutral-500"}`} numberOfLines={1}>
           {capitalizeFirst(item.description)}
         </Text>
 
         <View className="mt-2 flex-row items-center justify-between">
           <View className="flex-row items-end">
-            <Text className="text-neutral-900 font-satoshiBold text-[18px]">
+            <Text className={`font-satoshiBold text-[18px] ${isDark ? "text-white" : "text-neutral-900"}`}>
               {formatNGN(item.price)}
             </Text>
             {toNum(item.original_price) > toNum(item.price) && (
-              <Text className="ml-2 text-neutral-400 line-through">
+              <Text className={`ml-2 line-through ${isDark ? "text-neutral-500" : "text-neutral-400"}`}>
                 {formatNGN(item.original_price!)}
               </Text>
             )}

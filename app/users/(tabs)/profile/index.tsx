@@ -1,7 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React from "react";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, Switch, Text, View } from "react-native";
@@ -122,7 +121,7 @@ export default function ProfileHomeScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
       {/* Header / Hero */}
       <View
-        className={`px-5 pb-5 pt-20 ${
+        className={`px-5 pb-5 pt-24 ${
           isDark ? "bg-neutral-900" : "bg-primary-500"
         }`}
       >

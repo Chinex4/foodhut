@@ -1,26 +1,25 @@
 // app/users/referrals/index.tsx
+import Ionicons from "@expo/vector-icons/Ionicons";
+import * as Clipboard from "expo-clipboard";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   Pressable,
   ScrollView,
   Share,
   Text,
-  TextInput,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import * as Clipboard from "expo-clipboard";
-import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { useAppSelector } from "@/store/hooks";
-import { selectMe } from "@/redux/users/users.selectors";
-import { showSuccess, showError } from "@/components/ui/toast";
-import { router } from "expo-router";
 import CachedImage from "@/components/ui/CachedImage";
+import { showError, showSuccess } from "@/components/ui/toast";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { selectMe } from "@/redux/users/users.selectors";
+import { useAppSelector } from "@/store/hooks";
 
 type Tab = "REFER" | "EARN";
 
@@ -32,9 +31,9 @@ type Referral = {
   youEarned: number; // kobo-safe: store as minor, but here simple number in NGN
 };
 
-function Segmented({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+function Segmented({ tab, setTab, isDark }: { tab: Tab; setTab: (t: Tab) => void; isDark: boolean }) {
   return (
-    <View className="flex-row bg-neutral-200/60 rounded-xl p-1">
+    <View className={`flex-row ${isDark ? "bg-neutral-800" : "bg-neutral-200/60"} rounded-xl p-1`}>
       <Pressable
         onPress={() => setTab("REFER")}
         className={`flex-1 py-2 rounded-lg items-center justify-center ${
@@ -161,7 +160,9 @@ function RewardTile({
 }
 
 export default function ReferralsScreen() {
+  const router = useRouter();
   const me = useAppSelector(selectMe);
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const [tab, setTab] = useState<Tab>("REFER");
   const code = me?.referral_code ?? "—";
   const link = useMemo(() => {
@@ -194,8 +195,8 @@ export default function ReferralsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
       <View className="px-5 pt-4 pb-3">
@@ -218,7 +219,7 @@ export default function ReferralsScreen() {
         </View>
 
         <View className="mt-4">
-          <Segmented tab={tab} setTab={setTab} />
+          <Segmented tab={tab} setTab={setTab} isDark={isDark} />
         </View>
       </View>
 

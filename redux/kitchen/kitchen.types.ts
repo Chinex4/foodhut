@@ -41,6 +41,7 @@ export type CreateKitchenPayload = {
   closing_time: string;
   delivery_time: string;
   preparation_time: string;
+  city_id?: CityId;
 };
 
 export type UpdateKitchenPayload = Partial<

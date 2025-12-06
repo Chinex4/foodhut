@@ -1,5 +1,10 @@
+import CachedImage from "@/components/ui/CachedImage";
+import { showError, showSuccess } from "@/components/ui/toast";
+import { capitalizeFirst } from "@/utils/capitalize";
+import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -9,13 +14,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  Share,
   ScrollView,
+  Share,
   Text,
   TextInput,
   View,
 } from "react-native";
-import CachedImage from "@/components/ui/CachedImage";
 
 import {
   selectCartCheckoutStatus,
@@ -25,29 +29,22 @@ import {
   selectOrderRowsForKitchen
 } from "@/redux/cart/cart.selectors";
 import { checkoutActiveCart } from "@/redux/cart/cart.thunks";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-
-import { showError, showSuccess } from "@/components/ui/toast";
 import { makeSelectPayStatus } from "@/redux/orders/orders.selectors";
 import { payForOrder } from "@/redux/orders/orders.thunks";
-import { capitalizeFirst } from "@/utils/capitalize";
-import { formatNGN } from "@/utils/money";
-import { StatusBar } from "expo-status-bar";
-
-import { useLocalSearchParams } from "expo-router";
-
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import {
   selectWalletBalanceNumber,
   selectWalletProfileStatus,
 } from "@/redux/wallet/wallet.selectors";
 import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { listenRiderPicked } from "@/utils/riderBus.native";
 
 type PaymentUI = "ONLINE" | "WALLET" | "PAY_FOR_ME";
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, isDark }: { title: string; isDark: boolean }) {
   return (
-    <Text className="text-neutral-900 font-satoshiBold text-[16px] mb-2">
+    <Text className={`font-satoshiBold text-[16px] mb-2 ${isDark ? "text-white" : "text-neutral-900"}`}>
       {title}
     </Text>
   );
@@ -57,19 +54,21 @@ function SummaryRow({
   label,
   value,
   bold = false,
+  isDark,
 }: {
   label: string;
   value: string;
   bold?: boolean;
+  isDark: boolean;
 }) {
   return (
     <View className="flex-row items-center justify-between mb-3">
       <Text
-        className={`text-neutral-600 font-satoshi ${bold ? "font-satoshiBold" : ""}`}
+        className={`font-satoshi ${bold ? "font-satoshiBold" : ""} ${isDark ? "text-neutral-400" : "text-neutral-600"}`}
       >
         {label}
       </Text>
-      <Text className={`text-neutral-900 ${bold ? "font-satoshiBold" : ""}`}>
+      <Text className={`${bold ? "font-satoshiBold" : ""} ${isDark ? "text-white" : "text-neutral-900"}`}>
         {value}
       </Text>
     </View>
@@ -81,11 +80,13 @@ function Radio({
   selected,
   onPress,
   rightEl,
+  isDark,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
   rightEl?: React.ReactNode;
+  isDark: boolean;
 }) {
   return (
     <Pressable
@@ -95,7 +96,7 @@ function Radio({
       <View className="flex-row items-center">
         <View
           className={`w-5 h-5 rounded-full border mr-3 ${
-            selected ? "border-primary bg-primary" : "border-neutral-400"
+            selected ? "border-primary bg-primary" : isDark ? "border-neutral-600" : "border-neutral-400"
           }`}
         />
         <Text className="text-neutral-800 font-satoshiMedium">{label}</Text>
@@ -117,6 +118,7 @@ type Rider = {
 export default function CheckoutScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
 
   // inside component
   const { kitchen_id } = useLocalSearchParams<{ kitchen_id?: string }>();
@@ -327,11 +329,11 @@ export default function CheckoutScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.select({ ios: "padding", android: undefined })}
-      className="flex-1 bg-[#FFFDF8]"
+      className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-[#FFFDF8]"}`}
     >
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
       {/* Header */}
-      <View className="pt-20 pb-3 px-5 bg-[#FFFDF8]">
+      <View className={`pt-20 pb-3 px-5 ${isDark ? "bg-neutral-950" : "bg-[#FFFDF8]"}`}>
         <View className="flex-row items-center justify-between">
           <Pressable onPress={() => router.back()} className="mr-2">
             <Ionicons name="chevron-back" size={22} color="#0F172A" />
@@ -386,7 +388,7 @@ export default function CheckoutScreen() {
             keyboardShouldPersistTaps="handled"
             ListHeaderComponent={
               <View>
-                <SectionHeader title="Order Summary" />
+                <SectionHeader title="Order Summary" isDark={isDark} />
               </View>
             }
             renderItem={({ item }) => (
@@ -560,7 +562,7 @@ export default function CheckoutScreen() {
 
             {/* Riders */}
             <View className="mt-5">
-              <SectionHeader title="Delivery Rider" />
+              <SectionHeader title="Delivery Rider" isDark={isDark} />
               {selectedRider ? (
                 <View className="bg-white rounded-2xl border border-neutral-100 p-3 flex-row items-center justify-between">
                   <View className="flex-row items-center">
@@ -608,26 +610,28 @@ export default function CheckoutScreen() {
 
             {/* Payment Summary */}
             <View className="mt-5">
-              <SectionHeader title="Payment Summary" />
+              <SectionHeader title="Payment Summary" isDark={isDark} />
               <View className="bg-white rounded-2xl border border-neutral-100 p-3">
                 <SummaryRow
                   label={`Sub-total (${totalItems} item${totalItems === 1 ? "" : "s"})`}
                   value={formatNGN(subtotal)}
+                  isDark={isDark}
                 />
                 <View className="h-[1px] bg-neutral-100 my-2" />
-                <SummaryRow label="Total Payment" value={formatNGN(total)} bold />
+                <SummaryRow label="Total Payment" value={formatNGN(total)} bold isDark={isDark} />
               </View>
             </View>
 
             {/* Payment Method */}
             <View className="mt-5">
-              <SectionHeader title="Payment Method" />
+              <SectionHeader title="Payment Method" isDark={isDark} />
               <View className="bg-white rounded-2xl border border-neutral-100 px-3">
                 {/* Pay Online */}
                 <Radio
                   label="Pay Online (Paystack)"
                   selected={paymentMethod === "ONLINE"}
                   onPress={() => setPaymentMethod("ONLINE")}
+                  isDark={isDark}
                 />
                 <View className="h-[1px] bg-neutral-100" />
 
@@ -643,6 +647,7 @@ export default function CheckoutScreen() {
                       </Text>
                     ) : undefined
                   }
+                  isDark={isDark}
                 />
                 <View className="h-[1px] bg-neutral-100" />
 
@@ -656,6 +661,7 @@ export default function CheckoutScreen() {
                       Share with friend
                     </Text>
                   }
+                  isDark={isDark}
                 />
               </View>
             </View>
