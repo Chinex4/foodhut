@@ -131,27 +131,27 @@ export default function CategoryListScreen() {
       >
         <Pressable onPress={() => router.back()} className="mr-2 p-1">
           <View>
-            <Ionicons name="chevron-back" size={26} color="#111" />
+            <Ionicons name="chevron-back" size={26} color={isDark ? "#fff" : "#111"} />
           </View>
         </Pressable>
-        <Text className="text-[24px] font-satoshiBold text-neutral-900 flex-1 text-center mr-9">
+        <Text className={`text-[24px] font-satoshiBold flex-1 text-center mr-9 ${isDark ? "text-white" : "text-neutral-900"}`}>
           {TITLES[cat]}
         </Text>
       </View>
 
       {/* Search + filter row */}
       <View className="px-4">
-        <View className="flex-row items-center bg-neutral-100 rounded-2xl px-4 h-12">
-          <Ionicons name="search-outline" size={20} color="#8E8E93" />
+        <View className={`flex-row items-center rounded-2xl px-4 h-12 ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}>
+          <Ionicons name="search-outline" size={20} color={isDark ? "#9CA3AF" : "#8E8E93"} />
           <TextInput
             placeholder="Search for food"
-            placeholderTextColor="#8E8E93"
-            className="flex-1 ml-3 font-satoshi"
+            placeholderTextColor={isDark ? "#6B7280" : "#8E8E93"}
+            className={`flex-1 ml-3 font-satoshi ${isDark ? "text-white" : "text-black"}`}
             value={q}
             onChangeText={setQ}
           />
           <Pressable onPress={() => setSortOpen(true)} className="ml-3">
-            <Ionicons name="options-outline" size={22} color="#8E8E93" />
+            <Ionicons name="options-outline" size={22} color={isDark ? "#9CA3AF" : "#8E8E93"} />
           </Pressable>
         </View>
       </View>

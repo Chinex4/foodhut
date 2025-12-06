@@ -1,5 +1,6 @@
 import { fetchActiveCart } from "@/redux/cart/cart.thunks";
 import { fetchOrders } from "@/redux/orders/orders.thunks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useEffect, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
@@ -11,7 +12,7 @@ import SearchBar from "@/components/search/SearchBar";
 
 export default function OrdersScreen() {
   const dispatch = useAppDispatch();
-  const isDark = useAppSelector(state => state.theme.mode) === "dark";
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const [tab, setTab] = useState<"carts" | "ongoing" | "completed">("carts");
 
   useEffect(() => {
@@ -38,7 +39,7 @@ export default function OrdersScreen() {
         ].map(({ k, t }) => (
           <Pressable key={k} onPress={() => setTab(k as any)}>
             <Text
-              className={`text-[16px] text-center ${tab === k ? "text-primary font-satoshiBold" : "text-neutral-700 font-satoshi"}`}
+              className={`text-[16px] text-center ${tab === k ? "text-primary font-satoshiBold" : isDark ? "text-neutral-400 font-satoshi" : "text-neutral-700 font-satoshi"}`}
             >
               {t}
             </Text>

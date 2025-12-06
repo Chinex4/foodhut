@@ -106,18 +106,18 @@ export default function ProfileDetailsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       {/* Header */}
-      <View className="px-5 pt-8 pb-2 bg-primary-50">
+      <View className={`px-5 pt-8 pb-2 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
         <View className="flex-row items-center justify-between">
           <Pressable
             onPress={() => router.push("/users/(tabs)/profile")}
             className="mr-2"
           >
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
+            <Ionicons name="chevron-back" size={22} color={isDark ? "#fff" : "#0F172A"} />
           </Pressable>
-          <Text className="text-2xl font-satoshiBold text-neutral-900">
+          <Text className={`text-2xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
             Profile Details
           </Text>
           <View className="w-10" />
@@ -127,7 +127,7 @@ export default function ProfileDetailsScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
         {/* Editable name */}
         <Field
-          icon={<Ionicons name="person-outline" size={18} color="#6B7280" />}
+          icon={<Ionicons name="person-outline" size={18} color={isDark ? "#9CA3AF" : "#6B7280"} />}
           value={`${firstName} ${lastName}`.trim()}
           onChangeText={(t) => {
             const parts = t.split(" ");
@@ -135,34 +135,38 @@ export default function ProfileDetailsScreen() {
             setLastName(parts.slice(1).join(" "));
           }}
           placeholder="Account name"
-          rightEl={<Ionicons name="create-outline" size={16} color="#9CA3AF" />}
+          rightEl={<Ionicons name="create-outline" size={16} color={isDark ? "#6B7280" : "#9CA3AF"} />}
+          isDark={isDark}
         />
 
         {/* Phone - read only per your API types */}
         <Field
-          icon={<Ionicons name="call-outline" size={18} color="#6B7280" />}
+          icon={<Ionicons name="call-outline" size={18} color={isDark ? "#9CA3AF" : "#6B7280"} />}
           value={me?.phone_number ?? ""}
           placeholder="Phone number"
           editable={false}
-          rightEl={<Ionicons name="create-outline" size={16} color="#E5E7EB" />}
+          rightEl={<Ionicons name="create-outline" size={16} color={isDark ? "#6B7280" : "#E5E7EB"} />}
+          isDark={isDark}
         />
 
         {/* Email - read only */}
         <Field
-          icon={<Ionicons name="mail-outline" size={18} color="#6B7280" />}
+          icon={<Ionicons name="mail-outline" size={18} color={isDark ? "#9CA3AF" : "#6B7280"} />}
           value={me?.email ?? ""}
           placeholder="Email"
           editable={false}
-          rightEl={<Ionicons name="create-outline" size={16} color="#E5E7EB" />}
+          rightEl={<Iconicons name="create-outline" size={16} color={isDark ? "#6B7280" : "#E5E7EB"} />}
+          isDark={isDark}
         />
 
-        {/* Date of birth (display only – API doesn’t allow update in your types) */}
+        {/* Date of birth (display only – API doesn't allow update in your types) */}
         <Field
-          icon={<Ionicons name="calendar-outline" size={18} color="#6B7280" />}
+          icon={<Ionicons name="calendar-outline" size={18} color={isDark ? "#9CA3AF" : "#6B7280"} />}
           value={me?.birthday ?? ""}
           placeholder="Date of birth"
           editable={false}
-          rightEl={<Ionicons name="calendar" size={16} color="#9CA3AF" />}
+          rightEl={<Ionicons name="calendar" size={16} color={isDark ? "#6B7280" : "#9CA3AF"} />}
+          isDark={isDark}
         />
 
         {/* Save button */}
@@ -170,7 +174,7 @@ export default function ProfileDetailsScreen() {
           disabled={!canSave}
           onPress={onSave}
           className={`mt-4 rounded-2xl py-4 items-center justify-center ${
-            canSave ? "bg-primary" : "bg-neutral-300"
+            canSave ? "bg-primary" : isDark ? "bg-neutral-700" : "bg-neutral-300"
           }`}
         >
           <Text className="text-white font-satoshiBold">
@@ -179,25 +183,25 @@ export default function ProfileDetailsScreen() {
         </Pressable>
 
         {/* Divider */}
-        <View className="h-[1px] bg-neutral-200 my-6" />
+        <View className={`h-[1px] my-6 ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`} />
 
         {/* Danger actions */}
         <Pressable
           onPress={() => handleLogout()}
-          className="flex-row items-center justify-between px-4 py-4 bg-white rounded-2xl mb-3 border border-neutral-100"
+          className={`flex-row items-center justify-between px-4 py-4 rounded-2xl mb-3 border ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
         >
           <View className="flex-row items-center">
-            <Ionicons name="log-out-outline" size={18} color="#0F172A" />
-            <Text className="ml-3 text-[14px] font-satoshi text-neutral-900">
+            <Ionicons name="log-out-outline" size={18} color={isDark ? "#9CA3AF" : "#0F172A"} />
+            <Text className={`ml-3 text-[14px] font-satoshi ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
               Sign out
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+          <Ionicons name="chevron-forward" size={18} color={isDark ? "#6B7280" : "#9CA3AF"} />
         </Pressable>
 
         <Pressable
           onPress={onDelete}
-          className="flex-row items-center justify-between px-4 py-4 bg-white rounded-2xl border border-neutral-100"
+          className={`flex-row items-center justify-between px-4 py-4 rounded-2xl border ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
         >
           <View className="flex-row items-center">
             <Ionicons name="trash-outline" size={18} color="#DC2626" />

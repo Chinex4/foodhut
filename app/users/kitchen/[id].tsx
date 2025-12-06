@@ -1,7 +1,11 @@
 import { api } from "@/api/axios";
+import CachedImage from "@/components/ui/CachedImage";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { useAppSelector } from "@/store/hooks";
 import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
@@ -13,7 +17,6 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import CachedImage from "@/components/ui/CachedImage";
 
 type City = {
   id: string;
@@ -60,6 +63,7 @@ function getInitials(name: string) {
 
 export default function KitchenDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
 
   const [loading, setLoading] = useState(true);
   const [kitchen, setKitchen] = useState<Kitchen | null>(null);
@@ -116,7 +120,7 @@ export default function KitchenDetailScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
+      <View className={`flex-1 items-center justify-center ${isDark ? "bg-neutral-950" : "bg-white"}`}>
         <ActivityIndicator color="#ffa800" size="large" />
       </View>
     );
@@ -124,11 +128,11 @@ export default function KitchenDetailScreen() {
 
   if (!kitchen || error) {
     return (
-      <View className="flex-1 items-center justify-center bg-white px-6">
-        <Text className="text-[16px] font-satoshiBold text-neutral-900 mb-2">
+      <View className={`flex-1 items-center justify-center px-6 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
+        <Text className={`text-[16px] font-satoshiBold mb-2 ${isDark ? "text-white" : "text-neutral-900"}`}>
           Oops
         </Text>
-        <Text className="text-neutral-500 text-center mb-4">
+        <Text className={`text-center mb-4 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
           {error || "Kitchen could not be found."}
         </Text>
         <TouchableOpacity
@@ -158,7 +162,8 @@ export default function KitchenDetailScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       {/* HEADER with back + image */}
       <View className="relative h-64 bg-secondary">
         {imageUri ? (
@@ -195,11 +200,11 @@ export default function KitchenDetailScreen() {
       >
         {/* title + rating row */}
         <View className="px-4 pt-4">
-          <Text className="text-[20px] font-satoshiBold text-neutral-900">
+          <Text className={`text-[20px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
             {kitchen.name}
           </Text>
 
-          <Text className="mt-1 text-[13px] text-neutral-500 font-satoshiMedium">
+          <Text className={`mt-1 text-[13px] font-satoshiMedium ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
             {kitchen.type || "Cuisine"}
             {locationLabel ? ` • ${locationLabel}` : ""}
           </Text>
@@ -213,9 +218,9 @@ export default function KitchenDetailScreen() {
             </View>
 
             {timeLabel ? (
-              <View className="flex-row items-center px-2 py-1 rounded-full bg-[#F3F4F6]">
-                <Ionicons name="time-outline" size={13} color="#6B7280" />
-                <Text className="ml-1 text-[12px] text-neutral-600">
+              <View className={`flex-row items-center px-2 py-1 rounded-full ${isDark ? "bg-neutral-800" : "bg-[#F3F4F6]"}`}>
+                <Ionicons name="time-outline" size={13} color={isDark ? "#9CA3AF" : "#6B7280"} />
+                <Text className={`ml-1 text-[12px] ${isDark ? "text-neutral-300" : "text-neutral-600"}`}>
                   {timeLabel}
                 </Text>
               </View>
@@ -245,30 +250,30 @@ export default function KitchenDetailScreen() {
         {/* info cards */}
         <View className="px-4 mt-5 space-y-3">
           {/* address */}
-          <View className="flex-row rounded-3xl bg-[#F9FAFB] p-3">
-            <View className="w-9 h-9 rounded-2xl bg-white items-center justify-center mr-3">
-              <Ionicons name="location-outline" size={18} color="#4B5563" />
+          <View className={`flex-row rounded-3xl p-3 ${isDark ? "bg-neutral-900 border border-neutral-800" : "bg-[#F9FAFB]"}`}>
+            <View className={`w-9 h-9 rounded-2xl items-center justify-center mr-3 ${isDark ? "bg-neutral-800" : "bg-white"}`}>
+              <Ionicons name="location-outline" size={18} color={isDark ? "#9CA3AF" : "#4B5563"} />
             </View>
             <View className="flex-1">
-              <Text className="text-[13px] font-satoshiBold text-neutral-900">
+              <Text className={`text-[13px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
                 Address
               </Text>
-              <Text className="mt-1 text-[12px] text-neutral-600">
+              <Text className={`mt-1 text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
                 {kitchen.address || "Not provided"}
               </Text>
             </View>
           </View>
 
           {/* hours */}
-          <View className="flex-row rounded-3xl bg-[#F9FAFB] p-3">
-            <View className="w-9 h-9 rounded-2xl bg-white items-center justify-center mr-3">
-              <Ionicons name="time-outline" size={18} color="#4B5563" />
+          <View className={`flex-row rounded-3xl p-3 ${isDark ? "bg-neutral-900 border border-neutral-800" : "bg-[#F9FAFB]"}`}>
+            <View className={`w-9 h-9 rounded-2xl items-center justify-center mr-3 ${isDark ? "bg-neutral-800" : "bg-white"}`}>
+              <Ionicons name="time-outline" size={18} color={isDark ? "#9CA3AF" : "#4B5563"} />
             </View>
             <View className="flex-1">
-              <Text className="text-[13px] font-satoshiBold text-neutral-900">
+              <Text className={`text-[13px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
                 Opening hours
               </Text>
-              <Text className="mt-1 text-[12px] text-neutral-600">
+              <Text className={`mt-1 text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
                 {openClose || "Not specified"}
               </Text>
             </View>
@@ -278,16 +283,16 @@ export default function KitchenDetailScreen() {
           <TouchableOpacity
             onPress={handleCall}
             disabled={!kitchen.phone_number}
-            className="flex-row rounded-3xl bg-[#F9FAFB] p-3"
+            className={`flex-row rounded-3xl p-3 ${isDark ? "bg-neutral-900 border border-neutral-800" : "bg-[#F9FAFB]"}`}
           >
-            <View className="w-9 h-9 rounded-2xl bg-white items-center justify-center mr-3">
-              <Ionicons name="call-outline" size={18} color="#4B5563" />
+            <View className={`w-9 h-9 rounded-2xl items-center justify-center mr-3 ${isDark ? "bg-neutral-800" : "bg-white"}`}>
+              <Ionicons name="call-outline" size={18} color={isDark ? "#9CA3AF" : "#4B5563"} />
             </View>
             <View className="flex-1">
-              <Text className="text-[13px] font-satoshiBold text-neutral-900">
+              <Text className={`text-[13px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
                 Contact
               </Text>
-              <Text className="mt-1 text-[12px] text-neutral-600">
+              <Text className={`mt-1 text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
                 {kitchen.phone_number || "Not available"}
               </Text>
             </View>
@@ -300,7 +305,7 @@ export default function KitchenDetailScreen() {
         {/* Meals Section */}
         {meals.length > 0 && (
           <View className="mt-6">
-            <Text className="px-4 text-[16px] font-satoshiBold text-neutral-900 mb-3">
+            <Text className={`px-4 text-[16px] font-satoshiBold mb-3 ${isDark ? "text-white" : "text-neutral-900"}`}>
               Menu ({meals.length})
             </Text>
 
@@ -312,25 +317,25 @@ export default function KitchenDetailScreen() {
               renderItem={({ item }) => (
                 <Pressable
                   onPress={() => {}}
-                  className="bg-white rounded-2xl border border-neutral-100 overflow-hidden flex-row"
+                  className={`rounded-2xl border overflow-hidden flex-row ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
                 >
                   {item.cover_image?.url && (
                     <CachedImage
                       uri={item.cover_image.url}
-                      className="w-24 h-24 bg-neutral-200"
+                      className={`w-24 h-24 ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
                     />
                   )}
                   <View className="flex-1 p-3 justify-between">
                     <View>
                       <Text
                         numberOfLines={1}
-                        className="font-satoshiBold text-neutral-900 text-[14px]"
+                        className={`font-satoshiBold text-[14px] ${isDark ? "text-white" : "text-neutral-900"}`}
                       >
                         {item.name}
                       </Text>
                       <Text
                         numberOfLines={1}
-                        className="text-[12px] text-neutral-600 mt-1 font-satoshi"
+                        className={`text-[12px] mt-1 font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}
                       >
                         {item.description}
                       </Text>
@@ -342,15 +347,15 @@ export default function KitchenDetailScreen() {
                       <View
                         className={`px-2 py-1 rounded-full ${
                           item.is_available
-                            ? "bg-green-100"
-                            : "bg-neutral-200"
+                            ? isDark ? "bg-green-900" : "bg-green-100"
+                            : isDark ? "bg-neutral-700" : "bg-neutral-200"
                         }`}
                       >
                         <Text
                           className={`text-[10px] font-satoshiBold ${
                             item.is_available
-                              ? "text-green-700"
-                              : "text-neutral-600"
+                              ? isDark ? "text-green-300" : "text-green-700"
+                              : isDark ? "text-neutral-400" : "text-neutral-600"
                           }`}
                         >
                           {item.is_available ? "Available" : "Out"}

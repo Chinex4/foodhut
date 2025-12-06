@@ -80,10 +80,10 @@ export default function HomeScreen() {
         <View className="px-4 pt-6">
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-1">
-              <Text className="text-neutral-500 font-satoshiMedium">
+              <Text className={`font-satoshiMedium ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                 Welcome, {me?.first_name}
               </Text>
-              <Text className="text-[32px] font-satoshiBold text-neutral-900 mt-1">
+              <Text className={`text-[32px] font-satoshiBold mt-1 ${isDark ? "text-white" : "text-neutral-900"}`}>
                 Eat Your Fav!
               </Text>
             </View>
@@ -115,13 +115,13 @@ export default function HomeScreen() {
 
           {/* Display selected city */}
           {selectedCity && (
-            <View className="flex-row items-center bg-white rounded-full px-4 py-2 mb-4 shadow-sm">
+            <View className={`flex-row items-center rounded-full px-4 py-2 mb-4 shadow-sm ${isDark ? "bg-neutral-800 border border-neutral-700" : "bg-white border-0"}`}>
               <MaterialCommunityIcons
                 name="map-marker"
                 size={16}
                 color="#ffa800"
               />
-              <Text className="ml-2 text-sm font-satoshiMedium text-neutral-700">
+              <Text className={`ml-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-700"}`}>
                 {selectedCity.name}
               </Text>
               <Pressable
@@ -131,7 +131,7 @@ export default function HomeScreen() {
                 <MaterialCommunityIcons
                   name="pencil"
                   size={14}
-                  color="#9CA3AF"
+                  color={isDark ? "#6B7280" : "#9CA3AF"}
                 />
               </Pressable>
             </View>

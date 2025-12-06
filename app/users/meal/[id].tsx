@@ -128,8 +128,8 @@ export default function MealDetailsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-primary-50">
-      <StatusBar style="light" />
+    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* cover + top bar */}
       <View className="h-[25rem] w-full bg-neutral-100">
@@ -171,7 +171,7 @@ export default function MealDetailsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
-        <View className="p-4 bg-[#FFF8EC]">
+        <View className={`p-4 ${isDark ? "bg-neutral-900" : "bg-[#FFF8EC]"}`}>
           {byIdStatus === "loading" ? (
             <>
               <Line w="w-3/4" h="h-7" />
@@ -180,19 +180,19 @@ export default function MealDetailsScreen() {
             </>
           ) : (
             <View className="flex flex-row items-center justify-between">
-              <View>
-                <Text className="text-3xl font-satoshiBold text-neutral-900">
+              <View className="flex-1">
+                <Text className={`text-3xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
                   {capitalizeFirst(meal!.name)}
                 </Text>
-                <Text className="mt-2 text-xl text-neutral-600">
+                <Text className={`mt-2 text-xl ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
                   {capitalizeFirst(meal!.description)}
                 </Text>
               </View>
-              <View className="rounded-2xl border border-primary px-5 py-3">
-                <Text className="text-primary text-2xl font-satoshiBold">
+              <View className={`rounded-2xl border px-5 py-3 ${isDark ? "border-neutral-700 bg-neutral-800" : "border-primary bg-white"}`}>
+                <Text className={`text-2xl font-satoshiBold ${isDark ? "text-primary" : "text-primary"}`}>
                   {formatNGN(meal!.price)}
                   {isDiscount && (
-                    <Text className="text-neutral-400 line-through ml-2">
+                    <Text className={`line-through ml-2 ${isDark ? "text-neutral-600" : "text-neutral-400"}`}>
                       {"  "}
                       {formatNGN(meal!.original_price!)}
                     </Text>
@@ -203,16 +203,16 @@ export default function MealDetailsScreen() {
           )}
 
           {/* meta row */}
-          <View className="mt-4 bg-white rounded-2xl px-4 py-3 flex-row items-center justify-between">
+          <View className={`mt-4 rounded-2xl px-4 py-3 flex-row items-center justify-between ${isDark ? "bg-neutral-800" : "bg-white"}`}>
             <View className="flex-row items-center">
               <Ionicons name="star" size={16} color="#ffa800" />
-              <Text className="ml-2 text-neutral-800">
+              <Text className={`ml-2 ${isDark ? "text-neutral-100" : "text-neutral-800"}`}>
                 {String(meal!.rating)} Ratings
               </Text>
             </View>
             <View className="flex-row items-center">
               <Ionicons name="heart" size={16} color="#ffa800" />
-              <Text className="ml-2 text-neutral-800">{meal!.likes} Likes</Text>
+              <Text className={`ml-2 ${isDark ? "text-neutral-100" : "text-neutral-800"}`}>{meal!.likes} Likes</Text>
             </View>
             <QuantityStepper value={qty} onChange={setQty} />
           </View>
@@ -221,7 +221,7 @@ export default function MealDetailsScreen() {
 
       {/* bottom bar */}
       {/* bottom bar */}
-      <View className="absolute bottom-8 right-0 left-0 p-4 bg-primary-50 border-t border-neutral-100">
+      <View className={`absolute bottom-8 right-0 left-0 p-4 border-t ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-primary-50 border-neutral-100"}`}>
         {/** If qty > 0, show "Added to Cart" and disable the button */}
         <Pressable
           onPress={qty > 0 ? undefined : addOne}

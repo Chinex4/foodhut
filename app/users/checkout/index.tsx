@@ -336,9 +336,9 @@ export default function CheckoutScreen() {
       <View className={`pt-20 pb-3 px-5 ${isDark ? "bg-neutral-950" : "bg-[#FFFDF8]"}`}>
         <View className="flex-row items-center justify-between">
           <Pressable onPress={() => router.back()} className="mr-2">
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
+            <Ionicons name="chevron-back" size={22} color={isDark ? "#fff" : "#0F172A"} />
           </Pressable>
-          <Text className="text-2xl font-satoshiBold text-neutral-900">
+          <Text className={`text-2xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
             Checkout
           </Text>
           <View className="w-10" />
@@ -350,8 +350,8 @@ export default function CheckoutScreen() {
             <Text
               className={`${
                 tab === "ORDER"
-                  ? "text-neutral-900 font-satoshiBold"
-                  : "text-neutral-500 font-satoshi"
+                  ? `font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`
+                  : `font-satoshi ${isDark ? "text-neutral-500" : "text-neutral-500"}`
               }`}
             >
               Your Order
@@ -365,8 +365,8 @@ export default function CheckoutScreen() {
             <Text
               className={`${
                 tab === "DELIVERY"
-                  ? "text-neutral-900 font-satoshiBold"
-                  : "text-neutral-500 font-satoshi"
+                  ? `font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`
+                  : `font-satoshi ${isDark ? "text-neutral-500" : "text-neutral-500"}`
               }`}
             >
               Delivery & Payment
@@ -393,7 +393,7 @@ export default function CheckoutScreen() {
             }
             renderItem={({ item }) => (
               <View
-                className="bg-white rounded-2xl border border-neutral-100 mb-4 p-3"
+                className={`rounded-2xl border mb-4 p-3 ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
                 style={{
                   shadowOpacity: 0.05,
                   shadowRadius: 10,
@@ -407,24 +407,24 @@ export default function CheckoutScreen() {
                     fallback={
                       <Image
                         source={require("@/assets/images/logo-transparent.png")}
-                        className="w-16 h-16 rounded-xl bg-neutral-100"
+                        className={`w-16 h-16 rounded-xl ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
                       />
                     }
-                    className="w-16 h-16 rounded-xl bg-neutral-100"
+                    className={`w-16 h-16 rounded-xl ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
                   />
                   <View className="flex-1 ml-3 justify-center">
                     <Text
                       numberOfLines={1}
-                      className="font-satoshiMedium text-neutral-900"
+                      className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}
                     >
                       {capitalizeFirst(item.title)}
                     </Text>
-                    <Text className="text-neutral-500 font-satoshi mt-1">
+                    <Text className={`font-satoshi mt-1 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                       {formatNGN(item.price)}{" "}
-                      <Text className="text-neutral-400">× {item.qty}</Text>
+                      <Text className={isDark ? "text-neutral-600" : "text-neutral-400"}>× {item.qty}</Text>
                     </Text>
                   </View>
-                  <Text className="font-satoshiBold text-neutral-900 self-center">
+                  <Text className={`font-satoshiBold self-center ${isDark ? "text-white" : "text-neutral-900"}`}>
                     {formatNGN(item.price * item.qty)}
                   </Text>
                 </View>
@@ -432,15 +432,16 @@ export default function CheckoutScreen() {
             )}
             ListFooterComponent={
               <View className="mt-6">
-                <Text className="text-neutral-700 mb-2 font-satoshi">
+                <Text className={`mb-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-700"}`}>
                   Leave a message for the restaurant
                 </Text>
                 <TextInput
                   placeholder="e.g. No pepper, ring me on arrival"
+                  placeholderTextColor={isDark ? "#6B7280" : "#D1D5DB"}
                   value={note}
                   onChangeText={setNote}
                   multiline
-                  className="bg-white rounded-2xl p-3 border border-neutral-200 text-neutral-900 placeholder:font-satoshi"
+                  className={`rounded-2xl p-3 border placeholder:font-satoshi ${isDark ? "bg-neutral-900 border-neutral-800 text-white" : "bg-white border-neutral-200 text-neutral-900"}`}
                   style={{ minHeight: 90 }}
                 />
               </View>
@@ -448,7 +449,7 @@ export default function CheckoutScreen() {
             ListEmptyComponent={
               <View className="items-center mt-12">
                 <Image source={require("@/assets/images/trayy.png")} />
-                <Text className="text-neutral-500 mt-3">
+                <Text className={isDark ? "text-neutral-400 mt-3" : "text-neutral-500 mt-3"}>
                   Your tray is empty, add meals to continue.
                 </Text>
               </View>
@@ -456,12 +457,12 @@ export default function CheckoutScreen() {
           />
 
           {/* Bottom bar */}
-          <View className="absolute left-0 right-0 bottom-0 px-5 pb-6 pt-4 bg-[#FFFDF8]">
+          <View className={`absolute left-0 right-0 bottom-0 px-5 pb-6 pt-4 ${isDark ? "bg-neutral-950" : "bg-[#FFFDF8]"}`}>
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-neutral-700 font-satoshi">
+              <Text className={`font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-700"}`}>
                 Items ({totalItems})
               </Text>
-              <Text className="text-neutral-900 font-satoshiBold">
+              <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
                 {formatNGN(subtotal)}
               </Text>
             </View>

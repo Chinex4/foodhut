@@ -1,4 +1,16 @@
 // app/users/(tabs)/orders/MyCartsTab.tsx
+import { showError, showSuccess } from "@/components/ui/toast";
+import {
+  selectCartFetchStatus,
+  selectCartItemsForKitchen,
+  selectCartKitchenIds,
+} from "@/redux/cart/cart.selectors";
+import { clearKitchenCart } from "@/redux/cart/cart.thunks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { formatNGN } from "@/utils/money";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { router } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -8,20 +20,9 @@ import {
   Text,
   View,
 } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { router } from "expo-router";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  selectCartFetchStatus,
-  selectCartKitchenIds,
-  selectCartItemsForKitchen,
-} from "@/redux/cart/cart.selectors";
-import { clearKitchenCart } from "@/redux/cart/cart.thunks";
-import { formatNGN } from "@/utils/money";
-import { showError, showSuccess } from "@/components/ui/toast";
 import CachedImage from "../ui/CachedImage";
 
-function KitchenCartCard({ kitchenId }: { kitchenId: string }) {
+function KitchenCartCard({ kitchenId, isDark }: { kitchenId: string; isDark: boolean }) {
   const dispatch = useAppDispatch();
 
   const group = useAppSelector((s) => s.cart.byKitchenId[kitchenId]);
@@ -58,10 +59,8 @@ function KitchenCartCard({ kitchenId }: { kitchenId: string }) {
 
   return (
     <View
-      className="bg-white rounded-3xl mx-4 mt-5 p-3"
+      className={`rounded-3xl mx-4 mt-5 p-3 ${isDark ? "bg-neutral-900 border border-neutral-800" : "bg-white border border-[#F2F2F2]"}`}
       style={{
-        borderColor: "#F2F2F2",
-        borderWidth: 1,
         shadowOpacity: 0.05,
         shadowRadius: 12,
         shadowColor: "#000",
@@ -74,21 +73,21 @@ function KitchenCartCard({ kitchenId }: { kitchenId: string }) {
           <CachedImage
             uri={coverUri}
             fallback={
-              <View className="w-8 h-8 rounded-lg bg-neutral-100" />
+              <View className={`w-8 h-8 rounded-lg ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`} />
             }
-            className="w-8 h-8 rounded-lg bg-neutral-100"
+            className={`w-8 h-8 rounded-lg ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
           />
           <View className="ml-2">
-            <Text className="font-satoshiBold text-neutral-900">
+            <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
               {kitchenName}
             </Text>
-            <Text className="text-[12px] text-neutral-500">
+            <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
               {itemCount} item{itemCount === 1 ? "" : "s"} •{" "}
               {formatNGN(subTotal)}
             </Text>
           </View>
         </View>
-        <Ionicons name="chevron-up" size={18} color="#9CA3AF" />
+        <Ionicons name="chevron-up" size={18} color={isDark ? "#6B7280" : "#9CA3AF"} />
       </View>
 
       {/* CTA row */}
@@ -107,9 +106,9 @@ function KitchenCartCard({ kitchenId }: { kitchenId: string }) {
 
         <Pressable
           onPress={onClear}
-          className="px-5 py-4 rounded-2xl bg-[#FFE8C2]"
+          className={`px-5 py-4 rounded-2xl ${isDark ? "bg-neutral-800" : "bg-[#FFE8C2]"}`}
         >
-          <Text className="font-satoshiMedium text-neutral-900">Clear</Text>
+          <Text className={`font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>Clear</Text>
         </Pressable>
       </View>
     </View>
@@ -119,6 +118,7 @@ function KitchenCartCard({ kitchenId }: { kitchenId: string }) {
 export default function MyCartsTab() {
   const status = useAppSelector(selectCartFetchStatus);
   const kitchenIds = useAppSelector(selectCartKitchenIds);
+  const isDark = useAppSelector(selectThemeMode) === "dark";
 
   if (status === "loading") {
     return <ActivityIndicator style={{ marginTop: 160 }} color={"#ffa800"} />;
@@ -127,7 +127,7 @@ export default function MyCartsTab() {
     return (
       <View className="flex-1 items-center justify-center">
         <Image source={require("@/assets/images/trayy.png")} />
-        <Text className="text-neutral-500 mt-4">
+        <Text className={isDark ? "text-neutral-400 mt-4" : "text-neutral-500 mt-4"}>
           Your tray is empty, we are waiting for your orders
         </Text>
       </View>
@@ -138,7 +138,7 @@ export default function MyCartsTab() {
     <FlatList
       data={kitchenIds}
       keyExtractor={(id) => id}
-      renderItem={({ item }) => <KitchenCartCard kitchenId={item} />}
+      renderItem={({ item }) => <KitchenCartCard kitchenId={item} isDark={isDark} />}
       contentContainerStyle={{ paddingBottom: 40 }}
     />
   );

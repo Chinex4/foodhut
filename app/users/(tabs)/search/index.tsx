@@ -64,7 +64,7 @@ export default function SearchResultsScreen() {
             ) : (
               <View className="items-center">
                 <Image source={require("@/assets/images/trayy.png")} />
-                <Text className="text-neutral-500 mt-4">
+                <Text className={`mt-4 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                   Search for meals or kitchen.
                 </Text>
               </View>
