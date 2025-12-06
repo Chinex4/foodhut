@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import CachedImage from "@/components/ui/CachedImage";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -148,8 +149,8 @@ export default function MealDetailsScreen() {
         {!imageLoaded && <Skeleton className="absolute inset-0" />}
 
         {!!meal!.cover_image?.url && (
-          <Image
-            source={{ uri: meal!.cover_image.url }}
+          <CachedImage
+            uri={meal!.cover_image.url}
             className="w-full h-full"
             onLoadEnd={() => setImageLoaded(true)}
           />

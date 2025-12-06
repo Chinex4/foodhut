@@ -20,6 +20,7 @@ import { useAppSelector } from "@/store/hooks";
 import { selectMe } from "@/redux/users/users.selectors";
 import { showSuccess, showError } from "@/components/ui/toast";
 import { router } from "expo-router";
+import CachedImage from "@/components/ui/CachedImage";
 
 type Tab = "REFER" | "EARN";
 
@@ -342,11 +343,13 @@ export default function ReferralsScreen() {
             renderItem={({ item }) => (
               <View className="bg-white rounded-2xl border border-neutral-100 px-3 py-3 mb-3 flex-row items-center justify-between">
                 <View className="flex-row items-center">
-                  <Image
-                    source={
-                      item.avatar
-                        ? { uri: item.avatar }
-                        : require("@/assets/images/avatar.png")
+                  <CachedImage
+                    uri={item.avatar || undefined}
+                    fallback={
+                      <Image
+                        source={require("@/assets/images/avatar.png")}
+                        className="w-8 h-8 rounded-full bg-neutral-200"
+                      />
                     }
                     className="w-8 h-8 rounded-full bg-neutral-200"
                   />

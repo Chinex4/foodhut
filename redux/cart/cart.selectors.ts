@@ -1,6 +1,6 @@
 // cart.selectors.ts
-import { createSelector } from "@reduxjs/toolkit";
 import type { RootState } from "@/store";
+import { createSelector } from "@reduxjs/toolkit";
 import type { KitchenId, MealId } from "./cart.types";
 
 export const selectCartState = (s: RootState) => s.cart;
@@ -80,6 +80,18 @@ export const selectOrderRowsForKitchen = (kitchenId?: string | null) =>
     ],
     (group) => {
       if (!group) return EMPTY_ORDER_ROWS;
-      return group.itemOrder.map((id) => group.items[id]).filter(Boolean);
+      return group.itemOrder
+        .map((id) => {
+          const item = group.items[id];
+          if (!item) return null;
+          return {
+            id: String(item.meal.id),
+            title: item.meal.name,
+            qty: item.quantity,
+            price: Number(item.meal.price),
+            cover: item.meal.cover_image?.url ?? null,
+          };
+        })
+        .filter(Boolean);
     }
   );

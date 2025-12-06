@@ -18,6 +18,7 @@ import {
   makeSelectAdByIdStatus,
 } from "@/redux/ads/ads.selectors";
 import { deleteAdById, fetchAdById } from "@/redux/ads/ads.thunks";
+import CachedImage from "@/components/ui/CachedImage";
 
 export default function AdDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -80,14 +81,15 @@ export default function AdDetailScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View className="rounded-3xl overflow-hidden bg-gray-200 mb-4">
-          <Image
-            source={
-              ad.banner_image?.url
-                ? { uri: ad.banner_image.url }
-                : require("@/assets/images/banner-placeholder.png")
+          <CachedImage
+            uri={ad.banner_image?.url}
+            fallback={
+              <Image
+                source={require("@/assets/images/banner-placeholder.png")}
+                className="w-full h-40"
+              />
             }
             className="w-full h-40"
-            resizeMode="cover"
           />
         </View>
 

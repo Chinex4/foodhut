@@ -33,9 +33,25 @@ export const createKitchen = createAsyncThunk<
     const message = res.data?.message ?? res.data?.data ?? "Kitchen created!";
     return { message };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to create kitchen"
-    );
+    const payload = err?.response?.data;
+    console.log("Create kitchen error:", payload || err);
+
+    const validation = payload?.errors;
+    if (validation && typeof validation === "object") {
+      const flattened = Object.values(validation)
+        .flat()
+        .filter(Boolean)
+        .join("\n");
+      if (flattened) return rejectWithValue(flattened);
+    }
+
+    const message =
+      payload?.message ||
+      payload?.error ||
+      err?.message ||
+      "Failed to create kitchen";
+
+    return rejectWithValue(message);
   }
 });
 

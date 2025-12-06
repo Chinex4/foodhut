@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   Text,
   TextInput,
@@ -22,13 +21,13 @@ import {
 } from "@/redux/ads/ads.selectors";
 import { deleteAdById, fetchAds } from "@/redux/ads/ads.thunks";
 import type { Ad } from "@/redux/ads/ads.types";
+import CachedImage from "@/components/ui/CachedImage";
 
 export default function CreatedAdsListScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
   const ads = useAppSelector(selectAdsList);
-  console.log("ads", ads);
   const listStatus = useAppSelector(selectAdsListStatus);
   const meta = useAppSelector(selectAdsMeta);
   const lastQuery = useAppSelector(selectAdsQuery);
@@ -112,11 +111,13 @@ export default function CreatedAdsListScreen() {
       className="bg-white rounded-3xl mb-3 overflow-hidden"
     >
       <View className="m-3 rounded-2xl overflow-hidden bg-gray-200 h-24">
-        <Image
-          source={
-            item.banner_image?.url
-              ? { uri: item.banner_image.url }
-              : require("@/assets/images/banner-placeholder.png")
+        <CachedImage
+          uri={item.banner_image?.url || undefined}
+          fallback={
+            <Image
+              source={require("@/assets/images/banner-placeholder.png")}
+              className="w-full h-full"
+            />
           }
           className="w-full h-full"
         />

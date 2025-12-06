@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { FlatList, Image, Pressable, Text, View } from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOrderById } from "@/redux/orders/orders.thunks";
@@ -10,6 +10,7 @@ import {
 import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
+import CachedImage from "@/components/ui/CachedImage";
 
 export default function OrderDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,8 +45,8 @@ export default function OrderDetails() {
         renderItem={({ item }) => (
           <View className="bg-white rounded-2xl border border-neutral-100 p-3 mb-3">
             <View className="flex-row">
-              <Image
-                source={{ uri: item.meal.cover_image?.url ?? "" }}
+              <CachedImage
+                uri={item.meal.cover_image?.url ?? ""}
                 className="w-16 h-16 rounded-xl bg-neutral-100"
               />
               <View className="ml-3 flex-1">

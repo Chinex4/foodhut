@@ -19,6 +19,7 @@ import {
 import { clearKitchenCart } from "@/redux/cart/cart.thunks";
 import { formatNGN } from "@/utils/money";
 import { showError, showSuccess } from "@/components/ui/toast";
+import CachedImage from "../ui/CachedImage";
 
 function KitchenCartCard({ kitchenId }: { kitchenId: string }) {
   const dispatch = useAppDispatch();
@@ -70,14 +71,12 @@ function KitchenCartCard({ kitchenId }: { kitchenId: string }) {
       {/* header row */}
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center flex-1">
-          <Image
-            source={
-              coverUri
-                ? { uri: coverUri }
-                : require("@/assets/images/logo-transparent.png")
+          <CachedImage
+            uri={coverUri}
+            fallback={
+              <View className="w-8 h-8 rounded-lg bg-neutral-100" />
             }
             className="w-8 h-8 rounded-lg bg-neutral-100"
-            resizeMode="cover"
           />
           <View className="ml-2">
             <Text className="font-satoshiBold text-neutral-900">

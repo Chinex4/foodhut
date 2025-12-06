@@ -12,6 +12,7 @@ import walletReducer from "@/redux/wallet/wallet.slice";
 import transactionsReducer from "@/redux/transactions/transactions.slice";
 import searchReducer from "@/redux/search/search.slice";
 import riderReducer from "@/redux/rider/rider.slice";
+import themeReducer from "@/redux/theme/theme.slice";
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     transactions: transactionsReducer,
     search: searchReducer,
     rider: riderReducer,
+    theme: themeReducer,
   },
   middleware: (gdm) =>
     gdm({

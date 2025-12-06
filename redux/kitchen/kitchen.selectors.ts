@@ -24,6 +24,8 @@ export const selectKitchenProfile = (s: RootState) => {
 export const selectKitchensError = (s: RootState) => s.kitchen.error;
 export const selectListStatus = (s: RootState) => s.kitchen.listStatus;
 export const selectProfileStatus = (s: RootState) => s.kitchen.profileStatus;
+export const selectKitchenProfileStatus = (s: RootState) => s.kitchen.profileStatus;
+export const selectCreateKitchenStatus = (s: RootState) => s.kitchen.createStatus;
 
 export const makeSelectByIdStatus =
   (id: KitchenId) =>

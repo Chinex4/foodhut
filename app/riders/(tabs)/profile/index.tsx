@@ -8,6 +8,7 @@ import { useRouter } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectMe, selectFetchMeStatus } from "@/redux/users/users.selectors";
 import { logout } from "@/redux/auth/auth.thunks";
+import CachedImage from "@/components/ui/CachedImage";
 
 function Row({
   icon,
@@ -70,11 +71,13 @@ export default function RiderProfileScreen() {
       {/* header / hero */}
       <View className="bg-primary-500 px-5 pb-6 pt-20 rounded-b-3xl">
         <View className="items-center">
-          <Image
-            source={
-              me?.profile_picture_url
-                ? { uri: me.profile_picture_url }
-                : require("@/assets/images/avatar.png")
+          <CachedImage
+            uri={me?.profile_picture_url}
+            fallback={
+              <Image
+                source={require("@/assets/images/avatar.png")}
+                className="w-24 h-24 rounded-full bg-neutral-200"
+              />
             }
             className="w-24 h-24 rounded-full bg-neutral-200"
           />

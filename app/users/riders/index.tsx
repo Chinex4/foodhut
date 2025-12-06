@@ -5,12 +5,12 @@ import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
     FlatList,
-    Image,
     Pressable,
     Text,
     TextInput,
     View,
 } from "react-native";
+import CachedImage from "@/components/ui/CachedImage";
 
 type Rider = {
   id: string;
@@ -58,17 +58,19 @@ export default function RidersList() {
           })
         }
         className="bg-white rounded-2xl border border-neutral-100 px-3 py-3 mb-3"
-      >
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center">
-            <Image
-              source={
-                item.avatar
-                  ? { uri: item.avatar }
-                  : require("@/assets/images/logo-transparent.png")
-              }
-              className="w-10 h-10 rounded-full bg-neutral-100"
-            />
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center">
+                <CachedImage
+                  uri={item.avatar}
+                  fallback={
+                    <CachedImage
+                      uri={null}
+                      className="w-10 h-10 rounded-full bg-neutral-100"
+                    />
+                  }
+                  className="w-10 h-10 rounded-full bg-neutral-100"
+                />
             <View className="ml-3">
               <Text className="font-satoshiMedium text-neutral-900">
                 {item.name}

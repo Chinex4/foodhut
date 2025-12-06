@@ -1,39 +1,44 @@
-import React, { useEffect, useMemo } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ScrollView,
-  Platform,
-} from "react-native";
-import { StatusBar } from "expo-status-bar";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMeals } from "@/redux/meals/meals.thunks";
-import {
-  selectMealsListStatus,
-  selectMealsError,
-  makeSelectTrendingDiscounts,
-  makeSelectMostPopular,
-  makeSelectVendorsCloseBy,
-} from "@/redux/meals/meals.selectors";
+import AdsCarousel from "@/components/home/AdsCarousel";
+import KitchenVendorsSection from "@/components/home/KitchenVendorSection";
+import LocationPickerModal from "@/components/home/LocationPickerModal";
 import MealCard from "@/components/home/MealCard";
+import MealCardSkeleton from "@/components/home/MealCardSkeleton";
 import Section from "@/components/home/Section";
+import SearchBar from "@/components/search/SearchBar";
+import { useSelectedCity } from "@/hooks/useSelectedCity";
+import type { KitchenCity } from "@/redux/kitchen/kitchen.types";
+import {
+  makeSelectMostPopular,
+  makeSelectTrendingDiscounts,
+  makeSelectVendorsCloseBy,
+  selectMealsError,
+  selectMealsListStatus,
+} from "@/redux/meals/meals.selectors";
+import { fetchMeals } from "@/redux/meals/meals.thunks";
 import { selectFetchMeStatus, selectMe } from "@/redux/users/users.selectors";
 import { fetchMyProfile } from "@/redux/users/users.thunks";
-import AdsCarousel from "@/components/home/AdsCarousel";
-import MealCardSkeleton from "@/components/home/MealCardSkeleton";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
-import SearchBar from "@/components/search/SearchBar";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import KitchenVendorsSection from "@/components/home/KitchenVendorSection";
 
 export default function HomeScreen() {
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectMealsListStatus);
   const fetchMestatus = useAppSelector(selectFetchMeStatus);
   const error = useAppSelector(selectMealsError);
+  const { selectedCity, updateCity } = useSelectedCity();
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
 
   const trendingSel = useMemo(() => makeSelectTrendingDiscounts(10), []);
   const popularSel = useMemo(() => makeSelectMostPopular(10), []);
@@ -56,6 +61,10 @@ export default function HomeScreen() {
     }
   }, [fetchMestatus, dispatch]);
 
+  const handleCitySelect = (city: KitchenCity) => {
+    updateCity(city);
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-primary-50">
       <StatusBar style="dark" />
@@ -67,12 +76,64 @@ export default function HomeScreen() {
       >
         {/* top greeting + location */}
         <View className="px-4 pt-6">
-          <Text className="text-neutral-500 font-satoshiMedium">
-            Welcome, {me?.first_name}
-          </Text>
-          <Text className="text-[32px] font-satoshiBold text-neutral-900 mt-1">
-            Eat Your Fav!
-          </Text>
+          <View className="flex-row items-center justify-between mb-4">
+            <View className="flex-1">
+              <Text className="text-neutral-500 font-satoshiMedium">
+                Welcome, {me?.first_name}
+              </Text>
+              <Text className="text-[32px] font-satoshiBold text-neutral-900 mt-1">
+                Eat Your Fav!
+              </Text>
+            </View>
+
+            {/* Location Icon Button */}
+            <Pressable
+              onPress={() => setLocationModalVisible(true)}
+              className="ml-4 w-14 h-14 rounded-full bg-white items-center justify-center shadow-md active:bg-neutral-50"
+              style={Platform.select({ android: { elevation: 3 } })}
+            >
+              <View>
+                <MaterialCommunityIcons
+                  name="map-marker"
+                  size={28}
+                  color="#ffa800"
+                />
+                {selectedCity && (
+                  <View className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary items-center justify-center">
+                    <MaterialCommunityIcons
+                      name="check"
+                      size={10}
+                      color="white"
+                    />
+                  </View>
+                )}
+              </View>
+            </Pressable>
+          </View>
+
+          {/* Display selected city */}
+          {selectedCity && (
+            <View className="flex-row items-center bg-white rounded-full px-4 py-2 mb-4 shadow-sm">
+              <MaterialCommunityIcons
+                name="map-marker"
+                size={16}
+                color="#ffa800"
+              />
+              <Text className="ml-2 text-sm font-satoshiMedium text-neutral-700">
+                {selectedCity.name}
+              </Text>
+              <Pressable
+                onPress={() => setLocationModalVisible(true)}
+                className="ml-auto"
+              >
+                <MaterialCommunityIcons
+                  name="pencil"
+                  size={14}
+                  color="#9CA3AF"
+                />
+              </Pressable>
+            </View>
+          )}
 
           {/* search */}
           <SearchBar className="mt-4" />
@@ -128,6 +189,14 @@ export default function HomeScreen() {
           <Text className="px-4 mt-6 text-red-600">{error}</Text>
         )}
       </ScrollView>
+
+      {/* Location Picker Modal */}
+      <LocationPickerModal
+        visible={locationModalVisible}
+        onClose={() => setLocationModalVisible(false)}
+        onCitySelect={handleCitySelect}
+        selectedCity={selectedCity}
+      />
 
       <View className="absolute bottom-6 right-4">
         <Pressable

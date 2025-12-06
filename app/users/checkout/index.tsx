@@ -9,35 +9,41 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Share,
   ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
+import CachedImage from "@/components/ui/CachedImage";
 
 import {
   selectCartCheckoutStatus,
-  selectCartItemsForKitchen,
   selectCartKitchenIds,
   selectCartSubtotal,
   selectCartTotalItems,
-  selectOrderRowsForKitchen,
+  selectOrderRowsForKitchen
 } from "@/redux/cart/cart.selectors";
 import { checkoutActiveCart } from "@/redux/cart/cart.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 import { showError, showSuccess } from "@/components/ui/toast";
 import { makeSelectPayStatus } from "@/redux/orders/orders.selectors";
-import { payForOrder } from "@/redux/orders/orders.thunks"; // <- ensure you export payForOrder from orders.thunks
+import { payForOrder } from "@/redux/orders/orders.thunks";
 import { capitalizeFirst } from "@/utils/capitalize";
 import { formatNGN } from "@/utils/money";
 import { StatusBar } from "expo-status-bar";
 
 import { useLocalSearchParams } from "expo-router";
 
+import {
+  selectWalletBalanceNumber,
+  selectWalletProfileStatus,
+} from "@/redux/wallet/wallet.selectors";
+import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
 import { listenRiderPicked } from "@/utils/riderBus.native";
 
-type PaymentUI = "ONLINE" | "WALLET";
+type PaymentUI = "ONLINE" | "WALLET" | "PAY_FOR_ME";
 
 function SectionHeader({ title }: { title: string }) {
   return (
@@ -164,12 +170,12 @@ export default function CheckoutScreen() {
   const [scheduledAt, setScheduledAt] = useState<number | undefined>(undefined);
 
   // simple static fees (replace if backend returns these)
-  const deliveryFee = useMemo(() => (subtotal > 0 ? 1200 : 0), [subtotal]);
-  const serviceFee = useMemo(() => Math.round(subtotal * 0.02), [subtotal]);
-  const total = useMemo(
-    () => subtotal + deliveryFee + serviceFee,
-    [subtotal, deliveryFee, serviceFee]
-  );
+  // const deliveryFee = useMemo(() => (subtotal > 0 ? 1200 : 0), [subtotal]);
+  // const serviceFee = useMemo(() => Math.round(subtotal * 0.02), [subtotal]);
+  // const total = useMemo(
+  //   () => subtotal + deliveryFee + serviceFee,
+  //   [subtotal, deliveryFee, serviceFee]
+  // );
 
   const [placing, setPlacing] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -178,6 +184,20 @@ export default function CheckoutScreen() {
     [orderId]
   );
   const payStatus = useAppSelector(paySelector ?? (() => "idle")) ?? "idle";
+
+  // ============ Wallet Integration ============
+  const walletBalance = useAppSelector(selectWalletBalanceNumber);
+  const walletProfileStatus = useAppSelector(selectWalletProfileStatus);
+
+  useEffect(() => {
+    if (walletProfileStatus === "idle") {
+      dispatch(fetchWalletProfile());
+    }
+  }, [walletProfileStatus, dispatch]);
+
+  // ============ Fees (REMOVED) ============
+  // Removed delivery_fee and service_fee as per requirements
+  const total = useMemo(() => subtotal, [subtotal]);
 
   const isBusy =
     placing || checkoutStatus === "loading" || payStatus === "loading";
@@ -201,12 +221,18 @@ export default function CheckoutScreen() {
   const handlePlaceOrder = async () => {
     try {
       if (!kitchenId) return showError("Select a kitchen to continue.");
+      if (paymentMethod === "WALLET" && walletBalance < subtotal) {
+        return showError("Insufficient wallet balance. Please top up.");
+      }
 
       setPlacing(true);
 
       const payload = {
         kitchen_id: kitchenId,
-        payment_method: paymentMethod,
+        payment_method:
+          paymentMethod === "PAY_FOR_ME" || paymentMethod === "WALLET"
+            ? "WALLET"
+            : "ONLINE",
         delivery_address: address.trim(),
         dispatch_rider_note: (riderNote ?? "").trim(),
         delivery_date: when === "SCHEDULE" ? scheduledAt : undefined,
@@ -214,33 +240,67 @@ export default function CheckoutScreen() {
       } as const;
 
       const checkoutRes = await dispatch(checkoutActiveCart(payload)).unwrap();
-
       const createdId = checkoutRes.result.id as string;
       setOrderId(createdId);
+      showSuccess("Order created successfully!");
 
-      if (paymentMethod === "ONLINE") {
-        const payRes = await dispatch(
-          payForOrder({ id: createdId, with: "ONLINE" })
-        ).unwrap();
-        // @ts-ignore
-        const url: string = payRes.url;
-        if (url) {
-          await WebBrowser.openBrowserAsync(url);
-          router.replace(`/users/orders/${createdId}`);
-          return;
+      // Navigate to ongoing tab to see the pending order
+      setTimeout(() => {
+        router.replace(`/users/(tabs)/orders?tab=ongoing`);
+      }, 500);
+
+      // Handle Pay for Me (async, don't block on this)
+      if (paymentMethod === "PAY_FOR_ME") {
+        try {
+          const payRes = await dispatch(
+            payForOrder({ id: createdId, with: "ONLINE" })
+          ).unwrap();
+          const url =
+            payRes && payRes.with === "ONLINE" ? (payRes as any).url : "";
+          if (url && typeof url === "string") {
+            const shareText = `Help me complete my food order! Tap to complete payment: ${url}`;
+            await Share.share({ message: shareText, url });
+            showSuccess("Payment link ready to share.");
+          } else {
+            showError("Payment link not available yet. Please try again.");
+          }
+        } catch (err: any) {
+          showError(err?.message || "Failed to generate pay-for-me link. You can complete payment later.");
         }
-      } else {
-        const payRes = await dispatch(
-          payForOrder({ id: createdId, with: "WALLET" })
-        ).unwrap();
-        // @ts-ignore
-        showSuccess(payRes.message || "Payment successful");
-        router.replace(`/users/orders/${createdId}`);
         return;
       }
 
-      showSuccess(checkoutRes.result.message || "Order placed");
-      router.replace(`/users/orders/${createdId}`);
+      // Handle Online Payment (async, don't block on this)
+      if (paymentMethod === "ONLINE") {
+        try {
+          const payRes = await dispatch(
+            payForOrder({ id: createdId, with: "ONLINE" })
+          ).unwrap();
+          // @ts-ignore
+          const url: string = payRes.url;
+          if (url) {
+            await WebBrowser.openBrowserAsync(url);
+            showSuccess("Complete payment in the browser");
+          }
+        } catch (err: any) {
+          showError(err?.message || "Failed to open payment. You can retry from Ongoing orders.");
+        }
+        return;
+      }
+
+      // Handle Wallet Payment
+      if (paymentMethod === "WALLET") {
+        try {
+          const payRes = await dispatch(
+            payForOrder({ id: createdId, with: "WALLET" })
+          ).unwrap();
+          // @ts-ignore
+          showSuccess(payRes.message || "Payment successful!");
+        } catch (err: any) {
+          showError(err?.message || "Wallet payment failed. You can retry from Ongoing orders.");
+        }
+        return;
+      }
     } catch (err: any) {
       console.log("Checkout error:", err?.response?.data || err);
       showError(
@@ -340,11 +400,13 @@ export default function CheckoutScreen() {
                 }}
               >
                 <View className="flex-row">
-                  <Image
-                    source={
-                      item.cover
-                        ? { uri: item.cover }
-                        : require("@/assets/images/logo-transparent.png")
+                  <CachedImage
+                    uri={item.cover || undefined}
+                    fallback={
+                      <Image
+                        source={require("@/assets/images/logo-transparent.png")}
+                        className="w-16 h-16 rounded-xl bg-neutral-100"
+                      />
                     }
                     className="w-16 h-16 rounded-xl bg-neutral-100"
                   />
@@ -502,11 +564,13 @@ export default function CheckoutScreen() {
               {selectedRider ? (
                 <View className="bg-white rounded-2xl border border-neutral-100 p-3 flex-row items-center justify-between">
                   <View className="flex-row items-center">
-                    <Image
-                      source={
-                        selectedRider.avatar
-                          ? { uri: selectedRider.avatar }
-                          : require("@/assets/images/logo-transparent.png")
+                    <CachedImage
+                      uri={selectedRider.avatar}
+                      fallback={
+                        <Image
+                          source={require("@/assets/images/logo-transparent.png")}
+                          className="w-10 h-10 rounded-full bg-neutral-100"
+                        />
                       }
                       className="w-10 h-10 rounded-full bg-neutral-100"
                     />
@@ -550,47 +614,47 @@ export default function CheckoutScreen() {
                   label={`Sub-total (${totalItems} item${totalItems === 1 ? "" : "s"})`}
                   value={formatNGN(subtotal)}
                 />
-                <SummaryRow
-                  label="Delivery Fee"
-                  value={formatNGN(deliveryFee)}
-                />
-                <SummaryRow label="Service fee" value={formatNGN(serviceFee)} />
                 <View className="h-[1px] bg-neutral-100 my-2" />
-                <SummaryRow
-                  label="Total Payment"
-                  value={formatNGN(total)}
-                  bold
-                />
+                <SummaryRow label="Total Payment" value={formatNGN(total)} bold />
               </View>
             </View>
 
             {/* Payment Method */}
             <View className="mt-5">
-              <SectionHeader title="Payment Summary" />
+              <SectionHeader title="Payment Method" />
               <View className="bg-white rounded-2xl border border-neutral-100 px-3">
+                {/* Pay Online */}
                 <Radio
-                  label="Pay Online"
+                  label="Pay Online (Paystack)"
                   selected={paymentMethod === "ONLINE"}
                   onPress={() => setPaymentMethod("ONLINE")}
-                  rightEl={
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={16}
-                      color="#16a34a"
-                    />
-                  }
                 />
                 <View className="h-[1px] bg-neutral-100" />
+
+                {/* Pay with Wallet */}
                 <Radio
-                  label="Pay For Me"
+                  label={`Pay with Wallet (${formatNGN(walletBalance)})`}
                   selected={paymentMethod === "WALLET"}
                   onPress={() => setPaymentMethod("WALLET")}
                   rightEl={
-                    <Ionicons
-                      name="ellipse-outline"
-                      size={16}
-                      color="#9CA3AF"
-                    />
+                    walletBalance < subtotal ? (
+                      <Text className="text-red-600 text-xs font-satoshiMedium">
+                        Insufficient
+                      </Text>
+                    ) : undefined
+                  }
+                />
+                <View className="h-[1px] bg-neutral-100" />
+
+                {/* Pay For Me */}
+                <Radio
+                  label="Pay For Me (Share Link)"
+                  selected={paymentMethod === "PAY_FOR_ME"}
+                  onPress={() => setPaymentMethod("PAY_FOR_ME")}
+                  rightEl={
+                    <Text className="text-[11px] text-neutral-500">
+                      Share with friend
+                    </Text>
                   }
                 />
               </View>

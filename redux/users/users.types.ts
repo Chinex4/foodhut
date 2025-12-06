@@ -10,7 +10,9 @@ export type User = {
   has_kitchen?: boolean;
   birthday: string | null;
   referral_code: string | null;
-  profile_picture_url: string | null;
+  profile_picture: {
+    url : string
+  };
   created_at: string;
   updated_at: string | null;
 };

@@ -1,6 +1,7 @@
 import React from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
+import CachedImage from "../ui/CachedImage";
 
 type Kitchen = {
   id: string;
@@ -46,7 +47,7 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
   return (
     <Pressable
       onPress={handlePress}
-      className="w-44 mr-3 rounded-3xl bg-white"
+      className="w-52 mr-3 rounded-3xl bg-white"
       style={{
         shadowOpacity: 0.07,
         shadowRadius: 12,
@@ -59,11 +60,7 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
       {/* cover */}
       <View className="h-28 rounded-3xl overflow-hidden bg-secondary">
         {imageUri ? (
-          <Image
-            source={{ uri: imageUri }}
-            className="w-full h-full"
-            resizeMode="cover"
-          />
+          <CachedImage uri={imageUri} className="w-full h-full" />
         ) : (
           <View className="flex-1 items-center justify-center bg-secondary">
             <Text className="text-[24px] font-satoshiBold text-primary">

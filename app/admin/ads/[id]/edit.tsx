@@ -21,6 +21,7 @@ import {
 } from "@/redux/ads/ads.selectors";
 import { fetchAdById, updateAdById } from "@/redux/ads/ads.thunks";
 import { showSuccess } from "@/components/ui/toast";
+import CachedImage from "@/components/ui/CachedImage";
 
 export default function EditAdScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -134,16 +135,15 @@ export default function EditAdScreen() {
           className="rounded-3xl border-2 border-dashed border-primary px-4 py-6 items-center mb-5"
         >
           <View className="w-full rounded-2xl overflow-hidden mb-3 bg-gray-200 h-36">
-            <Image
-              source={
-                banner?.uri
-                  ? { uri: banner.uri }
-                  : ad.banner_image?.url
-                    ? { uri: ad.banner_image.url }
-                    : require("@/assets/images/banner-placeholder.png")
+            <CachedImage
+              uri={banner?.uri ?? ad.banner_image?.url}
+              fallback={
+                <Image
+                  source={require("@/assets/images/banner-placeholder.png")}
+                  className="w-full h-full"
+                />
               }
               className="w-full h-full"
-              resizeMode="cover"
             />
           </View>
           <View className="px-6 py-2 rounded-2xl bg-primary">

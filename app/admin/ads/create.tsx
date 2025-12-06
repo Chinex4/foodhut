@@ -5,7 +5,6 @@ import {
   Text,
   TextInput,
   View,
-  Image,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +17,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createAd } from "@/redux/ads/ads.thunks";
 import { selectAdCreateStatus } from "@/redux/ads/ads.selectors";
 import { showSuccess } from "@/components/ui/toast";
+import CachedImage from "@/components/ui/CachedImage";
 
 export default function CreatedAdFormScreen() {
   const router = useRouter();
@@ -117,11 +117,7 @@ export default function CreatedAdFormScreen() {
         >
           {banner ? (
             <View className="w-full rounded-2xl overflow-hidden mb-3">
-              <Image
-                source={{ uri: banner.uri }}
-                className="w-full h-36"
-                resizeMode="cover"
-              />
+              <CachedImage uri={banner.uri} className="w-full h-36" />
             </View>
           ) : (
             <Text className="text-[13px] font-satoshi text-neutral-700 mb-4">

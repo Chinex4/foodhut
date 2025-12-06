@@ -1,4 +1,4 @@
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import React, { useState } from "react";
 import type { Meal } from "@/redux/meals/meals.types";
@@ -8,6 +8,7 @@ import { setCartItem } from "@/redux/cart/cart.thunks";
 import { showError, showSuccess } from "../ui/toast";
 import { selectCartItemQuantity } from "@/redux/cart/cart.selectors";
 import { capitalizeFirst } from "@/utils/capitalize";
+import CachedImage from "../ui/CachedImage";
 
 function AddToCartButton({
   itemId,
@@ -96,10 +97,7 @@ export default function MealCard({
       {/* cover */}
       <View className={`${compact ? "h-36" : "h-44"} w-full`}>
         {item.cover_image?.url ? (
-          <Image
-            source={{ uri: item.cover_image.url }}
-            className="w-full h-full"
-          />
+          <CachedImage uri={item.cover_image.url} className="w-full h-full" />
         ) : (
           <View className="flex-1 bg-neutral-100" />
         )}

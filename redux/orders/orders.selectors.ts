@@ -1,10 +1,29 @@
+import { createSelector } from "@reduxjs/toolkit";
 import type { RootState } from "@/store";
-import type { OrderId, OrderItemId } from "./orders.types";
+import type { OrderId, OrderItemId, OrderStatus } from "./orders.types";
 
 export const selectOrdersState = (s: RootState) => s.orders;
 
-export const selectOrdersList = (s: RootState) =>
-  s.orders.lastListIds.map((id) => s.orders.entities[id]).filter(Boolean);
+const selectOrdersEntities = (s: RootState) => s.orders.entities;
+const selectOrdersLastListIds = (s: RootState) => s.orders.lastListIds;
+
+export const selectOrdersList = createSelector(
+  [selectOrdersLastListIds, selectOrdersEntities],
+  (ids, entities) => ids.map((id) => entities[id]).filter(Boolean)
+);
+
+const ONGOING_ORDER_STATUSES: OrderStatus[] = [
+  "PENDING",
+  "AWAITING_ACKNOWLEDGEMENT",
+  "PREPARING",
+  "IN_TRANSIT",
+];
+
+// Memoized subset of orders the user is still expecting
+export const selectOngoingOrders = createSelector(
+  [selectOrdersList],
+  (orders) => orders.filter((o) => ONGOING_ORDER_STATUSES.includes(o.status))
+);
 
 export const selectOrdersMeta = (s: RootState) => s.orders.lastListMeta;
 export const selectOrdersQuery = (s: RootState) => s.orders.lastListQuery;

@@ -1,15 +1,15 @@
 // components/orders/CompletedTab.tsx
-import React, { useEffect } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  selectOrdersList,
-  selectOrdersListStatus,
+    selectOrdersList,
+    selectOrdersListStatus,
 } from "@/redux/orders/orders.selectors";
 import { fetchOrders } from "@/redux/orders/orders.thunks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatNGN } from "@/utils/money";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import { Image } from "react-native";
+import React, { useEffect } from "react";
+import { ActivityIndicator, FlatList, Image, Pressable, Text, View } from "react-native";
 
 export default function CompletedTab() {
   const dispatch = useAppDispatch();
@@ -24,10 +24,18 @@ export default function CompletedTab() {
   }, [status, dispatch]);
 
   if (status === "loading")
-    return <Text className="text-center mt-10 text-neutral-500">Loading…</Text>;
+    return (
+      <ActivityIndicator
+        className="text-center mt-44"
+        color={"#ffa800"}
+        size={24}
+      />
+    );
   if (status === "failed")
     return (
-      <Text className="text-center mt-10 text-red-600">Failed to load.</Text>
+      <Text className="text-center mt-44 text-red-600">
+        Failed to load orders.
+      </Text>
     );
   if (!orders.length)
     return (
@@ -44,20 +52,34 @@ export default function CompletedTab() {
       contentContainerStyle={{ paddingBottom: 120 }}
       renderItem={({ item }) => (
         <View className="bg-white rounded-2xl mx-4 mt-4 p-3 border border-neutral-100">
-          <Text className="font-satoshiBold">{item.kitchen.name}</Text>
-          <Text className="text-neutral-500 text-[12px] mt-1">
-            {item.items.length} Items · {formatNGN(item.total)}
-          </Text>
+          <View className="flex-row items-center justify-between mb-2">
+            <View>
+              <Text className="font-satoshiBold text-neutral-900">
+                {item.kitchen.name}
+              </Text>
+              <Text className="text-neutral-500 text-[12px] mt-1">
+                {item.items.length} Items · {formatNGN(item.total)}
+              </Text>
+            </View>
+            <View className="bg-green-100 px-2 py-1 rounded-full">
+              <Text className="text-[12px] font-satoshiMedium text-green-700">
+                Completed
+              </Text>
+            </View>
+          </View>
 
-          <View className="mt-3 flex-row">
+          <View className="mt-3 flex-row gap-2">
             <Pressable
               onPress={() => router.push(`/users/orders/${item.id}` as any)}
-              className="flex-1 bg-primary rounded-xl py-3 items-center mr-3"
+              className="flex-1 bg-primary rounded-xl py-3 items-center"
             >
-              <Text className="text-white font-satoshiBold">View</Text>
+              <View className="flex-row items-center">
+                <Ionicons name="eye-outline" size={16} color="#fff" />
+                <Text className="text-white font-satoshiBold ml-2">View</Text>
+              </View>
             </Pressable>
-            <Pressable className="w-28 bg-neutral-100 rounded-xl items-center justify-center">
-              <Text>Clear</Text>
+            <Pressable className="w-14 bg-neutral-100 rounded-xl items-center justify-center">
+              <Ionicons name="trash-outline" size={18} color="#9CA3AF" />
             </Pressable>
           </View>
         </View>

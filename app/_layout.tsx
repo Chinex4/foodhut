@@ -6,6 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { Provider } from "react-redux";
 import Toast from "react-native-toast-message";
+import { NativeWindStyleSheet } from "nativewind";
 
 import { store } from "@/store";
 import { attachStore } from "@/api/axios";
@@ -15,6 +16,9 @@ import { getStoredAuth } from "@/storage/auth";
 
 import "../global.css";
 import { useRegisterPushToken } from "@/hooks/useRegisterFcmToken";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { loadThemePreference } from "@/redux/theme/theme.slice";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // ignore if already prevented
@@ -25,6 +29,21 @@ attachStore(store);
 function PushTokenRegistrar() {
   // this now runs INSIDE the Provider
   useRegisterPushToken();
+  return null;
+}
+
+function ThemeHydrator() {
+  const dispatch = useAppDispatch();
+  const mode = useAppSelector(selectThemeMode);
+
+  useEffect(() => {
+    dispatch(loadThemePreference());
+  }, [dispatch]);
+
+  useEffect(() => {
+    NativeWindStyleSheet.setColorScheme(mode);
+  }, [mode]);
+
   return null;
 }
 
@@ -60,6 +79,7 @@ export default function RootLayout() {
 
   return (
     <Provider store={store}>
+      <ThemeHydrator />
       <PushTokenRegistrar />
       <View style={{ flex: 1 }}>
         <Slot />

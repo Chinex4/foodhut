@@ -1,8 +1,9 @@
 import React, { useEffect } from "react";
-import { FlatList, Image, Pressable, View } from "react-native";
+import { FlatList, Pressable, View } from "react-native";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchAds } from "@/redux/ads/ads.thunks";
 import { selectAdsList, selectAdsListStatus } from "@/redux/ads/ads.selectors";
+import CachedImage from "../ui/CachedImage";
 
 function AdSkeleton() {
   return (
@@ -61,10 +62,7 @@ export default function AdsCarousel() {
           }}
         >
           {item.banner_image?.url ? (
-            <Image
-              source={{ uri: item.banner_image.url }}
-              className="w-full h-full"
-            />
+            <CachedImage uri={item.banner_image.url} className="w-full h-full" />
           ) : (
             <View className="flex-1 bg-neutral-800" />
           )}
