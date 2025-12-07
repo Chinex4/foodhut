@@ -49,6 +49,8 @@ export default function KitchenDashboard() {
   const orders = useAppSelector(selectOrdersList);
   const ordersState = useAppSelector(selectOrdersState);
 
+  // console.log(meals)
+
   const [tab, setTab] = useState<TabKey>("HOME");
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [newMealName, setNewMealName] = useState("");
@@ -70,6 +72,8 @@ export default function KitchenDashboard() {
     () => meals.filter((m) => m.kitchen_id === kitchen?.id),
     [meals, kitchen?.id]
   );
+  // console.log(mealsForKitchen)
+
 
   useEffect(() => {
     if (!kitchen) {
