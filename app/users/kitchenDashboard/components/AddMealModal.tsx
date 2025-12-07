@@ -9,7 +9,7 @@ type Props = {
   name: string;
   desc: string;
   price: string;
-  image: ImagePickerAsset | null;
+  imageUri: string | null;
   onChangeName: (v: string) => void;
   onChangeDesc: (v: string) => void;
   onChangePrice: (v: string) => void;
@@ -25,7 +25,7 @@ export default function AddMealModal({
   name,
   desc,
   price,
-  image,
+  imageUri,
   onChangeName,
   onChangeDesc,
   onChangePrice,
@@ -83,8 +83,8 @@ export default function AddMealModal({
               isDark ? "border-dashed border-neutral-700" : "border-dashed border-neutral-300"
             }`}
           >
-            {image ? (
-              <Image source={{ uri: image.uri }} className="w-full h-full rounded-2xl" />
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} className="w-full h-full rounded-2xl" />
             ) : (
               <View className="items-center">
                 <Ionicons name="image-outline" size={24} color={isDark ? "#E5E7EB" : "#0F172A"} />

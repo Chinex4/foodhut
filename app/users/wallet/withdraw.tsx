@@ -29,6 +29,7 @@ import {
 } from "@/redux/wallet/wallet.selectors";
 import { resetResolvedAccount } from "@/redux/wallet/wallet.slice";
 import { showError, showSuccess } from "@/components/ui/toast";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 function Field({
   icon,
@@ -37,8 +38,13 @@ function Field({
   icon: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   return (
-    <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4 flex-row items-center mb-3">
+    <View
+      className={`rounded-2xl border px-3 py-4 flex-row items-center mb-3 ${
+        isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+      }`}
+    >
       {icon}
       <View className="ml-3 flex-1">{children}</View>
     </View>
@@ -48,6 +54,7 @@ function Field({
 export default function WithdrawScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
 
   // fetch banks once
   const banksStatus = useAppSelector(selectBanksStatus);
@@ -127,8 +134,8 @@ export default function WithdrawScreen() {
   }, [bankCode, accountNumber, dispatch]);
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <KeyboardAvoidingView
         behavior={Platform.select({ ios: "padding", android: undefined })}
         className="flex-1"
@@ -136,9 +143,9 @@ export default function WithdrawScreen() {
         {/* Header */}
         <View className="px-5 pt-3 pb-2 flex-row items-center">
           <Pressable onPress={() => router.back()} className="mr-2">
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
+            <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
           </Pressable>
-          <Text className="text-[18px] font-satoshiBold text-neutral-900">
+          <Text className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
             Withdraw
           </Text>
         </View>
@@ -162,9 +169,10 @@ export default function WithdrawScreen() {
                   setBankName("");
                   setBankQuery(t);
                 }}
-                className="flex-1 font-satoshi text-neutral-900 placeholder:text-neutral-400"
+                placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                className={`flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
               />
-              <Ionicons name="chevron-down" size={18} color="#9CA3AF" />
+              <Ionicons name="chevron-down" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
             </Pressable>
           </Field>
 
@@ -181,11 +189,13 @@ export default function WithdrawScreen() {
                       setBankCode(item.code);
                       setBankQuery("");
                     }}
-                    className="px-3 py-3 bg-white border-b border-neutral-100"
+                    className={`px-3 py-3 ${isDark ? "bg-neutral-900 border-b border-neutral-800" : "bg-white border-b border-neutral-100"}`}
                   >
-                    <Text className="font-satoshi text-neutral-900">
+                    <Text className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}>
                       {item.name}{" "}
-                      <Text className="text-neutral-400">({item.code})</Text>
+                      <Text className={isDark ? "text-neutral-400" : "text-neutral-400"}>
+                        ({item.code})
+                      </Text>
                     </Text>
                   </Pressable>
                 )}
@@ -194,12 +204,16 @@ export default function WithdrawScreen() {
                   borderRadius: 12,
                   overflow: "hidden",
                   borderWidth: 1,
-                  borderColor: "#eee",
-                  backgroundColor: "white",
+                  borderColor: isDark ? "#1f2937" : "#eee",
+                  backgroundColor: isDark ? "#0f172a" : "white",
                 }}
                 ListEmptyComponent={
-                  <View className="px-3 py-4 bg-white rounded-2xl border border-neutral-100">
-                    <Text className="text-neutral-500 font-satoshi">
+                  <View
+                    className={`px-3 py-4 rounded-2xl border ${
+                      isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+                    }`}
+                  >
+                    <Text className={`font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                       No banks match your search.
                     </Text>
                   </View>
@@ -218,7 +232,8 @@ export default function WithdrawScreen() {
               keyboardType="number-pad"
               placeholder="Account Number"
               maxLength={12}
-              className="font-satoshi text-neutral-900"
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+              className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
             />
           </Field>
 
@@ -226,7 +241,9 @@ export default function WithdrawScreen() {
           <Pressable
             disabled={!canResolve || busy}
             onPress={doResolve}
-            className={`rounded-2xl py-3 items-center justify-center ${canResolve ? "bg-primary" : "bg-neutral-300"}`}
+            className={`rounded-2xl py-3 items-center justify-center ${
+              canResolve ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-300"
+            }`}
           >
             {resolveStatus === "loading" ? (
               <ActivityIndicator color="#fff" />
@@ -238,11 +255,15 @@ export default function WithdrawScreen() {
           </Pressable>
 
           {resolvedName && (
-            <View className="mt-3 bg-white rounded-2xl border border-neutral-200 px-3 py-3">
-              <Text className="text-neutral-500 font-satoshi">
+            <View
+              className={`mt-3 rounded-2xl border px-3 py-3 ${
+                isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+              }`}
+            >
+              <Text className={`font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                 Account Name
               </Text>
-              <Text className="text-neutral-900 font-satoshiBold mt-1">
+              <Text className={`font-satoshiBold mt-1 ${isDark ? "text-white" : "text-neutral-900"}`}>
                 {resolvedName}
               </Text>
             </View>
@@ -258,7 +279,8 @@ export default function WithdrawScreen() {
               onChangeText={setAmount}
               keyboardType="numeric"
               placeholder="Amount"
-              className="font-satoshi text-neutral-900"
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+              className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
             />
           </Field>
         </View>
@@ -268,7 +290,9 @@ export default function WithdrawScreen() {
           <Pressable
             disabled={!canWithdraw}
             onPress={doWithdraw}
-            className={`rounded-2xl py-4 items-center justify-center ${canWithdraw ? "bg-primary" : "bg-neutral-300"}`}
+            className={`rounded-2xl py-4 items-center justify-center ${
+              canWithdraw ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-300"
+            }`}
           >
             {withdrawStatus === "loading" ? (
               <ActivityIndicator color="#fff" />

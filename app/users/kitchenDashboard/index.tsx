@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
@@ -38,7 +38,6 @@ type TabKey = "HOME" | "ORDERS" | "SETTINGS";
 
 export default function KitchenDashboard() {
   const router = useRouter();
-  const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
 
@@ -225,15 +224,7 @@ export default function KitchenDashboard() {
     }
   };
 
-  if (kitchenStatus === "loading" && !kitchen) {
-    return (
-      <View className={`flex-1 items-center justify-center ${isDark ? "bg-neutral-950" : "bg-white"}`}>
-        <ActivityIndicator color="#F59E0B" />
-      </View>
-    );
-  }
-
-  const updatingMap = useMemo(() => {
+   const updatingMap = useMemo(() => {
     const raw = ordersState.updateItemStatus || {};
     return Object.keys(raw).reduce<Record<string, boolean>>((acc, key) => {
       acc[key] = raw[key] === "loading";
@@ -241,12 +232,21 @@ export default function KitchenDashboard() {
     }, {});
   }, [ordersState.updateItemStatus]);
 
+  if (kitchenStatus === "loading" && !kitchen) {
+    return (
+      <View
+        className={`flex-1 items-center justify-center ${
+          isDark ? "bg-neutral-950" : "bg-white"
+        }`}
+      >
+        <ActivityIndicator color="#F59E0B" />
+      </View>
+    );
+  }
+
   const handleBack = () => {
-    if (navigation?.canGoBack?.()) {
-      navigation.goBack();
-    } else {
-      router.push("/users/(tabs)");
-    }
+    if (router.canGoBack()) router.back();
+    else router.replace("/users/(tabs)");
   };
 
   return (
@@ -348,7 +348,7 @@ export default function KitchenDashboard() {
         name={newMealName}
         desc={newMealDesc}
         price={newMealPrice}
-        image={newMealImage}
+        imageUri={newMealImage?.uri ?? null}
         onChangeName={setNewMealName}
         onChangeDesc={setNewMealDesc}
         onChangePrice={setNewMealPrice}

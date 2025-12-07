@@ -1,5 +1,13 @@
 import React from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import CachedImage from "@/components/ui/CachedImage";
 import type { Kitchen } from "@/redux/kitchen/kitchen.types";
@@ -35,18 +43,25 @@ export default function SettingsTab({
     <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
       <View
         className={`rounded-3xl p-4 mb-4 border ${
-          isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+          isDark
+            ? "bg-neutral-900 border-neutral-800"
+            : "bg-white border-neutral-100"
         }`}
       >
-        <Text className={`font-satoshiBold text-[16px] ${isDark ? "text-white" : "text-neutral-900"}`}>
+        <Text
+          className={`font-satoshiBold text-[16px] ${isDark ? "text-white" : "text-neutral-900"}`}
+        >
           Kitchen Cover
         </Text>
         <Pressable
           onPress={onUpdateCover}
           className="mt-3 h-40 rounded-2xl overflow-hidden border border-dashed border-primary items-center justify-center bg-neutral-50"
         >
-          {kitchen?.cover_image ? (
-            <CachedImage uri={kitchen.cover_image} className="w-full h-full" />
+          {kitchen?.cover_image.url ? (
+            <Image
+              source={{ uri: kitchen.cover_image.url }}
+              className="w-full h-full"
+            />
           ) : (
             <View className="items-center">
               <Ionicons name="cloud-upload-outline" size={28} color="#F59E0B" />
@@ -60,19 +75,29 @@ export default function SettingsTab({
 
       <View
         className={`rounded-3xl p-4 border ${
-          isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+          isDark
+            ? "bg-neutral-900 border-neutral-800"
+            : "bg-white border-neutral-100"
         }`}
       >
-        <Text className={`font-satoshiBold text-[16px] ${isDark ? "text-white" : "text-neutral-900"}`}>
+        <Text
+          className={`font-satoshiBold text-[16px] ${isDark ? "text-white" : "text-neutral-900"}`}
+        >
           Details
         </Text>
         <View className="mt-3 space-y-3">
           <View
             className={`rounded-2xl border px-3 py-3 ${
-              isDark ? "bg-neutral-800 border-neutral-700" : "bg-neutral-100 border-transparent"
+              isDark
+                ? "bg-neutral-800 border-neutral-700"
+                : "bg-neutral-100 border-transparent"
             }`}
           >
-            <Text className={isDark ? "text-neutral-400 mb-1" : "text-neutral-500 mb-1"}>
+            <Text
+              className={
+                isDark ? "text-neutral-400 mb-1" : "text-neutral-500 mb-1"
+              }
+            >
               Name
             </Text>
             <TextInput
@@ -85,10 +110,16 @@ export default function SettingsTab({
           </View>
           <View
             className={`rounded-2xl border px-3 py-3 ${
-              isDark ? "bg-neutral-800 border-neutral-700" : "bg-neutral-100 border-transparent"
+              isDark
+                ? "bg-neutral-800 border-neutral-700"
+                : "bg-neutral-100 border-transparent"
             }`}
           >
-            <Text className={isDark ? "text-neutral-400 mb-1" : "text-neutral-500 mb-1"}>
+            <Text
+              className={
+                isDark ? "text-neutral-400 mb-1" : "text-neutral-500 mb-1"
+              }
+            >
               Phone
             </Text>
             <TextInput
@@ -102,10 +133,16 @@ export default function SettingsTab({
           </View>
           <View
             className={`rounded-2xl border px-3 py-3 ${
-              isDark ? "bg-neutral-800 border-neutral-700" : "bg-neutral-100 border-transparent"
+              isDark
+                ? "bg-neutral-800 border-neutral-700"
+                : "bg-neutral-100 border-transparent"
             }`}
           >
-            <Text className={isDark ? "text-neutral-400 mb-1" : "text-neutral-500 mb-1"}>
+            <Text
+              className={
+                isDark ? "text-neutral-400 mb-1" : "text-neutral-500 mb-1"
+              }
+            >
               Address
             </Text>
             <TextInput

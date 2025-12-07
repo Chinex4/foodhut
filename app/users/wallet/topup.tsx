@@ -21,10 +21,12 @@ import {
   selectTopupUrl,
 } from "@/redux/wallet/wallet.selectors";
 import { showError } from "@/components/ui/toast";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 export default function TopupScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
 
   const [amount, setAmount] = useState<string>("");
 
@@ -55,8 +57,8 @@ export default function TopupScreen() {
   }, [status, url, router]);
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <KeyboardAvoidingView
         behavior={Platform.select({ ios: "padding", android: undefined })}
         className="flex-1"
@@ -64,22 +66,27 @@ export default function TopupScreen() {
         {/* Header */}
         <View className="px-5 pt-3 pb-2 flex-row items-center">
           <Pressable onPress={() => router.back()} className="mr-2">
-            <Ionicons name="chevron-back" size={22} color="#0F172A" />
+            <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
           </Pressable>
-          <Text className="text-[18px] font-satoshiBold text-neutral-900">
+          <Text className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
             Top Up Wallet
           </Text>
         </View>
 
         {/* Body */}
         <View className="flex-1 px-5 mt-4">
-          <View className="bg-white rounded-2xl border border-neutral-200 px-3 py-4">
+          <View
+            className={`rounded-2xl border px-3 py-4 ${
+              isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+            }`}
+          >
             <TextInput
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
               placeholder="Input Amount"
-              className="font-satoshi text-neutral-900"
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+              className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
             />
           </View>
         </View>
@@ -89,7 +96,9 @@ export default function TopupScreen() {
           <Pressable
             disabled={!canTopup}
             onPress={handleTopup}
-            className={`rounded-2xl py-4 items-center justify-center ${canTopup ? "bg-primary" : "bg-neutral-300"}`}
+            className={`rounded-2xl py-4 items-center justify-center ${
+              canTopup ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-300"
+            }`}
           >
             {busy ? (
               <ActivityIndicator color="#fff" />

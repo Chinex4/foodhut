@@ -21,12 +21,14 @@ import {
 import { fetchTransactions } from "@/redux/transactions/transactions.thunks";
 import { formatNGN } from "@/utils/money";
 import type { Transaction } from "@/redux/transactions/transactions.types";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 type TabKey = "ALL" | "CREDIT" | "DEBIT";
 
 export default function WalletTransactionsScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
 
   // store
   const items = useAppSelector(selectTransactionsList);
@@ -90,9 +92,11 @@ export default function WalletTransactionsScreen() {
 
     return (
       <View
-        className="bg-white rounded-2xl border border-neutral-100 px-3 py-4 mb-3 flex-row items-center justify-between"
+        className={`rounded-2xl border px-3 py-4 mb-3 flex-row items-center justify-between ${
+          isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+        }`}
         style={{
-          shadowOpacity: 0.03,
+          shadowOpacity: isDark ? 0 : 0.03,
           shadowRadius: 8,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 3 },
@@ -107,15 +111,15 @@ export default function WalletTransactionsScreen() {
             color={isCredit ? "#16a34a" : "#ef4444"}
           />
           <View className="ml-3">
-            <Text className="text-neutral-900 font-satoshiMedium">{label}</Text>
-            <Text className="text-neutral-500 font-satoshi text-[12px]">
+            <Text className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>{label}</Text>
+            <Text className={`font-satoshi text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
               {new Date(item.created_at).toLocaleString()} • {item.id}
             </Text>
           </View>
         </View>
 
         <Text
-          className={`font-satoshiBold ${isCredit ? "text-green-600" : "text-neutral-900"}`}
+          className={`font-satoshiBold ${isCredit ? "text-green-600" : isDark ? "text-neutral-100" : "text-neutral-900"}`}
         >
           {isCredit ? "+" : "-"}
           {formatNGN(amountNum)}
@@ -125,22 +129,22 @@ export default function WalletTransactionsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
       <View className="px-5 pt-3 pb-2 flex-row items-center">
         <Pressable onPress={() => router.back()} className="mr-2">
-          <Ionicons name="chevron-back" size={22} color="#0F172A" />
+          <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
         </Pressable>
-        <Text className="text-[18px] font-satoshiBold text-neutral-900">
+        <Text className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
           Transactions
         </Text>
       </View>
 
       {/* Segment / Filters */}
       <View className="px-5 mt-1 mb-3">
-        <View className="flex-row bg-neutral-200/60 rounded-xl p-1">
+        <View className={`flex-row rounded-xl p-1 ${isDark ? "bg-neutral-800" : "bg-neutral-200/60"}`}>
           {(["ALL", "CREDIT", "DEBIT"] as const).map((key) => {
             const active = tab === key;
             return (
@@ -153,7 +157,9 @@ export default function WalletTransactionsScreen() {
                   className={`text-[13px] ${
                     active
                       ? "text-white font-satoshiBold"
-                      : "text-neutral-600 font-satoshi"
+                      : isDark
+                        ? "text-neutral-300 font-satoshi"
+                        : "text-neutral-600 font-satoshi"
                   }`}
                 >
                   {key === "ALL"
@@ -175,22 +181,22 @@ export default function WalletTransactionsScreen() {
         renderItem={renderItem}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F59E0B" />
         }
         onEndReachedThreshold={0.4}
         onEndReached={loadMore}
         ListEmptyComponent={
           listStatus === "loading" ? (
             <View className="px-5 mt-10 items-center">
-              <ActivityIndicator color="#0F172A" />
-              <Text className="mt-2 text-neutral-500 font-satoshi">
+              <ActivityIndicator color={isDark ? "#F59E0B" : "#0F172A"} />
+              <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
                 Loading transactions…
               </Text>
             </View>
           ) : error ? (
             <View className="px-5 mt-10 items-center">
               <Ionicons name="alert-circle-outline" size={36} color="#ef4444" />
-              <Text className="mt-2 text-neutral-500 font-satoshi">
+              <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
                 {error}
               </Text>
             </View>
@@ -199,9 +205,9 @@ export default function WalletTransactionsScreen() {
               <Ionicons
                 name="document-text-outline"
                 size={36}
-                color="#9CA3AF"
+                color={isDark ? "#6B7280" : "#9CA3AF"}
               />
-              <Text className="mt-2 text-neutral-500 font-satoshi">
+              <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
                 No transactions yet.
               </Text>
             </View>
@@ -210,7 +216,7 @@ export default function WalletTransactionsScreen() {
         ListFooterComponent={
           loadingMore ? (
             <View className="py-3">
-              <ActivityIndicator color="#0F172A" />
+              <ActivityIndicator color={isDark ? "#F59E0B" : "#0F172A"} />
             </View>
           ) : null
         }
