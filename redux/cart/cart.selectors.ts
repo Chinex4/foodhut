@@ -70,6 +70,23 @@ export const selectCartSubtotal = createSelector(
   }
 );
 
+export const selectCartSubtotalForKitchen = (kitchenId?: string | null) =>
+  createSelector([(s: RootState) => (kitchenId ? s.cart.byKitchenId[kitchenId] : null)], (group) => {
+    if (!group) return 0;
+    return group.itemOrder.reduce((sum, id) => {
+      const item = group.items[id];
+      if (!item) return sum;
+      const price = Number(item.meal.price);
+      return sum + (isNaN(price) ? 0 : price) * (item.quantity ?? 0);
+    }, 0);
+  });
+
+export const selectCartTotalItemsForKitchen = (kitchenId?: string | null) =>
+  createSelector([(s: RootState) => (kitchenId ? s.cart.byKitchenId[kitchenId] : null)], (group) => {
+    if (!group) return 0;
+    return group.itemOrder.reduce((total, id) => total + (group.items[id]?.quantity ?? 0), 0);
+  });
+
 const EMPTY_ORDER_ROWS: any[] = [];
 
 export const selectOrderRowsForKitchen = (kitchenId?: string | null) =>

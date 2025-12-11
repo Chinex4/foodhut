@@ -32,6 +32,7 @@ import {
 } from "@/redux/kitchen/kitchen.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { fetchMyProfile } from "@/redux/users/users.thunks";
 
 type TimeType = "opening" | "closing";
 
@@ -129,7 +130,8 @@ export default function CreateKitchenScreen() {
       ).unwrap();
 
       showSuccess("Kitchen created successfully!");
-      router.replace("/users/kitchenDashboard");
+      await dispatch(fetchMyProfile());
+      router.replace("/kitchen/(tabs)");
     } catch (err: any) {
       console.log("Create kitchen UI error:", err);
       const message =

@@ -1,6 +1,7 @@
 import FoodhutButton from "@/components/ui/FoodhutButton";
 import { selectAuthError, selectAuthStatus } from "@/redux/auth/auth.selectors";
 import { resendVerificationOtp, verifyOtp } from "@/redux/auth/auth.thunks";
+import { fetchMyProfile } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -87,10 +88,19 @@ export default function VerifyScreen() {
     if (otp.length !== 4) return;
     const res = await dispatch(verifyOtp({ phone_number: String(phone), otp }));
     if (verifyOtp.fulfilled.match(res)) {
-      // router.replace("/users/(tabs)");
       if (intent === "register") {
         router.replace("/(auth)/choose-role");
-      } else {
+        return;
+      }
+
+      try {
+        const me = await dispatch(fetchMyProfile()).unwrap();
+        if (me?.has_kitchen) {
+          router.replace("/kitchen/(tabs)");
+        } else {
+          router.replace("/users/(tabs)");
+        }
+      } catch {
         router.replace("/users/(tabs)");
       }
     }

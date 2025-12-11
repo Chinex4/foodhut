@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 
 import KitchenCard from "@/components/home/KitchenCard";
 import { api } from "@/api/axios";
@@ -102,6 +103,7 @@ export default function AllKitchensScreen() {
 
   return (
     <View className={`flex-1 pt-20 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       {/* Header */}
       <View className="flex-row items-center">
         <Pressable onPress={() => router.back()} className="px-4 mb-4">
@@ -169,7 +171,11 @@ export default function AllKitchensScreen() {
           justifyContent: "space-between",
           marginBottom: 16,
         }}
-        renderItem={({ item }) => <KitchenCard kitchen={item} />}
+        renderItem={({ item }) => (
+          <View style={{ width: "48%" }}>
+            <KitchenCard kitchen={item} />
+          </View>
+        )}
         ListEmptyComponent={
           <View className="p-6">
             <Text className={`text-center ${isDark ? "text-neutral-500" : "text-neutral-400"}`}>

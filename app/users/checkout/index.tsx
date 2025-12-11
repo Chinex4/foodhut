@@ -24,11 +24,11 @@ import {
 import {
   selectCartCheckoutStatus,
   selectCartKitchenIds,
-  selectCartSubtotal,
-  selectCartTotalItems,
+  selectCartSubtotalForKitchen,
+  selectCartTotalItemsForKitchen,
   selectOrderRowsForKitchen
 } from "@/redux/cart/cart.selectors";
-import { checkoutActiveCart } from "@/redux/cart/cart.thunks";
+import { checkoutActiveCart, removeCartItem, setCartItem } from "@/redux/cart/cart.thunks";
 import { makeSelectPayStatus } from "@/redux/orders/orders.selectors";
 import { payForOrder } from "@/redux/orders/orders.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
@@ -137,7 +137,6 @@ export default function CheckoutScreen() {
   );
 
   const orderRows = useAppSelector(orderRowsSelector);
-
   // const orderRows = useAppSelector((s) => {
   //   if (!kitchenId) return [];
   //   const items = selectCartItemsForKitchen(kitchenId)(s);
@@ -150,20 +149,17 @@ export default function CheckoutScreen() {
   //   }));
   // });
 
-  const subtotal = useAppSelector(selectCartSubtotal);
-  const totalItems = useAppSelector(selectCartTotalItems);
+  const subtotal = useAppSelector(selectCartSubtotalForKitchen(kitchenId));
+  const totalItems = useAppSelector(selectCartTotalItemsForKitchen(kitchenId));
   const checkoutStatus = useAppSelector(selectCartCheckoutStatus);
 
   // UI state
   const [tab, setTab] = useState<"ORDER" | "DELIVERY">("ORDER");
   const [address, setAddress] = useState<string>("");
-  const [note, setNote] = useState<string>("");
   const [when, setWhen] = useState<"ASAP" | "SCHEDULE">("ASAP");
   const [paymentMethod, setPaymentMethod] = useState<PaymentUI>("ONLINE");
 
-  const [contact, setContact] = useState<string>("");
   const [riderNote, setRiderNote] = useState<string>("");
-  const [kitchenNote, setKitchenNote] = useState<string>("");
   const [voucher, setVoucher] = useState<string>("");
   const voucherEndsOn = "02/10/2025";
 
@@ -313,19 +309,6 @@ export default function CheckoutScreen() {
     }
   };
 
-  // read store once
-  const byKitchenId = useAppSelector((s) => s.cart.byKitchenId);
-
-  // build a plain array for the picker
-  const kitchensForPicker = useMemo(
-    () =>
-      kitchenIds.map((kid) => ({
-        id: kid,
-        label: byKitchenId[kid]?.kitchen?.name ?? kid,
-      })),
-    [kitchenIds, byKitchenId]
-  );
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.select({ ios: "padding", android: undefined })}
@@ -391,7 +374,18 @@ export default function CheckoutScreen() {
                 <SectionHeader title="Order Summary" isDark={isDark} />
               </View>
             }
-            renderItem={({ item }) => (
+            renderItem={({ item }) => {
+              const mealId = item.id;
+              const quantity = item.qty;
+              const adjust = (delta: number) => {
+                const nextQty = quantity + delta;
+                if (nextQty <= 0) {
+                  dispatch(removeCartItem(mealId));
+                } else {
+                  dispatch(setCartItem({ mealId, quantity: nextQty }));
+                }
+              };
+              return (
               <View
                 className={`rounded-2xl border mb-4 p-3 ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
                 style={{
@@ -424,28 +418,36 @@ export default function CheckoutScreen() {
                       <Text className={isDark ? "text-neutral-600" : "text-neutral-400"}>× {item.qty}</Text>
                     </Text>
                   </View>
-                  <Text className={`font-satoshiBold self-center ${isDark ? "text-white" : "text-neutral-900"}`}>
-                    {formatNGN(item.price * item.qty)}
-                  </Text>
+                  <View className="items-end">
+                    <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
+                      {formatNGN(item.price * item.qty)}
+                    </Text>
+                    <View className="flex-row items-center mt-2">
+                      <Pressable
+                        onPress={() => adjust(-1)}
+                        className={`w-8 h-8 rounded-full items-center justify-center ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
+                      >
+                        <Ionicons name="remove" size={18} color={isDark ? "#E5E7EB" : "#111827"} />
+                      </Pressable>
+                      <Text className={`mx-2 font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
+                        {quantity}
+                      </Text>
+                      <Pressable
+                        onPress={() => adjust(1)}
+                        className={`w-8 h-8 rounded-full items-center justify-center ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
+                      >
+                        <Ionicons name="add" size={18} color={isDark ? "#E5E7EB" : "#111827"} />
+                      </Pressable>
+                      <Pressable onPress={() => dispatch(removeCartItem(mealId))} className="ml-3">
+                        <Ionicons name="trash-outline" size={18} color={isDark ? "#ef4444" : "#dc2626"} />
+                      </Pressable>
+                    </View>
+                  </View>
                 </View>
               </View>
-            )}
-            ListFooterComponent={
-              <View className="mt-6">
-                <Text className={`mb-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-700"}`}>
-                  Leave a message for the restaurant
-                </Text>
-                <TextInput
-                  placeholder="e.g. No pepper, ring me on arrival"
-                  placeholderTextColor={isDark ? "#6B7280" : "#D1D5DB"}
-                  value={note}
-                  onChangeText={setNote}
-                  multiline
-                  className={`rounded-2xl p-3 border placeholder:font-satoshi ${isDark ? "bg-neutral-900 border-neutral-800 text-white" : "bg-white border-neutral-200 text-neutral-900"}`}
-                  style={{ minHeight: 90 }}
-                />
-              </View>
-            }
+            );
+          }}
+            ListFooterComponent={<View style={{ height: 6 }} />}
             ListEmptyComponent={
               <View className="items-center mt-12">
                 <Image source={require("@/assets/images/trayy.png")} />
@@ -521,23 +523,6 @@ export default function CheckoutScreen() {
                 />
               </View>
 
-              {/* Contact */}
-              <View
-                className={`rounded-2xl border px-3 py-4 flex-row items-center ${
-                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
-                }`}
-              >
-                <Ionicons name="call-outline" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
-                <TextInput
-                  value={contact}
-                  onChangeText={setContact}
-                  placeholder="Enter Contact"
-                  keyboardType="phone-pad"
-                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-                  className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
-                />
-              </View>
-
               {/* Message for the rider (dispatch_rider_note REQUIRED by API) */}
               <View
                 className={`rounded-2xl border px-3 py-4 flex-row items-center ${
@@ -549,22 +534,6 @@ export default function CheckoutScreen() {
                   value={riderNote}
                   onChangeText={setRiderNote}
                   placeholder="Message for the rider"
-                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-                  className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
-                />
-              </View>
-
-              {/* Message for kitchen (optional, UI parity) */}
-              <View
-                className={`rounded-2xl border px-3 py-4 flex-row items-center ${
-                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
-                }`}
-              >
-                <Ionicons name="restaurant-outline" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
-                <TextInput
-                  value={kitchenNote}
-                  onChangeText={setKitchenNote}
-                  placeholder="Message for Kitchen"
                   placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                   className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
                 />
@@ -714,38 +683,7 @@ export default function CheckoutScreen() {
               </View>
             </View>
 
-            {/* (Optional) If multiple kitchens, show a name picker below to match flows */}
-            {kitchenIds.length > 1 && (
-              <View className="mt-5">
-                <Text className={`mb-2 ${isDark ? "text-neutral-200" : "text-neutral-700"}`}>
-                  Select Kitchen
-                </Text>
-                <View
-                  className={`rounded-2xl border ${
-                    isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
-                  }`}
-                >
-                  {kitchensForPicker.map(({ id, label }) => (
-                    <Pressable
-                      key={id}
-                      onPress={() => setKitchenId(id)}
-                      className="flex-row items-center justify-between px-3 py-4"
-                    >
-                      <Text className={isDark ? "text-neutral-100" : "text-neutral-800"}>{label}</Text>
-                      <Ionicons
-                        name={
-                          kitchenId === id
-                            ? "radio-button-on"
-                            : "radio-button-off"
-                        }
-                        size={18}
-                        color={kitchenId === id ? "#ffa800" : isDark ? "#6b7280" : "#9ca3af"}
-                      />
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            )}
+            {/* kitchen selection removed as checkout is per kitchen */}
           </ScrollView>
 
           {/* Bottom buttons */}

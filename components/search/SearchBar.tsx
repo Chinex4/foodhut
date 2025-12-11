@@ -4,7 +4,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useAppDispatch } from "@/store/hooks";
 import { searchMealsAndKitchens } from "@/redux/search/search.thunks";
 import type { SearchQuery } from "@/redux/search/search.types";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import SearchFilterModal, { SearchFilters } from "./SearchFilterModal";
 
 type Props = {
@@ -23,12 +23,14 @@ export default function SearchBar({
   className = "",
 }: Props) {
   const dispatch = useAppDispatch();
+  const pathname = usePathname();
   const [value, setValue] = React.useState(initial);
   const [open, setOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<SearchFilters>({
     scope: "ALL",
     per_page: perPage,
   });
+  const debounceRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const doSearch = async (q: string, extra?: Partial<SearchQuery>) => {
     const query: SearchQuery = {
@@ -39,11 +41,27 @@ export default function SearchBar({
     if (!query.q) return; 
     try {
       await dispatch(searchMealsAndKitchens(query)).unwrap();
-      router.push("/users/(tabs)/search");
+      if (pathname !== "/users/(tabs)/search") {
+        router.push("/users/(tabs)/search");
+      }
     } catch (e) {
       // optional toast here
     }
   };
+
+  // debounce as user types
+  React.useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (value.trim()) {
+        doSearch(value);
+      }
+    }, 350);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   return (
     <>

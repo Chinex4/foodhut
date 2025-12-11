@@ -176,18 +176,6 @@ export default function ProfileHomeScreen() {
           {/* CTA buttons */}
           <View className="flex-row mt-4">
             <Pressable
-              onPress={() => {}}
-              className="bg-primary rounded-full px-4 py-2 mr-3 items-center justify-center border border-primary-500"
-            >
-              <View className="flex-row items-center">
-                <Ionicons name="bag-outline" size={16} color="#fff" />
-                <Text className="ml-2 text-white font-satoshiMedium">
-                  Place Order
-                </Text>
-              </View>
-            </Pressable>
-
-            <Pressable
               onPress={() => router.push("/users/wallet" as any)}
               className="bg-white rounded-full px-4 py-2 items-center justify-center border border-neutral-200"
             >
@@ -198,35 +186,6 @@ export default function ProfileHomeScreen() {
                 </Text>
               </View>
             </Pressable>
-          </View>
-
-          {/* Kitchen Dashboard Button */}
-          <View className="flex-col mt-4 gap-4">
-            {me?.has_kitchen ? (
-              <Pressable
-                onPress={() => router.push("/users/kitchenDashboard" as any)}
-                className="bg-primary rounded-full px-4 py-2 items-center justify-center border border-primary-500"
-              >
-                <View className="flex-row items-center">
-                  <Ionicons name="storefront-outline" size={16} color="#fff" />
-                  <Text className="ml-2 text-white font-satoshiMedium">
-                    Visit Kitchen Dashboard
-                  </Text>
-                </View>
-              </Pressable>
-            ) : (
-              <Pressable
-                onPress={() => router.push("/users/kitchen/create" as any)}
-                className="bg-primary rounded-full px-4 py-2 items-center justify-center border border-primary-500"
-              >
-                <View className="flex-row items-center">
-                  <Ionicons name="add-circle-outline" size={16} color="#fff" />
-                  <Text className="ml-2 text-white font-satoshiMedium">
-                    Become a Kitchen
-                  </Text>
-                </View>
-              </Pressable>
-            )}
           </View>
         </View>
       </View>
@@ -248,13 +207,6 @@ export default function ProfileHomeScreen() {
           onPress={() => router.push("/users/profile/details")}
           isDark={isDark}
         />
-        <Row
-          icon={<Ionicons name="location-outline" size={18} color="#9CA3AF" />}
-          label="Addresses"
-          onPress={() => {}}
-          isDark={isDark}
-        />
-
         {/* Rewards & perks */}
         <Text
           className={`font-satoshi px-1 mt-4 mb-2 ${

@@ -7,7 +7,7 @@ import { Image, Pressable, Text, View } from "react-native";
 type Kitchen = {
   id: string;
   name: string;
-  cover_image: string | null;
+  cover_image: { url: string | null } | string | null;
   type: string | null;
   delivery_time: string | null;
   preparation_time: string | null;
@@ -33,6 +33,11 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
     ? `${kitchen.city.name}, ${kitchen.city.state}`
     : "Unknown location";
 
+  const coverUrl =
+    typeof kitchen.cover_image === "string"
+      ? kitchen.cover_image
+      : kitchen.cover_image?.url || null;
+
   const handlePress = () => {
     // Adjust route to your kitchen details screen
     router.push({
@@ -40,11 +45,6 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
       params: { id: kitchen.id },
     });
   };
-
-  const imageUri =
-    typeof kitchen.cover_image === "string" && kitchen.cover_image.trim() !== ""
-      ? kitchen.cover_image
-      : null;
 
   return (
     <Pressable
@@ -61,9 +61,9 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
     >
       {/* cover */}
       <View className="h-28 rounded-3xl overflow-hidden bg-secondary">
-        {imageUri ? (
+        {coverUrl ? (
           <Image
-            source={{ uri: imageUri }}
+            source={{ uri: coverUrl }}
             className="w-full h-full"
           />
         ) : (
@@ -93,12 +93,16 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
 
         <View className="mt-2 flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <View className={`px-1.5 py-0.5 rounded-md ${isDark ? 'bg-slate-900' : 'bg-[#FFF7E6]'} mr-1.5`}>
+            <View
+              className={`px-1.5 py-0.5 rounded-md ${isDark ? "bg-slate-900" : "bg-[#FFF7E6]"} mr-1.5`}
+            >
               <Text className="text-[10px] font-satoshiBold text-primary">
                 {rating}
               </Text>
             </View>
-            <Text className={`text-[11px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+            <Text
+              className={`text-[11px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}
+            >
               {kitchen.delivery_time || kitchen.preparation_time || "N/A"}
             </Text>
           </View>
@@ -110,7 +114,11 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
           >
             <Text
               className={`text-[10px] font-satoshiMedium ${
-                kitchen.is_available ? "text-[#059669]" : isDark ? "text-neutral-500" : "text-neutral-500"
+                kitchen.is_available
+                  ? "text-[#059669]"
+                  : isDark
+                    ? "text-neutral-500"
+                    : "text-neutral-500"
               }`}
             >
               {kitchen.is_available ? "Open" : "Closed"}

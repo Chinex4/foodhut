@@ -345,7 +345,7 @@ export default function KitchenDetailScreen() {
               contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
               renderItem={({ item }) => (
                 <Pressable
-                  onPress={() => {}}
+                  onPress={() => router.push(`/users/meal/${item.id}` as any)}
                   className={`rounded-2xl border overflow-hidden flex-row ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
                 >
                   <View
