@@ -19,7 +19,7 @@ export default function KitchenTabLayout() {
           height: 78,
           paddingTop: 8,
           paddingBottom: Platform.select({ ios: 18, default: 14 }),
-          backgroundColor: isDark ? "#0f172a" : "#FFF8EC",
+          backgroundColor: isDark ? "#0a0a0a" : "#FFF8EC",
           borderTopWidth: 1,
           borderTopColor: isDark ? "#1f2937" : "#f3f4f6",
           elevation: 0,
@@ -31,7 +31,7 @@ export default function KitchenTabLayout() {
       }}
     >
       <Tabs.Screen
-        name="home"
+        name="index"
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (

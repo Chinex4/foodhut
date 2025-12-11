@@ -1,5 +1,12 @@
 import React from "react";
-import { FlatList, Image, Pressable, RefreshControl, Text, View } from "react-native";
+import {
+  FlatList,
+  Image,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import MealCard from "@/components/home/MealCard";
@@ -28,21 +35,19 @@ export default function HomeTab({
   refreshing,
 }: Props) {
   return (
-    <View className="flex-1">
+    <View className="flex-1 pt-24">
       <View
         className={`rounded-3xl p-4 mb-4 border ${
-          isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+          isDark
+            ? "bg-neutral-900 border-neutral-800"
+            : "bg-white border-neutral-100"
         }`}
       >
         <View className="flex-row items-center">
           <View className="w-14 h-14 rounded-2xl overflow-hidden bg-neutral-200">
-            {kitchen?.cover_image ? (
-              <CachedImage
-                uri={
-                  typeof kitchen.cover_image === "string"
-                    ? kitchen.cover_image
-                    : kitchen.cover_image?.url ?? undefined
-                }
+            {kitchen?.cover_image?.url ? (
+              <Image
+                source={{ uri: kitchen?.cover_image?.url }}
                 className="w-full h-full"
               />
             ) : (
@@ -69,7 +74,9 @@ export default function HomeTab({
             <Text className={isDark ? "text-neutral-400" : "text-neutral-500"}>
               Meals
             </Text>
-            <Text className={`font-satoshiBold text-lg ${isDark ? "text-white" : "text-neutral-900"}`}>
+            <Text
+              className={`font-satoshiBold text-lg ${isDark ? "text-white" : "text-neutral-900"}`}
+            >
               {meals.length}
             </Text>
           </View>
@@ -77,7 +84,9 @@ export default function HomeTab({
             <Text className={isDark ? "text-neutral-400" : "text-neutral-500"}>
               Rating
             </Text>
-            <Text className={`font-satoshiBold text-lg ${isDark ? "text-white" : "text-neutral-900"}`}>
+            <Text
+              className={`font-satoshiBold text-lg ${isDark ? "text-white" : "text-neutral-900"}`}
+            >
               {kitchen?.rating ?? "—"}
             </Text>
           </View>
@@ -85,7 +94,9 @@ export default function HomeTab({
             <Text className={isDark ? "text-neutral-400" : "text-neutral-500"}>
               Status
             </Text>
-            <Text className={`font-satoshiBold text-lg ${isDark ? "text-white" : "text-neutral-900"}`}>
+            <Text
+              className={`font-satoshiBold text-lg ${isDark ? "text-white" : "text-neutral-900"}`}
+            >
               {kitchen?.is_available ? "Open" : "Closed"}
             </Text>
           </View>
@@ -100,7 +111,11 @@ export default function HomeTab({
           keyExtractor={(m) => m.id}
           contentContainerStyle={{ paddingBottom: 160 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F59E0B" />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#F59E0B"
+            />
           }
           renderItem={({ item }) => (
             <View className="mb-3">
@@ -114,7 +129,9 @@ export default function HomeTab({
             source={require("@/assets/images/empty-box.png")}
             className="w-24 h-24"
           />
-          <Text className={`mt-3 font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
+          <Text
+            className={`mt-3 font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}
+          >
             No meals yet
           </Text>
           <Text className={isDark ? "text-neutral-400" : "text-neutral-500"}>

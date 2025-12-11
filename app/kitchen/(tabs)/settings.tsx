@@ -81,7 +81,7 @@ export default function KitchenSettingsScreen() {
   }
 
   return (
-    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <View className={`flex-1 pt-20 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <SettingsTab
         kitchen={kitchen}

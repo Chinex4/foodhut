@@ -18,7 +18,12 @@ type Props = {
   isDark: boolean;
   refreshing: boolean;
   onRefresh: () => void;
-  onAdvance: (orderId: string, itemId: string, nextStatus: string, asKitchen: boolean) => void;
+  onAdvance: (
+    orderId: string,
+    itemId: string,
+    nextStatus: string,
+    asKitchen: boolean
+  ) => void;
   updatingMap: Record<string, boolean>;
   loading: boolean;
 };
@@ -50,18 +55,24 @@ export default function OrdersTab({
 
   const renderItem = (it: OrderItem) => (
     <View key={`${it.meal_id}-${it.id}`} className="flex-row items-center mb-2">
-      <CachedImage
-        uri={it.meal?.cover_image?.url ?? it.meal?.cover_image ?? null}
-        fallback={
-          <Image
-            source={require("@/assets/images/logo-transparent.png")}
-            className={`w-12 h-12 rounded-xl ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
-          />
-        }
-        className={`w-12 h-12 rounded-xl ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
-      />
+      {it.meal?.cover_image?.url ? (
+        <Image
+          source={{
+            uri: it.meal?.cover_image?.url ?? it.meal?.cover_image ?? null,
+          }}
+          className={`w-12 h-12 rounded-xl ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
+        />
+      ) : (
+        <Image
+          source={require("@/assets/images/logo-transparent.png")}
+          className={`w-12 h-12 rounded-xl ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
+        />
+      )}
+
       <View className="ml-3 flex-1">
-        <Text className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
+        <Text
+          className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}
+        >
           {it.meal?.name}
         </Text>
         <Text className={isDark ? "text-neutral-400" : "text-neutral-500"}>
@@ -74,7 +85,11 @@ export default function OrdersTab({
   return (
     <ScrollView
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F59E0B" />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#F59E0B"
+        />
       }
       contentContainerStyle={{ paddingBottom: 120 }}
     >
@@ -94,7 +109,9 @@ export default function OrdersTab({
           <View
             key={order.id}
             className={`rounded-2xl border p-4 mb-3 ${
-              isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+              isDark
+                ? "bg-neutral-900 border-neutral-800"
+                : "bg-white border-neutral-100"
             }`}
           >
             <View className="flex-row items-center justify-between mb-2">
@@ -110,7 +127,9 @@ export default function OrdersTab({
                   isDark ? "bg-neutral-800" : "bg-neutral-100"
                 }`}
               >
-                <Text className={isDark ? "text-neutral-300" : "text-neutral-600"}>
+                <Text
+                  className={isDark ? "text-neutral-300" : "text-neutral-600"}
+                >
                   {order.status.replace(/_/g, " ")}
                 </Text>
               </View>
@@ -119,7 +138,9 @@ export default function OrdersTab({
             {order.items?.map(renderItem)}
 
             <View className="flex-row items-center justify-between mt-2">
-              <Text className={isDark ? "text-neutral-300" : "text-neutral-700"}>
+              <Text
+                className={isDark ? "text-neutral-300" : "text-neutral-700"}
+              >
                 Total {formatNGN(order.total)}
               </Text>
               {canUpdate ? (
@@ -142,7 +163,9 @@ export default function OrdersTab({
                   )}
                 </Pressable>
               ) : (
-                <Text className={isDark ? "text-neutral-500" : "text-neutral-500"}>
+                <Text
+                  className={isDark ? "text-neutral-500" : "text-neutral-500"}
+                >
                   No further actions
                 </Text>
               )}
@@ -152,12 +175,14 @@ export default function OrdersTab({
       })}
 
       {!filtered.length && !loading && (
-        <View className="items-center mt-10">
+        <View className="items-center justify-center mt-10">
           <Image
             source={require("@/assets/images/empty-box.png")}
             className="w-24 h-24"
           />
-          <Text className={`mt-3 font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
+          <Text
+            className={`mt-3 font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}
+          >
             No orders yet
           </Text>
           <Text className={isDark ? "text-neutral-400" : "text-neutral-500"}>
