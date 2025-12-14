@@ -102,7 +102,7 @@ export default function WalletScreen() {
           <View className="ml-3">
             <Text className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}>{label}</Text>
             <Text className={`text-[12px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-              {new Date(item.created_at).toLocaleString()} • {item.id}
+              {new Date(item.created_at).toLocaleString()}
             </Text>
           </View>
         </View>

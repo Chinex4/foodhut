@@ -9,6 +9,7 @@ import type {
   PayOrderPayload,
   PayOrderResult,
   UpdateOrderItemStatusPayload,
+  UpdateOrderStatusPayload,
 } from "./orders.types";
 
 const BASE = "/orders";
@@ -104,6 +105,65 @@ export const updateOrderItemStatus = createAsyncThunk<
       return rejectWithValue(
         err?.response?.data?.error || "Failed to update order item status"
       );
+    }
+  }
+);
+
+export const updateOrderStatus = createAsyncThunk<
+  { message: string; order: Order },
+  UpdateOrderStatusPayload,
+  { rejectValue: any }
+>(
+  "orders/updateOrderStatus",
+  async ({ orderId, status, as_kitchen }, { rejectWithValue }) => {
+    const body: any = { status };
+    if (typeof as_kitchen === "boolean") body.as_kitchen = as_kitchen;
+
+    try {
+      const url = `${BASE}/${orderId}/status`;
+
+      // debug: what are we sending?
+      console.log("[updateOrderStatus] PUT", url, body);
+
+      const res = await api.put(url, body);
+
+      console.log("[updateOrderStatus] PUT ok", {
+        status: res.status,
+        data: res.data,
+      });
+
+      const refreshed = await api.get(`${BASE}/${orderId}`);
+      return {
+        message: res.data?.message ?? "Order status updated successfully",
+        order: refreshed.data as Order,
+      };
+    } catch (err: any) {
+      // Axios-style diagnostics
+      const statusCode = err?.response?.status;
+      const data = err?.response?.data;
+      const method = err?.config?.method;
+      const fullUrl = err?.config?.baseURL
+        ? `${err.config.baseURL}${err.config.url}`
+        : err?.config?.url;
+
+      console.log("[updateOrderStatus] FAILED", {
+        statusCode,
+        data,
+        method,
+        url: fullUrl,
+        sentBody: err?.config?.data, // may be JSON string
+        message: err?.message,
+      });
+
+      return rejectWithValue({
+        message:
+          data?.error ??
+          data?.message ??
+          err?.message ??
+          "Failed to update order status",
+        statusCode,
+        data,
+      });
     }
   }
 );

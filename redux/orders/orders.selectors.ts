@@ -13,8 +13,7 @@ export const selectOrdersList = createSelector(
 );
 
 const ONGOING_ORDER_STATUSES: OrderStatus[] = [
-  "PENDING",
-  "AWAITING_ACKNOWLEDGEMENT",
+  "AWAITING_PAYMENT",
   "PREPARING",
   "IN_TRANSIT",
 ];
@@ -40,6 +39,10 @@ export const makeSelectPayStatus = (id: OrderId) => (s: RootState) =>
 export const makeSelectUpdateItemStatus =
   (itemId: OrderItemId) => (s: RootState) =>
     s.orders.updateItemStatus[itemId] ?? "idle";
+
+export const makeSelectUpdateOrderStatus =
+  (orderId: OrderId) => (s: RootState) =>
+    s.orders.updateStatus[orderId] ?? "idle";
 
 export const selectOrdersError = (s: RootState) => s.orders.error;
 export const selectOrdersListStatus = (s: RootState) => s.orders.listStatus;

@@ -74,8 +74,7 @@ export type OwnerSummary = {
 export type PaymentMethod = "ONLINE" | "WALLET";
 
 export type OrderStatus =
-  | "PENDING"
-  | "AWAITING_ACKNOWLEDGEMENT"
+  | "AWAITING_PAYMENT"
   | "PREPARING"
   | "IN_TRANSIT"
   | "DELIVERED"
@@ -133,6 +132,12 @@ export type UpdateOrderItemStatusPayload = {
   as_kitchen?: boolean;
 };
 
+export type UpdateOrderStatusPayload = {
+  orderId: OrderId;
+  status: OrderStatus;
+  as_kitchen?: boolean;
+};
+
 export type OrdersState = {
   entities: Record<OrderId, Order>;
 
@@ -144,6 +149,7 @@ export type OrdersState = {
   byIdStatus: Record<OrderId, OrdersStatus>;
   payStatus: Record<OrderId, OrdersStatus>;
   updateItemStatus: Record<OrderItemId, OrdersStatus>;
+  updateStatus: Record<OrderId, OrdersStatus>;
 
   error: string | null;
 };

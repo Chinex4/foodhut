@@ -5,6 +5,7 @@ import {
   fetchOrders,
   payForOrder,
   updateOrderItemStatus,
+  updateOrderStatus,
 } from "./orders.thunks";
 
 const initialState: OrdersState = {
@@ -18,6 +19,7 @@ const initialState: OrdersState = {
   byIdStatus: {},
   payStatus: {},
   updateItemStatus: {},
+  updateStatus: {},
 
   error: null,
 };
@@ -102,6 +104,24 @@ const ordersSlice = createSlice({
         state.updateItemStatus[itemId] = "failed";
         state.error =
           (a.payload as string) || "Failed to update order item status";
+      });
+
+    // UPDATE ORDER STATUS
+    builder
+      .addCase(updateOrderStatus.pending, (state, a) => {
+        state.updateStatus[a.meta.arg.orderId] = "loading";
+        state.error = null;
+      })
+      .addCase(updateOrderStatus.fulfilled, (state, a) => {
+        const { order } = a.payload;
+        state.updateStatus[order.id] = "succeeded";
+        upsert(state, order);
+      })
+      .addCase(updateOrderStatus.rejected, (state, a) => {
+        const orderId = a.meta.arg.orderId;
+        state.updateStatus[orderId] = "failed";
+        state.error =
+          (a.payload as string) || "Failed to update order status";
       });
   },
 });
