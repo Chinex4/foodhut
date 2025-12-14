@@ -239,7 +239,7 @@ export default function MealDetailsScreen() {
                 {meal!.likes} Likes
               </Text>
             </View>
-            <QuantityStepper value={qty} onChange={setQty} />
+            <QuantityStepper isDark={isDark} value={qty} onChange={setQty} />
           </View>
         </View>
       </ScrollView>

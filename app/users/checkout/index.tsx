@@ -318,7 +318,7 @@ export default function CheckoutScreen() {
       {/* Header */}
       <View className={`pt-20 pb-3 px-5 ${isDark ? "bg-neutral-950" : "bg-[#FFFDF8]"}`}>
         <View className="flex-row items-center justify-between">
-          <Pressable onPress={() => router.back()} className="mr-2">
+          <Pressable onPress={() => router.push("/users/(tabs)/orders")} className="mr-2">
             <Ionicons name="chevron-back" size={22} color={isDark ? "#fff" : "#0F172A"} />
           </Pressable>
           <Text className={`text-2xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>

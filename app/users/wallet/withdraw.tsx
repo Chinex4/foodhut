@@ -42,7 +42,9 @@ function Field({
   return (
     <View
       className={`rounded-2xl border px-3 py-4 flex-row items-center mb-3 ${
-        isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+        isDark
+          ? "bg-neutral-900 border-neutral-800"
+          : "bg-white border-neutral-200"
       }`}
     >
       {icon}
@@ -134,7 +136,9 @@ export default function WithdrawScreen() {
   }, [bankCode, accountNumber, dispatch]);
 
   return (
-    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <SafeAreaView
+      className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}
+    >
       <StatusBar style={isDark ? "light" : "dark"} />
       <KeyboardAvoidingView
         behavior={Platform.select({ ios: "padding", android: undefined })}
@@ -142,10 +146,19 @@ export default function WithdrawScreen() {
       >
         {/* Header */}
         <View className="px-5 pt-3 pb-2 flex-row items-center">
-          <Pressable onPress={() => router.back()} className="mr-2">
-            <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
+          <Pressable
+            onPress={() => router.push("/users/wallet")}
+            className="mr-2"
+          >
+            <Ionicons
+              name="chevron-back"
+              size={22}
+              color={isDark ? "#E5E7EB" : "#0F172A"}
+            />
           </Pressable>
-          <Text className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
+          <Text
+            className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}
+          >
             Withdraw
           </Text>
         </View>
@@ -172,7 +185,11 @@ export default function WithdrawScreen() {
                 placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                 className={`flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
               />
-              <Ionicons name="chevron-down" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
+              <Ionicons
+                name="chevron-down"
+                size={18}
+                color={isDark ? "#9CA3AF" : "#9CA3AF"}
+              />
             </Pressable>
           </Field>
 
@@ -191,9 +208,15 @@ export default function WithdrawScreen() {
                     }}
                     className={`px-3 py-3 ${isDark ? "bg-neutral-900 border-b border-neutral-800" : "bg-white border-b border-neutral-100"}`}
                   >
-                    <Text className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}>
+                    <Text
+                      className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
+                    >
                       {item.name}{" "}
-                      <Text className={isDark ? "text-neutral-400" : "text-neutral-400"}>
+                      <Text
+                        className={
+                          isDark ? "text-neutral-400" : "text-neutral-400"
+                        }
+                      >
                         ({item.code})
                       </Text>
                     </Text>
@@ -210,10 +233,14 @@ export default function WithdrawScreen() {
                 ListEmptyComponent={
                   <View
                     className={`px-3 py-4 rounded-2xl border ${
-                      isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+                      isDark
+                        ? "bg-neutral-900 border-neutral-800"
+                        : "bg-white border-neutral-100"
                     }`}
                   >
-                    <Text className={`font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+                    <Text
+                      className={`font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}
+                    >
                       No banks match your search.
                     </Text>
                   </View>
@@ -242,7 +269,11 @@ export default function WithdrawScreen() {
             disabled={!canResolve || busy}
             onPress={doResolve}
             className={`rounded-2xl py-3 items-center justify-center ${
-              canResolve ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-300"
+              canResolve
+                ? "bg-primary"
+                : isDark
+                  ? "bg-neutral-800"
+                  : "bg-neutral-300"
             }`}
           >
             {resolveStatus === "loading" ? (
@@ -257,13 +288,19 @@ export default function WithdrawScreen() {
           {resolvedName && (
             <View
               className={`mt-3 rounded-2xl border px-3 py-3 ${
-                isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+                isDark
+                  ? "bg-neutral-900 border-neutral-800"
+                  : "bg-white border-neutral-200"
               }`}
             >
-              <Text className={`font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+              <Text
+                className={`font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}
+              >
                 Account Name
               </Text>
-              <Text className={`font-satoshiBold mt-1 ${isDark ? "text-white" : "text-neutral-900"}`}>
+              <Text
+                className={`font-satoshiBold mt-1 ${isDark ? "text-white" : "text-neutral-900"}`}
+              >
                 {resolvedName}
               </Text>
             </View>
@@ -291,7 +328,11 @@ export default function WithdrawScreen() {
             disabled={!canWithdraw}
             onPress={doWithdraw}
             className={`rounded-2xl py-4 items-center justify-center ${
-              canWithdraw ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-300"
+              canWithdraw
+                ? "bg-primary"
+                : isDark
+                  ? "bg-neutral-800"
+                  : "bg-neutral-300"
             }`}
           >
             {withdrawStatus === "loading" ? (

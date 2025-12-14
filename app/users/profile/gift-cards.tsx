@@ -24,7 +24,7 @@ export default function GiftCardsScreen() {
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
       >
-        <Pressable onPress={() => router.back()} className="mb-4 flex-row items-center">
+        <Pressable onPress={() => router.push("/users/(tabs)/profile")} className="mb-4 flex-row items-center">
           <Ionicons
             name="chevron-back"
             size={20}

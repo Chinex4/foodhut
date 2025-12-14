@@ -194,7 +194,7 @@ export default function KitchenDetailScreen() {
         {/* top bar */}
         <View className="absolute top-20 left-4 right-4 flex-row items-center justify-between">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.push("/users/kitchen")}
             className="w-10 h-10 rounded-full bg-black/40 items-center justify-center"
           >
             <Ionicons name="chevron-back" size={20} color="#fff" />

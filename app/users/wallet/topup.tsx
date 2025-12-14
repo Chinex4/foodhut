@@ -65,7 +65,7 @@ export default function TopupScreen() {
       >
         {/* Header */}
         <View className="px-5 pt-3 pb-2 flex-row items-center">
-          <Pressable onPress={() => router.back()} className="mr-2">
+          <Pressable onPress={() => router.push("/users/wallet")} className="mr-2">
             <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
           </Pressable>
           <Text className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>

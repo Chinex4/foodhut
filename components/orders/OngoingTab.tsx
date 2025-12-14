@@ -55,16 +55,20 @@ function OrderCard({ order, isDark }: { order: any; isDark: boolean }) {
     }
   };
 
-  const handleMarkReceived = (orderId: string, items: any[]) => {
-    items.forEach((it) =>
-      dispatch(
-        updateOrderItemStatus({
+  const handleMarkReceived = async (orderId: string) => {
+    try {
+      await dispatch(
+        updateOrderStatus({
           orderId,
-          itemId: it.id!,
           status: "DELIVERED",
+          as_kitchen: false,
         })
-      )
-    );
+      ).unwrap();
+      showSuccess("Order Delivered!");
+    } catch (err: any) {
+      console.log(err);
+      showError(err || "Failed to cancel order");
+    }
   };
 
   const handleCancelOrder = async () => {
@@ -154,13 +158,13 @@ function OrderCard({ order, isDark }: { order: any; isDark: boolean }) {
 
         {!showPaymentButton && (
           <Pressable
-            onPress={() => handleMarkReceived(order.id, order.items)}
+            onPress={() => handleMarkReceived(order.id)}
             className="flex-1 bg-primary rounded-xl py-2 items-center"
           >
             <View className="flex-row items-center">
               <Ionicons name="checkmark-outline" size={16} color="#fff" />
               <Text className="text-white font-satoshiMedium ml-2">
-                Received
+                Mark As Received
               </Text>
             </View>
           </Pressable>

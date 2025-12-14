@@ -93,7 +93,9 @@ export default function WalletTransactionsScreen() {
     return (
       <View
         className={`rounded-2xl border px-3 py-4 mb-3 flex-row items-center justify-between ${
-          isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+          isDark
+            ? "bg-neutral-900 border-neutral-800"
+            : "bg-white border-neutral-100"
         }`}
         style={{
           shadowOpacity: isDark ? 0 : 0.03,
@@ -111,8 +113,14 @@ export default function WalletTransactionsScreen() {
             color={isCredit ? "#16a34a" : "#ef4444"}
           />
           <View className="ml-3">
-            <Text className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>{label}</Text>
-            <Text className={`font-satoshi text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+            <Text
+              className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}
+            >
+              {label}
+            </Text>
+            <Text
+              className={`font-satoshi text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}
+            >
               {new Date(item.created_at).toLocaleString()}
             </Text>
           </View>
@@ -129,22 +137,35 @@ export default function WalletTransactionsScreen() {
   };
 
   return (
-    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <SafeAreaView
+      className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}
+    >
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
       <View className="px-5 pt-3 pb-2 flex-row items-center">
-        <Pressable onPress={() => router.back()} className="mr-2">
-          <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
+        <Pressable
+          onPress={() => router.push("/users/wallet")}
+          className="mr-2"
+        >
+          <Ionicons
+            name="chevron-back"
+            size={22}
+            color={isDark ? "#E5E7EB" : "#0F172A"}
+          />
         </Pressable>
-        <Text className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
+        <Text
+          className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}
+        >
           Transactions
         </Text>
       </View>
 
       {/* Segment / Filters */}
       <View className="px-5 mt-1 mb-3">
-        <View className={`flex-row rounded-xl p-1 ${isDark ? "bg-neutral-800" : "bg-neutral-200/60"}`}>
+        <View
+          className={`flex-row rounded-xl p-1 ${isDark ? "bg-neutral-800" : "bg-neutral-200/60"}`}
+        >
           {(["ALL", "CREDIT", "DEBIT"] as const).map((key) => {
             const active = tab === key;
             return (
@@ -181,7 +202,11 @@ export default function WalletTransactionsScreen() {
         renderItem={renderItem}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F59E0B" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#F59E0B"
+          />
         }
         onEndReachedThreshold={0.4}
         onEndReached={loadMore}
@@ -189,14 +214,18 @@ export default function WalletTransactionsScreen() {
           listStatus === "loading" ? (
             <View className="px-5 mt-10 items-center">
               <ActivityIndicator color={isDark ? "#F59E0B" : "#0F172A"} />
-              <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
+              <Text
+                className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}
+              >
                 Loading transactions…
               </Text>
             </View>
           ) : error ? (
             <View className="px-5 mt-10 items-center">
               <Ionicons name="alert-circle-outline" size={36} color="#ef4444" />
-              <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
+              <Text
+                className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}
+              >
                 {error}
               </Text>
             </View>
@@ -207,7 +236,9 @@ export default function WalletTransactionsScreen() {
                 size={36}
                 color={isDark ? "#6B7280" : "#9CA3AF"}
               />
-              <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
+              <Text
+                className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}
+              >
                 No transactions yet.
               </Text>
             </View>

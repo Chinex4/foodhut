@@ -6,11 +6,13 @@ export default function QuantityStepper({
   onChange,
   min = 0,
   max = 99,
+  isDark
 }: {
   value: number;
   onChange: (v: number) => void;
   min?: number;
   max?: number;
+  isDark?: boolean;
 }) {
   return (
     <View className="flex-row items-center rounded-xl border border-neutral-200 overflow-hidden">
@@ -21,7 +23,7 @@ export default function QuantityStepper({
         <Text className="text-[16px] font-satoshiBold">−</Text>
       </Pressable>
       <View className="px-4 py-2">
-        <Text className="text-[16px] font-satoshiBold">{value}</Text>
+        <Text className={`text-[16px] font-satoshiBold ${isDark && 'text-white'}`}>{value}</Text>
       </View>
       <Pressable
         onPress={() => onChange(Math.min(max, value + 1))}
