@@ -12,7 +12,7 @@ export const selectOrdersList = createSelector(
   (ids, entities) => ids.map((id) => entities[id]).filter(Boolean)
 );
 
-const ONGOING_ORDER_STATUSES: OrderStatus[] = ["AWAITING_ACKNOWLEDGEMENT"];
+const ONGOING_ORDER_STATUSES: OrderStatus[] = ["AWAITING_ACKNOWLEDGEMENT", "PREPARING", "IN_TRANSIT"];
 const AWAITING_PAYMENT_ORDER_STATUSES: OrderStatus[] = ["AWAITING_PAYMENT"];
 
 // Memoized subset of orders the user is still expecting
