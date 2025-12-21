@@ -1,6 +1,10 @@
 // app/users/(tabs)/orders/MyCartsTab.tsx
 import { showError, showSuccess } from "@/components/ui/toast";
 import {
+  selectAwaitingPaymentOrders,
+  selectOrdersListStatus,
+} from "@/redux/orders/orders.selectors";
+import {
   selectCartFetchStatus,
   selectCartItemsForKitchen,
   selectCartKitchenIds,
@@ -14,13 +18,14 @@ import { router } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   Pressable,
+  SectionList,
   Text,
   View,
 } from "react-native";
 import CachedImage from "../ui/CachedImage";
+import OrderCard from "./OrderCard";
 
 function KitchenCartCard({ kitchenId, isDark }: { kitchenId: string; isDark: boolean }) {
   const dispatch = useAppDispatch();
@@ -41,9 +46,15 @@ function KitchenCartCard({ kitchenId, isDark }: { kitchenId: string; isDark: boo
 
   // ✅ Strong guard on cover image
   const rawCover = group.kitchen?.cover_image;
-  const coverUri =
-    typeof rawCover === "string" && rawCover.trim().length > 0
+  const coverCandidate =
+    typeof rawCover === "string"
       ? rawCover
+      : rawCover && typeof rawCover === "object"
+      ? rawCover.url ?? null
+      : null;
+  const coverUri =
+    typeof coverCandidate === "string" && coverCandidate.trim().length > 0
+      ? coverCandidate
       : null;
 
   const kitchenName = group.kitchen?.name ?? "Kitchen";
@@ -118,12 +129,39 @@ function KitchenCartCard({ kitchenId, isDark }: { kitchenId: string; isDark: boo
 export default function MyCartsTab() {
   const status = useAppSelector(selectCartFetchStatus);
   const kitchenIds = useAppSelector(selectCartKitchenIds);
+  const awaitingPaymentOrders = useAppSelector(selectAwaitingPaymentOrders);
+  const ordersStatus = useAppSelector(selectOrdersListStatus);
   const isDark = useAppSelector(selectThemeMode) === "dark";
+
+  const cartItems = kitchenIds.map((kitchenId) => ({
+    type: "cart" as const,
+    kitchenId,
+  }));
+  const awaitingItems = awaitingPaymentOrders.map((order) => ({
+    type: "order" as const,
+    order,
+  }));
+
+  const sections = [
+    ...(cartItems.length
+      ? [{ key: "carts", title: null, data: cartItems }]
+      : []),
+    ...(awaitingItems.length
+      ? [
+          {
+            key: "awaiting-payment",
+            title: "Awaiting payment",
+            data: awaitingItems,
+          },
+        ]
+      : []),
+  ];
 
   if (status === "loading") {
     return <ActivityIndicator style={{ marginTop: 160 }} color={"#ffa800"} />;
   }
-  if (!kitchenIds.length) {
+
+  if (!sections.length) {
     return (
       <View className="flex-1 items-center justify-center">
         <Image source={require("@/assets/images/trayy.png")} />
@@ -134,12 +172,56 @@ export default function MyCartsTab() {
     );
   }
 
+  const renderSectionHeader = ({
+    section,
+  }: {
+    section: { key: string; title: string | null };
+  }) => {
+    if (!section.title) return null;
+    return (
+      <View className="px-5 pt-6 pb-3">
+        <Text
+          className={`text-base font-satoshiBold ${
+            isDark ? "text-neutral-200" : "text-neutral-900"
+          }`}
+        >
+          {section.title}
+        </Text>
+        {section.key === "awaiting-payment" && ordersStatus === "loading" && (
+          <ActivityIndicator
+            className="mt-2"
+            size="small"
+            color="#ffa800"
+          />
+        )}
+        {section.key === "awaiting-payment" && ordersStatus === "failed" && (
+          <Text
+            className={`text-[12px] mt-1 ${
+              isDark ? "text-red-400" : "text-red-600"
+            }`}
+          >
+            Failed to refresh pending orders.
+          </Text>
+        )}
+      </View>
+    );
+  };
+
   return (
-    <FlatList
-      data={kitchenIds}
-      keyExtractor={(id) => id}
-      renderItem={({ item }) => <KitchenCartCard kitchenId={item} isDark={isDark} />}
-      contentContainerStyle={{ paddingBottom: 40 }}
+    <SectionList
+      sections={sections}
+      keyExtractor={(item) =>
+        item.type === "cart" ? item.kitchenId : item.order.id
+      }
+      renderSectionHeader={renderSectionHeader}
+      renderItem={({ item }) =>
+        item.type === "cart" ? (
+          <KitchenCartCard kitchenId={item.kitchenId} isDark={isDark} />
+        ) : (
+          <OrderCard order={item.order} isDark={isDark} />
+        )
+      }
+      contentContainerStyle={{ paddingBottom: 120 }}
     />
   );
 }

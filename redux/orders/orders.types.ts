@@ -75,6 +75,7 @@ export type PaymentMethod = "ONLINE" | "WALLET";
 
 export type OrderStatus =
   | "AWAITING_PAYMENT"
+  | "AWAITING_ACKNOWLEDGEMENT"
   | "PREPARING"
   | "IN_TRANSIT"
   | "DELIVERED"

@@ -20,7 +20,13 @@ export const fetchActiveCart = createAsyncThunk<
     const res = await api.get(`${BASE}`);
     return res.data as ActiveCartResponse;
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error || "Failed to load cart");
+    const status = err?.response?.status;
+    if (status === 400) {
+      return [] as ActiveCartResponse;
+    }
+    return rejectWithValue(
+      err?.response?.data?.error || "Failed to load cart"
+    );
   }
 });
 
@@ -120,4 +126,3 @@ export const checkoutActiveCart = createAsyncThunk<
     return rejectWithValue(msg);
   }
 });
-
