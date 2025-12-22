@@ -163,6 +163,14 @@ export default function LoginScreen() {
 
         <View className="mt-8" />
         <FoodhutButton title="Continue" loading={loading} onPress={onSubmit} />
+        <Pressable
+          onPress={() => router.replace("/users/(tabs)")}
+          className="mt-3 rounded-2xl border border-primary px-4 py-4 items-center justify-center"
+        >
+          <Text className="text-primary font-satoshiMedium">
+            Continue as guest
+          </Text>
+        </Pressable>
 
         <Text
           className={`text-center mt-4 font-satoshi ${isDark ? "text-neutral-200" : "text-black"}`}

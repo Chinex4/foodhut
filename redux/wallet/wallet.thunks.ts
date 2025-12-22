@@ -46,7 +46,11 @@ export const resolveBankAccount = createAsyncThunk<
   { rejectValue: string }
 >("wallet/resolveBankAccount", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/bank-account/details`, body);
+    const payload: any = { ...body };
+    if (body.as_kitchen) {
+      payload.as_kitchen = true;
+    }
+    const res = await api.post(`${BASE}/bank-account/details`, payload);
     return res.data as ResolveAccountResponse;
   } catch (err: any) {
     return rejectWithValue(
@@ -57,11 +61,12 @@ export const resolveBankAccount = createAsyncThunk<
 
 export const fetchWalletProfile = createAsyncThunk<
   WalletProfile,
-  void,
+  { as_kitchen?: boolean } | undefined,
   { rejectValue: string }
->("wallet/fetchWalletProfile", async (_, { rejectWithValue }) => {
+>("wallet/fetchWalletProfile", async (opts, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/profile`);
+    const query = opts?.as_kitchen ? "?as_kitchen=true" : "";
+    const res = await api.get(`${BASE}/profile${query}`);
     return res.data as WalletProfile;
   } catch (err: any) {
     return rejectWithValue(
@@ -92,7 +97,11 @@ export const createTopupLink = createAsyncThunk<
   { rejectValue: string }
 >("wallet/createTopupLink", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/top-up`, body);
+    const payload: any = { amount: body.amount };
+    if (body.as_kitchen) {
+      payload.as_kitchen = true;
+    }
+    const res = await api.post(`${BASE}/top-up`, payload);
     return res.data as TopupResponse;
   } catch (err: any) {
     return rejectWithValue(
@@ -107,7 +116,16 @@ export const withdrawFunds = createAsyncThunk<
   { rejectValue: string }
 >("wallet/withdrawFunds", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/withdraw`, body);
+    const payload: any = {
+      account_number: body.account_number,
+      bank_code: body.bank_code,
+      account_name: body.account_name,
+      amount: body.amount,
+    };
+    if (body.as_kitchen) {
+      payload.as_kitchen = true;
+    }
+    const res = await api.post(`${BASE}/withdraw`, payload);
     const message = res.data?.message ?? "Withdrawal request placed";
     return { message };
   } catch (err: any) {

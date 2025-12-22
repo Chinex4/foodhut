@@ -291,7 +291,7 @@ My name is ${[me?.first_name, me?.last_name].filter(Boolean).join(" ") || "—"}
                 Hello {me?.first_name || "there"} 👋
               </Text>
               <Text
-                className={`mt-1 ${
+                className={`mt-1 text-[10px] ${
                   isDark ? "text-neutral-300" : "text-neutral-600"
                 }`}
               >

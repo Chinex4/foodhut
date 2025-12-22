@@ -22,6 +22,7 @@ export type BanksListResponse = {
 export type ResolveAccountPayload = {
   account_number: string;
   bank_code: string;
+  as_kitchen?: boolean;
 };
 
 export type ResolveAccountResponse = {
@@ -51,6 +52,7 @@ export type CreateBankAccountPayload = {
 
 export type TopupPayload = {
   amount: number;
+  as_kitchen?: boolean;
 };
 
 export type TopupResponse = {
@@ -62,6 +64,7 @@ export type WithdrawPayload = {
   bank_code: string;
   account_name: string;
   amount: number;
+  as_kitchen?: boolean;
 };
 
 export type MessageResult = { message: string };

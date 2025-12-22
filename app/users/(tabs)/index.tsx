@@ -6,6 +6,7 @@ import MealCardSkeleton from "@/components/home/MealCardSkeleton";
 import Section from "@/components/home/Section";
 import SearchBar from "@/components/search/SearchBar";
 import { useSelectedCity } from "@/hooks/useSelectedCity";
+import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 import type { KitchenCity } from "@/redux/kitchen/kitchen.types";
 import {
   makeSelectMostPopular,
@@ -45,6 +46,7 @@ export default function HomeScreen() {
   const vendors = useAppSelector(vendorsSel);
   const me = useAppSelector(selectMe);
   const router = useRouter();
+  const { ensureAuth } = useEnsureAuthenticated();
 
   useEffect(() => {
     if (status === "idle") {
@@ -208,7 +210,7 @@ export default function HomeScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open orders"
-          onPress={() => router.push("/users/(tabs)/orders")}
+          onPress={() => ensureAuth(() => router.push("/users/(tabs)/orders"))}
           android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
           className="w-20 h-20 rounded-full bg-primary items-center justify-center shadow-lg"
           style={Platform.select({ android: { elevation: 8 } })}

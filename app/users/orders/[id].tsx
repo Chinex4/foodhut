@@ -12,6 +12,7 @@ import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 import CachedImage from "@/components/ui/CachedImage";
+import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 
 export default function OrderDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,6 +20,13 @@ export default function OrderDetails() {
   const order = useAppSelector(selectOrderById(id!));
   const status = useAppSelector(makeSelectOrderByIdStatus(id!));
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const { isAuthenticated, redirectToLogin } = useEnsureAuthenticated();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      redirectToLogin();
+    }
+  }, [isAuthenticated, redirectToLogin]);
 
   useEffect(() => {
     if (!order) dispatch(fetchOrderById(id!));

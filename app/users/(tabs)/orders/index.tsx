@@ -2,6 +2,7 @@ import { fetchActiveCart } from "@/redux/cart/cart.thunks";
 import { fetchOrders } from "@/redux/orders/orders.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import PagerView from "react-native-pager-view";
@@ -16,6 +17,13 @@ type TabKey = "carts" | "ongoing" | "completed";
 export default function OrdersScreen() {
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const { isAuthenticated, redirectToLogin } = useEnsureAuthenticated();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      redirectToLogin();
+    }
+  }, [isAuthenticated, redirectToLogin]);
 
   const tabs = useMemo(
     () =>

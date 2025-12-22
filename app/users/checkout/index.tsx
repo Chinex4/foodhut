@@ -38,6 +38,7 @@ import {
 } from "@/redux/wallet/wallet.selectors";
 import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 import { listenRiderPicked } from "@/utils/riderBus.native";
 
 type PaymentUI = "ONLINE" | "WALLET" | "PAY_FOR_ME";
@@ -119,6 +120,13 @@ export default function CheckoutScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const { isAuthenticated, redirectToLogin } = useEnsureAuthenticated();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      redirectToLogin();
+    }
+  }, [isAuthenticated, redirectToLogin]);
 
   // inside component
   const { kitchen_id } = useLocalSearchParams<{ kitchen_id?: string }>();

@@ -13,6 +13,9 @@ const buildQuery = (q?: TransactionsQuery) => {
   const p = new URLSearchParams();
   if (q.page) p.set("page", String(q.page));
   if (q.per_page) p.set("per_page", String(q.per_page));
+  if (typeof q.as_kitchen !== "undefined") {
+    p.set("as_kitchen", q.as_kitchen ? "true" : "false");
+  }
   const s = p.toString();
   return s ? `?${s}` : "";
 };

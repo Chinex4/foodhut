@@ -14,6 +14,7 @@ export type Transaction = {
 export type TransactionsQuery = {
   page?: number;
   per_page?: number;
+  as_kitchen?: boolean;
 };
 
 export type TransactionsListResponse = {

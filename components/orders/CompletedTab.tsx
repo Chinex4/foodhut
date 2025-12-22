@@ -15,7 +15,7 @@ export default function CompletedTab() {
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectOrdersListStatus);
   const orders = useAppSelector(selectOrdersList).filter(
-    (o) => o.status === "DELIVERED"
+    (o) => o.status === "DELIVERED" || o.status === "CANCELLED"
   );
 
   useEffect(() => {

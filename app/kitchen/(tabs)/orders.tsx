@@ -30,8 +30,7 @@ export default function KitchenOrdersScreen() {
   const handleAdvance = async (
     orderId: string,
     itemId: string,
-    nextStatus: string,
-    asKitchen: boolean
+    nextStatus: string
   ) => {
     try {
       await dispatch(
@@ -39,7 +38,7 @@ export default function KitchenOrdersScreen() {
           orderId,
           itemId,
           status: nextStatus as any,
-          as_kitchen: asKitchen,
+          as_kitchen: true,
         })
       ).unwrap();
       showSuccess("Order updated");

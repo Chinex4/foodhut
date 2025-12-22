@@ -3,6 +3,7 @@ import { setCartItem } from "@/redux/cart/cart.thunks";
 import type { Meal } from "@/redux/meals/meals.types";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 import { capitalizeFirst } from "@/utils/capitalize";
 import { formatNGN, toNum } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -71,10 +72,12 @@ export default function MealCard({
 }) {
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const { ensureAuth } = useEnsureAuthenticated();
   const kitchenId = item?.kitchen_id ?? "";
   const qty = useAppSelector(selectCartItemQuantity(kitchenId, item.id));
 
   const addOne = async () => {
+    if (!ensureAuth()) return;
     try {
       const res = await dispatch(
         setCartItem({ mealId: item.id, quantity: qty + 1 })

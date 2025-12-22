@@ -49,6 +49,15 @@ export default function KitchenTabLayout() {
         }}
       />
       <Tabs.Screen
+        name="wallet/index"
+        options={{
+          title: "Wallet",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="wallet-outline" size={26} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",

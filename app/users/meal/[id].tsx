@@ -26,6 +26,7 @@ import {
 } from "@/redux/meals/meals.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 import { capitalizeFirst } from "@/utils/capitalize";
 import { formatNGN, toNum } from "@/utils/money";
 
@@ -34,6 +35,7 @@ export default function MealDetailsScreen() {
   const mealId = id!;
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const { ensureAuth } = useEnsureAuthenticated();
   const [adding, setAdding] = useState(false);
 
   const meal = useAppSelector(selectMealById(mealId));
@@ -109,6 +111,7 @@ export default function MealDetailsScreen() {
   };
 
   const setQty = async (next: number) => {
+    if (!ensureAuth()) return;
     try {
       const res = await dispatch(
         setCartItem({ mealId, quantity: next })
@@ -121,6 +124,7 @@ export default function MealDetailsScreen() {
 
   const addOne = async () => {
     if (adding) return;
+    if (!ensureAuth()) return;
     setAdding(true);
     try {
       const res = await dispatch(

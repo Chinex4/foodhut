@@ -10,7 +10,11 @@ import {
 } from "react-native";
 import CachedImage from "@/components/ui/CachedImage";
 import { formatNGN } from "@/utils/money";
-import type { Order, OrderItem } from "@/redux/orders/orders.types";
+import type {
+  Order,
+  OrderItem,
+  OrderStatus,
+} from "@/redux/orders/orders.types";
 
 type Props = {
   orders: Order[];
@@ -18,28 +22,12 @@ type Props = {
   isDark: boolean;
   refreshing: boolean;
   onRefresh: () => void;
-  onAdvance: (
-    orderId: string,
-    itemId: string,
-    nextStatus: string,
-    asKitchen: boolean
-  ) => void;
+  onAdvance: (orderId: string, itemId: string, nextStatus: OrderStatus) => void;
   updatingMap: Record<string, boolean>;
   loading: boolean;
 };
 
-const nextStatusFor = (status: string) => {
-  switch (status) {
-    case "AWAITING_ACKNOWLEDGEMENT":
-      return "PREPARING";
-    case "PREPARING":
-      return "IN_TRANSIT";
-    case "IN_TRANSIT":
-      return "DELIVERED";
-    default:
-      return null;
-  }
-};
+const ACK_STATUS = "AWAITING_ACKNOWLEDGEMENT" as const;
 
 export default function OrdersTab({
   orders,
@@ -51,7 +39,9 @@ export default function OrdersTab({
   updatingMap,
   loading,
 }: Props) {
-  const filtered = orders.filter((o) => o.kitchen_id === kitchenId);
+  const filtered = orders.filter(
+    (o) => o.kitchen_id === kitchenId && o.status === ACK_STATUS
+  );
 
   const renderItem = (it: OrderItem) => (
     <View key={`${it.meal_id}-${it.id}`} className="flex-row items-center mb-2">
@@ -99,8 +89,6 @@ export default function OrdersTab({
         </View>
       )}
       {filtered.map((order) => {
-        const next = nextStatusFor(order.status);
-        const canUpdate = Boolean(next);
         const item = order.items?.[0];
         const itemId = item?.id ?? item?.meal_id;
         const updating = itemId ? updatingMap[itemId] : false;
@@ -143,33 +131,54 @@ export default function OrdersTab({
               >
                 Total {formatNGN(order.total)}
               </Text>
-              {canUpdate ? (
+            </View>
+
+            <View className="flex-row gap-2 mt-3">
+              {(
+                [
+                  { label: "Prepare Order", status: "PREPARING" as OrderStatus },
+                  {
+                    label: "Send In Transit",
+                    status: "IN_TRANSIT" as OrderStatus,
+                  },
+                ] as const
+              ).map(({ label, status }) => (
                 <Pressable
-                  onPress={() =>
-                    itemId &&
-                    onAdvance(order.id, itemId, next!, next !== "DELIVERED")
-                  }
+                  key={status}
+                  onPress={() => itemId && onAdvance(order.id, itemId, status)}
                   disabled={updating || !itemId}
-                  className={`px-3 py-2 rounded-xl ${
-                    updating ? "bg-neutral-600" : "bg-primary"
-                  }`}
-                >
+                className={`flex-1 rounded-xl py-2 items-center ${
+                  updating || !itemId ? "opacity-60" : ""
+                } ${updating ? "bg-neutral-600" : "bg-primary"}`}
+              >
                   {updating ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text className="text-white font-satoshiBold">
-                      Mark {next?.replace(/_/g, " ")}
+                    <Text className="text-white font-satoshiMedium">
+                      {label}
                     </Text>
                   )}
                 </Pressable>
+              ))}
+            </View>
+            <Pressable
+              onPress={() =>
+                itemId &&
+                onAdvance(order.id, itemId, "CANCELLED")
+              }
+              disabled={updating || !itemId}
+              className={`mt-3 rounded-xl py-2 items-center border border-red-500 bg-transparent ${
+                updating || !itemId ? "opacity-60" : ""
+              }`}
+            >
+              {updating ? (
+                <ActivityIndicator color="#ef4444" />
               ) : (
-                <Text
-                  className={isDark ? "text-neutral-500" : "text-neutral-500"}
-                >
-                  No further actions
+                <Text className="text-red-500 font-satoshiMedium">
+                  Cancel Order
                 </Text>
               )}
-            </View>
+            </Pressable>
           </View>
         );
       })}

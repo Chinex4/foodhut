@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -28,6 +28,7 @@ import {
   persistThemePreference,
   setThemeMode,
 } from "@/redux/theme/theme.slice";
+import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 
 function Row({
   icon,
@@ -87,6 +88,13 @@ export default function ProfileHomeScreen() {
   const themeMode = useAppSelector(selectThemeMode);
   const isDark = themeMode === "dark";
   const dispatch = useAppDispatch();
+  const { isAuthenticated, redirectToLogin } = useEnsureAuthenticated();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      redirectToLogin();
+    }
+  }, [isAuthenticated, redirectToLogin]);
 
   const fullName =
     [me?.first_name, me?.last_name].filter(Boolean).join(" ") || "—";

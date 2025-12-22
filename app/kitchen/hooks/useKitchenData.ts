@@ -48,7 +48,13 @@ export function useKitchenData() {
 
   useEffect(() => {
     if (kitchen?.id && ordersStatus === "idle") {
-      dispatch(fetchOrders({ kitchen_id: kitchen.id, per_page: 50 }));
+      dispatch(
+        fetchOrders({
+          kitchen_id: kitchen.id,
+          per_page: 50,
+          status: "AWAITING_ACKNOWLEDGEMENT",
+        })
+      );
     }
   }, [dispatch, kitchen?.id, ordersStatus]);
 
@@ -58,7 +64,13 @@ export function useKitchenData() {
 
   const refreshOrders = useCallback(async () => {
     if (!kitchen?.id) return;
-    await dispatch(fetchOrders({ kitchen_id: kitchen.id, per_page: 50 }));
+    await dispatch(
+      fetchOrders({
+        kitchen_id: kitchen.id,
+        per_page: 50,
+        status: "AWAITING_ACKNOWLEDGEMENT",
+      })
+    );
   }, [dispatch, kitchen?.id]);
 
   const updatingMap = useMemo(() => {
