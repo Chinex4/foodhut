@@ -50,6 +50,7 @@ export default function VerifyScreen() {
       resolver: yupResolver(schema),
       defaultValues: { d1: "", d2: "", d3: "", d4: "" },
     });
+  const [lastAutoOtp, setLastAutoOtp] = useState("");
 
   // inputs refs for focus mgmt
   const r1 = useRef<TextInput>(null);
@@ -76,12 +77,12 @@ export default function VerifyScreen() {
   }, [watch(["d1", "d2", "d3", "d4"])]); // watch triggers recompute
 
   useEffect(() => {
-    if (otpValue.length === 4 && !loading) {
-      // small debounce to allow last digit render
+    if (otpValue.length === 4 && !loading && otpValue !== lastAutoOtp) {
+      setLastAutoOtp(otpValue);
       const t = setTimeout(() => onSubmit(), 50);
       return () => clearTimeout(t);
     }
-  }, [otpValue, loading]);
+  }, [otpValue, loading, lastAutoOtp, onSubmit]);
 
   const onSubmit = handleSubmit(async (vals) => {
     const otp = `${vals.d1}${vals.d2}${vals.d3}${vals.d4}`;
