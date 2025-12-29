@@ -1,6 +1,6 @@
 import "react-native-gesture-handler";
 import React, { useEffect } from "react";
-import { Appearance, Platform, View } from "react-native";
+import { Appearance, View } from "react-native";
 import { Slot } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
@@ -10,6 +10,7 @@ import { useColorScheme } from "nativewind";
 
 import { store } from "@/store";
 import { attachStore } from "@/api/axios";
+import { toastConfig, TOAST_BOTTOM_OFFSET } from "@/components/ui/toast";
 
 import { hydrateFromStorage } from "@/redux/auth/auth.slice";
 import { getStoredAuth } from "@/storage/auth";
@@ -84,8 +85,10 @@ export default function RootLayout() {
       <View style={{ flex: 1 }}>
         <Slot />
         <Toast
-          topOffset={Platform.select({ ios: 60, android: 40 })}
-          visibilityTime={2500}
+          config={toastConfig}
+          position="bottom"
+          bottomOffset={TOAST_BOTTOM_OFFSET}
+          visibilityTime={3000}
         />
       </View>
     </Provider>
