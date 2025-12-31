@@ -4,11 +4,11 @@ import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    Platform,
-    Pressable,
-    Text,
-    TextInput,
-    View
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -36,18 +36,13 @@ function sanitizeLocal(dial: string, raw: string, iso: string) {
 
   if (v.startsWith(d)) v = v.slice(d.length);
 
-  if (v.startsWith("0")) v = v.slice(1);
-
-  const cap = iso === "NG" ? 10 : 15;
-  if (v.length > cap) v = v.slice(0, cap);
-
   return v;
 }
 
 const schema: yup.ObjectSchema<FormValues> = yup.object({
   phone_local: yup
     .string()
-    .matches(/^\d{7,15}$/, "Enter a valid phone number")
+    .matches(/^\d+$/, "Enter a valid phone number")
     .required("Phone is required"),
 });
 
@@ -93,7 +88,8 @@ export default function LoginScreen() {
   );
 
   const onSubmit = handleSubmit(async (values) => {
-    const local = sanitizeLocal(country.dial, values.phone_local, country.code);
+    let local = sanitizeLocal(country.dial, values.phone_local, country.code);
+    if (local.startsWith("0")) local = local.slice(1);
     const res = await dispatch(
       sendSignInOtp({ phone_number: fullPhone(local) })
     );

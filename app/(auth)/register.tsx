@@ -27,9 +27,7 @@ function sanitizeLocal(dial: string, raw: string, iso: string) {
   const d = digitsOnly(dial);
   let v = digitsOnly(raw);
   if (v.startsWith(d)) v = v.slice(d.length);
-  if (v.startsWith("0")) v = v.slice(1);
-  const cap = iso === "NG" ? 10 : 15;
-  return v.length > cap ? v.slice(0, cap) : v;
+  return v;
 }
 const fmt = (d: Date) => {
   const y = d.getFullYear();
@@ -57,7 +55,7 @@ const schema: yup.ObjectSchema<FormValues> = yup.object({
     .required("Email is required"),
   phone_local: yup
     .string()
-    .matches(/^\d{7,15}$/, "Enter a valid phone number")
+    .matches(/^\d+$/, "Enter a valid phone number")
     .required(),
   referral_code: yup.string().nullable().optional(),
   birthday: yup
@@ -123,7 +121,8 @@ export default function RegisterScreen() {
   };
 
   const onSubmit = handleSubmit(async (values) => {
-    const local = sanitizeLocal(country.dial, values.phone_local, country.code);
+    let local = sanitizeLocal(country.dial, values.phone_local, country.code);
+    if (local.startsWith("0")) local = local.slice(1);
     const res = await dispatch(
       signUp({
         email: values.email.trim(),

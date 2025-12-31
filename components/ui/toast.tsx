@@ -35,17 +35,20 @@ const toastStyles = StyleSheet.create({
 });
 
 const createToastRenderer =
-  (backgroundColor: string, textColor: string) =>
-  ({ text1, text2 }: ToastConfigParams<any>) => (
-    <View style={[toastStyles.container, { backgroundColor }]}>
-      {Boolean(text1) && (
-        <Text style={[toastStyles.title, { color: textColor }]}>{text1}</Text>
-      )}
-      {Boolean(text2) && (
-        <Text style={[toastStyles.message, { color: textColor }]}>{text2}</Text>
-      )}
-    </View>
-  );
+  (backgroundColor: string, textColor: string) => {
+    const ToastComponent = ({ text1, text2 }: ToastConfigParams<any>) => (
+      <View style={[toastStyles.container, { backgroundColor }]}>
+        {Boolean(text1) && (
+          <Text style={[toastStyles.title, { color: textColor }]}>{text1}</Text>
+        )}
+        {Boolean(text2) && (
+          <Text style={[toastStyles.message, { color: textColor }]}>{text2}</Text>
+        )}
+      </View>
+    );
+    ToastComponent.displayName = 'ToastComponent';
+    return ToastComponent;
+  };
 
 const toastDefaults = {
   position: "bottom" as const,
