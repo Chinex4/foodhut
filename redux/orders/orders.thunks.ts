@@ -21,6 +21,9 @@ const buildQuery = (q?: OrdersQuery) => {
   if (q.per_page) p.set("per_page", String(q.per_page));
   if (q.status) p.set("status", q.status);
   if (q.kitchen_id) p.set("kitchen_id", q.kitchen_id);
+  if (typeof q.as_kitchen !== "undefined") {
+    p.set("as_kitchen", q.as_kitchen ? "true" : "false");
+  }
   const s = p.toString();
   return s ? `?${s}` : "";
 };

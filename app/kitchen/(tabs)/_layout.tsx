@@ -66,6 +66,15 @@ export default function KitchenTabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="profile/index"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="person-circle-outline" size={28} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

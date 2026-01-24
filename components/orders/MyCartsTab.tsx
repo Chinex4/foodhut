@@ -16,6 +16,7 @@ import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import React from "react";
+import type { Order } from "@/redux/orders/orders.types";
 import {
   ActivityIndicator,
   Image,
@@ -27,7 +28,25 @@ import {
 import CachedImage from "../ui/CachedImage";
 import OrderCard from "./OrderCard";
 
-function KitchenCartCard({ kitchenId, isDark }: { kitchenId: string; isDark: boolean }) {
+type CartListItem = { type: "cart"; kitchenId: string };
+type AwaitingListItem = { type: "order"; order: Order };
+type ListItem = CartListItem | AwaitingListItem;
+
+type CartSection = { key: "carts"; title: null; data: CartListItem[] };
+type AwaitingSection = {
+  key: "awaiting-payment";
+  title: string;
+  data: AwaitingListItem[];
+};
+type ListSection = CartSection | AwaitingSection;
+
+function KitchenCartCard({
+  kitchenId,
+  isDark,
+}: {
+  kitchenId: string;
+  isDark: boolean;
+}) {
   const dispatch = useAppDispatch();
 
   const group = useAppSelector((s) => s.cart.byKitchenId[kitchenId]);
@@ -50,8 +69,8 @@ function KitchenCartCard({ kitchenId, isDark }: { kitchenId: string; isDark: boo
     typeof rawCover === "string"
       ? rawCover
       : rawCover && typeof rawCover === "object"
-      ? rawCover.url ?? null
-      : null;
+        ? (rawCover.url ?? null)
+        : null;
   const coverUri =
     typeof coverCandidate === "string" && coverCandidate.trim().length > 0
       ? coverCandidate
@@ -84,21 +103,31 @@ function KitchenCartCard({ kitchenId, isDark }: { kitchenId: string; isDark: boo
           <CachedImage
             uri={coverUri}
             fallback={
-              <View className={`w-8 h-8 rounded-lg ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`} />
+              <View
+                className={`w-8 h-8 rounded-lg ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
+              />
             }
             className={`w-8 h-8 rounded-lg ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
           />
           <View className="ml-2">
-            <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
+            <Text
+              className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}
+            >
               {kitchenName}
             </Text>
-            <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+            <Text
+              className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}
+            >
               {itemCount} item{itemCount === 1 ? "" : "s"} •{" "}
               {formatNGN(subTotal)}
             </Text>
           </View>
         </View>
-        <Ionicons name="chevron-up" size={18} color={isDark ? "#6B7280" : "#9CA3AF"} />
+        <Ionicons
+          name="chevron-up"
+          size={18}
+          color={isDark ? "#6B7280" : "#9CA3AF"}
+        />
       </View>
 
       {/* CTA row */}
@@ -119,7 +148,11 @@ function KitchenCartCard({ kitchenId, isDark }: { kitchenId: string; isDark: boo
           onPress={onClear}
           className={`px-5 py-4 rounded-2xl ${isDark ? "bg-neutral-800" : "bg-[#FFE8C2]"}`}
         >
-          <Text className={`font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>Clear</Text>
+          <Text
+            className={`font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-900"}`}
+          >
+            Clear
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -133,27 +166,29 @@ export default function MyCartsTab() {
   const ordersStatus = useAppSelector(selectOrdersListStatus);
   const isDark = useAppSelector(selectThemeMode) === "dark";
 
-  const cartItems = kitchenIds.map((kitchenId) => ({
-    type: "cart" as const,
+  const cartItems: CartListItem[] = kitchenIds.map((kitchenId) => ({
+    type: "cart",
     kitchenId,
   }));
-  const awaitingItems = awaitingPaymentOrders.map((order) => ({
-    type: "order" as const,
-    order,
-  }));
+  const awaitingItems: AwaitingListItem[] = awaitingPaymentOrders.map(
+    (order) => ({
+      type: "order",
+      order,
+    })
+  );
 
-  const sections = [
+  const sections: ListSection[] = [
     ...(cartItems.length
-      ? [{ key: "carts", title: null, data: cartItems }]
+      ? ([{ key: "carts", title: null, data: cartItems }] as const)
       : []),
     ...(awaitingItems.length
-      ? [
+      ? ([
           {
             key: "awaiting-payment",
             title: "Awaiting payment",
             data: awaitingItems,
           },
-        ]
+        ] as const)
       : []),
   ];
 
@@ -165,21 +200,21 @@ export default function MyCartsTab() {
     return (
       <View className="flex-1 items-center justify-center">
         <Image source={require("@/assets/images/trayy.png")} />
-        <Text className={isDark ? "text-neutral-400 mt-4" : "text-neutral-500 mt-4"}>
+        <Text
+          className={isDark ? "text-neutral-400 mt-4" : "text-neutral-500 mt-4"}
+        >
           Your tray is empty, we are waiting for your orders
         </Text>
       </View>
     );
   }
 
-  const renderSectionHeader = ({
-    section,
-  }: {
-    section: { key: string; title: string | null };
-  }) => {
+  const renderSectionHeader = ({ section }: { section: ListSection }) => {
     if (!section.title) return null;
     return (
-      <View className="px-5 pt-6 pb-3">
+      <View
+        className={`px-5 pt-6 pb-3 ${isDark ? "bg-neutral-950" : "bg-[#FFF8EC]"}`}
+      >
         <Text
           className={`text-base font-satoshiBold ${
             isDark ? "text-neutral-200" : "text-neutral-900"
@@ -188,11 +223,7 @@ export default function MyCartsTab() {
           {section.title}
         </Text>
         {section.key === "awaiting-payment" && ordersStatus === "loading" && (
-          <ActivityIndicator
-            className="mt-2"
-            size="small"
-            color="#ffa800"
-          />
+          <ActivityIndicator className="mt-2" size="small" color="#ffa800" />
         )}
         {section.key === "awaiting-payment" && ordersStatus === "failed" && (
           <Text
@@ -208,7 +239,7 @@ export default function MyCartsTab() {
   };
 
   return (
-    <SectionList
+    <SectionList<ListItem, ListSection>
       sections={sections}
       keyExtractor={(item) =>
         item.type === "cart" ? item.kitchenId : item.order.id

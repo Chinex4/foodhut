@@ -26,6 +26,7 @@ export type Meal = {
 export type MealsQuery = {
   page?: number;
   per_page?: number;
+  kitchen_id?: string;
 };
 
 export type MealsListResponse = {

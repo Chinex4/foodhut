@@ -41,9 +41,10 @@ export default function OrdersScreen() {
   const tabIndex = tabs.findIndex((x) => x.k === tab);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     dispatch(fetchActiveCart());
     dispatch(fetchOrders({ page: 1, per_page: 50 }));
-  }, [dispatch]);
+  }, [dispatch, isAuthenticated]);
 
   const goToTab = (next: TabKey) => {
     setTab(next);

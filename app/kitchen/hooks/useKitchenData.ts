@@ -11,11 +11,13 @@ import {
 import {
   selectMealsArray,
   selectMealsListStatus,
+  selectMealsQuery,
 } from "@/redux/meals/meals.selectors";
 import { fetchMeals } from "@/redux/meals/meals.thunks";
 import {
   selectOrdersList,
   selectOrdersListStatus,
+  selectOrdersQuery,
   selectOrdersState,
 } from "@/redux/orders/orders.selectors";
 import { fetchOrders } from "@/redux/orders/orders.thunks";
@@ -29,9 +31,11 @@ export function useKitchenData() {
 
   const meals = useAppSelector(selectMealsArray);
   const mealsStatus = useAppSelector(selectMealsListStatus);
+  const mealsQuery = useAppSelector(selectMealsQuery);
 
   const orders = useAppSelector(selectOrdersList);
   const ordersStatus = useAppSelector(selectOrdersListStatus);
+  const ordersQuery = useAppSelector(selectOrdersQuery);
   const ordersState = useAppSelector(selectOrdersState);
 
   useEffect(() => {
@@ -41,26 +45,43 @@ export function useKitchenData() {
   }, [dispatch, kitchen]);
 
   useEffect(() => {
-    if (kitchen && mealsStatus === "idle") {
-      dispatch(fetchMeals({ page: 1, per_page: 200 }));
+    if (!kitchen?.id || mealsStatus === "loading") return;
+    const needsMeals =
+      !mealsQuery ||
+      mealsQuery.kitchen_id !== kitchen.id ||
+      mealsQuery.page !== 1 ||
+      mealsQuery.per_page !== 200;
+    if (needsMeals) {
+      dispatch(fetchMeals({ page: 1, per_page: 200, kitchen_id: kitchen.id }));
     }
-  }, [dispatch, kitchen, mealsStatus]);
+  }, [dispatch, kitchen?.id, mealsQuery, mealsStatus]);
 
   useEffect(() => {
-    if (kitchen?.id && ordersStatus === "idle") {
+    if (!kitchen?.id || ordersStatus === "loading") return;
+    const needsOrders =
+      !ordersQuery ||
+      ordersQuery.kitchen_id !== kitchen.id ||
+      ordersQuery.status !== "AWAITING_ACKNOWLEDGEMENT" ||
+      ordersQuery.per_page !== 50 ||
+      ordersQuery.page !== 1 ||
+      ordersQuery.as_kitchen !== true;
+    if (needsOrders) {
       dispatch(
         fetchOrders({
           kitchen_id: kitchen.id,
           per_page: 50,
+          page: 1,
           status: "AWAITING_ACKNOWLEDGEMENT",
+          as_kitchen: true,
         })
       );
     }
-  }, [dispatch, kitchen?.id, ordersStatus]);
+  }, [dispatch, kitchen?.id, ordersQuery, ordersStatus]);
 
   const refreshMeals = useCallback(async () => {
-    await dispatch(fetchMeals({ page: 1, per_page: 200 }));
-  }, [dispatch]);
+    if (!kitchen?.id) return;
+    await dispatch(fetchMeals({ page: 1, per_page: 200, kitchen_id: kitchen.id }));
+  }, [dispatch, kitchen?.id]);
 
   const refreshOrders = useCallback(async () => {
     if (!kitchen?.id) return;
@@ -68,7 +89,9 @@ export function useKitchenData() {
       fetchOrders({
         kitchen_id: kitchen.id,
         per_page: 50,
+        page: 1,
         status: "AWAITING_ACKNOWLEDGEMENT",
+        as_kitchen: true,
       })
     );
   }, [dispatch, kitchen?.id]);

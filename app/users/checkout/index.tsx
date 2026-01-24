@@ -218,7 +218,7 @@ export default function CheckoutScreen() {
   }, [kitchenIds]);
 
   const canPlace =
-    subtotal > 0 &&
+    subtotal >= 0 &&
     !!address.trim() &&
     !!kitchenId &&
     !(when === "SCHEDULE" && !scheduledAt) &&

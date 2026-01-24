@@ -112,6 +112,7 @@ export type OrdersQuery = {
   per_page?: number;
   status?: OrderStatus;
   kitchen_id?: KitchenId;
+  as_kitchen?: boolean;
 };
 
 export type OrdersListResponse = {

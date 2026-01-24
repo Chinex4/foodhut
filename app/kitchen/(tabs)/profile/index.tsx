@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -15,20 +15,14 @@ import {
 
 import { showError, showSuccess } from "@/components/ui/toast";
 import { logout } from "@/redux/auth/auth.thunks";
-import {
-  selectFetchMeStatus,
-  selectMe,
-  selectUploadPicStatus,
-} from "@/redux/users/users.selectors";
-import { uploadProfilePicture } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import CachedImage from "@/components/ui/CachedImage";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import {
   persistThemePreference,
   setThemeMode,
 } from "@/redux/theme/theme.slice";
 import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
+import { selectKitchenProfile } from "@/redux/kitchen/kitchen.selectors";
 
 function Row({
   icon,
@@ -80,15 +74,16 @@ function Row({
   );
 }
 
-export default function ProfileHomeScreen() {
+export default function KitchenProfileScreen() {
   const router = useRouter();
-  const me = useAppSelector(selectMe);
-  const fetchMe = useAppSelector(selectFetchMeStatus);
-  const uploadPicStatus = useAppSelector(selectUploadPicStatus);
+  const dispatch = useAppDispatch();
   const themeMode = useAppSelector(selectThemeMode);
   const isDark = themeMode === "dark";
-  const dispatch = useAppDispatch();
+  const kitchen = useAppSelector(selectKitchenProfile);
   const { isAuthenticated, redirectToLogin } = useEnsureAuthenticated();
+
+  const [localImageUri, setLocalImageUri] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -96,8 +91,21 @@ export default function ProfileHomeScreen() {
     }
   }, [isAuthenticated, redirectToLogin]);
 
-  const fullName =
-    [me?.first_name, me?.last_name].filter(Boolean).join(" ") || "—";
+  const displayName = kitchen?.name || "Kitchen Vendor";
+  const subtitle =
+    [kitchen?.address, kitchen?.phone_number].filter(Boolean).join(" • ") || "—";
+
+  const profileSource = useMemo(() => {
+    if (localImageUri) return { uri: localImageUri };
+    if (kitchen?.cover_image?.url) return { uri: kitchen.cover_image.url };
+    return require("@/assets/images/avatar.png");
+  }, [localImageUri, kitchen?.cover_image?.url]);
+
+  const toggleTheme = () => {
+    const next = isDark ? "light" : "dark";
+    dispatch(setThemeMode(next));
+    dispatch(persistThemePreference(next));
+  };
 
   const handleLogout = async () => {
     try {
@@ -108,17 +116,8 @@ export default function ProfileHomeScreen() {
     }
   };
 
-  const toggleTheme = () => {
-    const next = isDark ? "light" : "dark";
-    dispatch(setThemeMode(next));
-    dispatch(persistThemePreference(next));
-  };
-
-  const profileSource = me?.profile_picture?.url
-    ? { uri: me.profile_picture.url }
-    : require("@/assets/images/avatar.png");
-
-  const handleUploadProfilePicture = async () => {
+  const handlePickProfilePicture = async () => {
+    setPicking(true);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -126,29 +125,20 @@ export default function ProfileHomeScreen() {
         aspect: [1, 1],
         quality: 0.8,
       });
-
       if (!result.canceled) {
-        const asset = result.assets[0];
-        const fileName = asset.uri.split("/").pop() || "avatar.jpg";
-
-        await dispatch(
-          uploadProfilePicture({
-            uri: asset.uri,
-            name: fileName,
-            type: asset.type || "image/jpeg",
-          })
-        ).unwrap();
-
-        showSuccess("Profile picture updated successfully!");
+        setLocalImageUri(result.assets[0].uri);
+        showSuccess("Profile picture updated");
       }
     } catch (err: any) {
-      showError(err?.message || "Failed to upload picture");
+      showError(err?.message || "Failed to pick image");
+    } finally {
+      setPicking(false);
     }
   };
+
   return (
     <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      {/* Header / Hero */}
       <View
         className={`px-5 pb-5 pt-24 ${
           isDark ? "bg-neutral-900" : "bg-primary-500"
@@ -160,13 +150,12 @@ export default function ProfileHomeScreen() {
               source={profileSource}
               className="w-24 h-24 rounded-full bg-neutral-200"
             />
-
             <Pressable
-              onPress={handleUploadProfilePicture}
-              disabled={uploadPicStatus === "loading"}
+              onPress={handlePickProfilePicture}
+              disabled={picking}
               className="absolute bottom-0 right-0 bg-primary rounded-full p-2 border-2 border-white"
             >
-              {uploadPicStatus === "loading" ? (
+              {picking ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <Ionicons name="camera" size={16} color="#fff" />
@@ -178,13 +167,13 @@ export default function ProfileHomeScreen() {
               isDark ? "text-white" : "text-neutral-900"
             }`}
           >
-            {fetchMe === "loading" ? "Loading..." : fullName}
+            {displayName}
           </Text>
+          <Text className="mt-1 text-white/80 font-satoshi">{subtitle}</Text>
 
-          {/* CTA buttons */}
           <View className="flex-row mt-4">
             <Pressable
-              onPress={() => router.push("/users/wallet" as any)}
+              onPress={() => router.push("/kitchen/wallet")}
               className="bg-white rounded-full px-4 py-2 items-center justify-center border border-neutral-200"
             >
               <View className="flex-row items-center">
@@ -197,89 +186,48 @@ export default function ProfileHomeScreen() {
           </View>
         </View>
       </View>
+
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
       >
-        {/* Personal */}
         <Text
           className={`font-satoshi px-1 mb-2 ${
             isDark ? "text-neutral-400" : "text-neutral-500"
           }`}
         >
-          Personal
+          Kitchen
         </Text>
         <Row
-          icon={<Ionicons name="person-outline" size={18} color="#9CA3AF" />}
-          label="Personal Details"
-          onPress={() => router.push("/users/profile/details")}
-          isDark={isDark}
-        />
-        {/* Rewards & perks */}
-        <Text
-          className={`font-satoshi px-1 mt-4 mb-2 ${
-            isDark ? "text-neutral-400" : "text-neutral-500"
-          }`}
-        >
-          Rewards & perks
-        </Text>
-        <Row
-          icon={
-            <Ionicons name="share-social-outline" size={18} color="#9CA3AF" />
-          }
-          label="Referrals"
-          onPress={() => router.push("/users/rewards")}
+          icon={<Ionicons name="storefront-outline" size={18} color="#9CA3AF" />}
+          label="Edit Kitchen Profile"
+          onPress={() => router.push("/kitchen/(tabs)/settings")}
           isDark={isDark}
         />
         <Row
-          icon={<Ionicons name="card-outline" size={18} color="#9CA3AF" />}
-          label="Gift Cards"
-          onPress={() => router.push("/users/profile/gift-cards")}
+          icon={<Ionicons name="bag-handle-outline" size={18} color="#9CA3AF" />}
+          label="View Orders"
+          onPress={() => router.push("/kitchen/(tabs)/orders")}
           isDark={isDark}
         />
 
-        {/* App */}
         <Text
           className={`font-satoshi px-1 mt-4 mb-2 ${
             isDark ? "text-neutral-400" : "text-neutral-500"
           }`}
         >
-          App
+          Account
         </Text>
         <Row
-          icon={<Ionicons name="sparkles-outline" size={18} color="#9CA3AF" />}
-          label="What’s New"
-          onPress={() => router.push("/users/profile/whats-new")}
-          isDark={isDark}
-        />
-        <Row
-          icon={
-            <Ionicons name="help-circle-outline" size={18} color="#9CA3AF" />
-          }
-          label="FAQ’s"
-          onPress={() => router.push("/users/profile/faqs")}
-          isDark={isDark}
-        />
-        <Row
-          icon={
-            <Ionicons name="chatbubbles-outline" size={18} color="#9CA3AF" />
-          }
-          label="Get Help"
-          onPress={() => router.push("/users/profile/get-help")}
-          isDark={isDark}
-        />
-        <Row
-          icon={
-            <Ionicons name="document-text-outline" size={18} color="#9CA3AF" />
-          }
-          label="Legal"
-          onPress={() => router.push("/users/profile/legal")}
+          icon={<Ionicons name="swap-horizontal-outline" size={18} color="#9CA3AF" />}
+          label="Switch to User Dashboard"
+          onPress={() => router.replace("/users/(tabs)")}
           isDark={isDark}
         />
         <Row
           icon={<Ionicons name="swap-horizontal-outline" size={18} color="#9CA3AF" />}
           label="Switch to Rider Dashboard"
-          onPress={() => router.replace("/riders/(tabs)/index")}
+          onPress={() => router.replace("/riders/(tabs)")}
           isDark={isDark}
         />
         <Row
@@ -297,10 +245,29 @@ export default function ProfileHomeScreen() {
           isDark={isDark}
         />
 
-        {/* Danger / sign out */}
+        <Text
+          className={`font-satoshi px-1 mt-4 mb-2 ${
+            isDark ? "text-neutral-400" : "text-neutral-500"
+          }`}
+        >
+          App
+        </Text>
+        <Row
+          icon={<Ionicons name="help-circle-outline" size={18} color="#9CA3AF" />}
+          label="Get Help"
+          onPress={() => router.push("/users/profile/get-help")}
+          isDark={isDark}
+        />
+        <Row
+          icon={<Ionicons name="document-text-outline" size={18} color="#9CA3AF" />}
+          label="Legal"
+          onPress={() => router.push("/users/profile/legal")}
+          isDark={isDark}
+        />
+
         <Row
           icon={<Ionicons name="log-out-outline" size={18} color="#DC2626" />}
-          label="Sign Out"
+          label="Log Out"
           danger
           onPress={handleLogout}
           isDark={isDark}

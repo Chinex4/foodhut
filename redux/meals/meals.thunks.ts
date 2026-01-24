@@ -15,6 +15,7 @@ const buildQuery = (q?: MealsQuery) => {
   const p = new URLSearchParams();
   if (q.page) p.set("page", String(q.page));
   if (q.per_page) p.set("per_page", String(q.per_page));
+  if (q.kitchen_id) p.set("kitchen_id", q.kitchen_id);
   const s = p.toString();
   return s ? `?${s}` : "";
 };

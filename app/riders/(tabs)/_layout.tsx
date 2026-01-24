@@ -1,10 +1,13 @@
 import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Platform } from "react-native";
+import { useAppSelector } from "@/store/hooks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 export default function RiderTabsLayout() {
-  const tint = "#ffa800"; // primary
-  const inactive = "#8E8E93";
+  const isDark = useAppSelector(selectThemeMode) === "dark";
+  const tint = isDark ? "#fbbf24" : "#ffa800";
+  const inactive = isDark ? "#9CA3AF" : "#8E8E93";
 
   return (
     <Tabs
@@ -16,9 +19,9 @@ export default function RiderTabsLayout() {
           height: 78,
           paddingTop: 8,
           paddingBottom: Platform.select({ ios: 18, default: 14 }),
-          backgroundColor: "#FFF8EC",
+          backgroundColor: isDark ? "#0a0a0a" : "#FFF8EC",
           borderTopWidth: 1,
-          borderTopColor: "#f0e3d0",
+          borderTopColor: isDark ? "#1f2937" : "#f0e3d0",
           elevation: 0,
         },
         tabBarLabelStyle: {
@@ -37,20 +40,20 @@ export default function RiderTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="search/index"
+        name="rides/index"
         options={{
-          title: "Search",
+          title: "History",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="search-outline" size={24} color={color} />
+            <Ionicons name="bicycle-outline" size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="rides/index"
+        name="wallet/index"
         options={{
-          title: "Rides",
+          title: "Wallet",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="bicycle-outline" size={24} color={color} />
+            <Ionicons name="wallet-outline" size={24} color={color} />
           ),
         }}
       />

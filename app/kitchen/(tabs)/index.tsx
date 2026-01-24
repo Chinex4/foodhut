@@ -65,7 +65,9 @@ export default function KitchenHomeScreen() {
       setNewMealDesc("");
       setNewMealPrice("");
       setNewMealImage(null);
-      dispatch(fetchMeals({ page: 1, per_page: 200 }));
+      if (kitchen?.id) {
+        dispatch(fetchMeals({ page: 1, per_page: 200, kitchen_id: kitchen.id }));
+      }
       showSuccess("Meal created");
     } catch (err: any) {
       showError(err?.message || "Failed to create meal");

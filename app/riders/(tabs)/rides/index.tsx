@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useAppSelector } from "@/store/hooks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
-type RideStatus = "ongoing" | "completed";
+type RideStatus = "completed" | "cancelled";
 
 const mockRides = [
   {
@@ -13,7 +15,7 @@ const mockRides = [
     pickup: "12, Kaduri street, Lagos",
     dropoff: "1, Umu street, Lagos",
     amount: "₦3,000.04",
-    status: "ongoing" as RideStatus,
+    status: "completed" as RideStatus,
   },
   {
     id: "#214578",
@@ -29,31 +31,32 @@ const mockRides = [
     pickup: "Shoprite, Lekki, Lagos",
     dropoff: "Phase 1 estate, Lagos",
     amount: "₦4,000.01",
-    status: "completed" as RideStatus,
+    status: "cancelled" as RideStatus,
   },
 ];
 
 export default function RiderRidesScreen() {
-  const [filter, setFilter] = useState<RideStatus | "all">("ongoing");
+  const isDark = useAppSelector(selectThemeMode) === "dark";
+  const [filter, setFilter] = useState<RideStatus | "all">("all");
 
-  const filtered = mockRides.filter((r) =>
-    filter === "all" ? true : r.status === filter
+  const filtered = useMemo(
+    () => mockRides.filter((r) => (filter === "all" ? true : r.status === filter)),
+    [filter]
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View className="px-5 pt-4 pb-2">
-        <Text className="text-2xl font-satoshiBold text-black mb-3">
-          Rides
+        <Text className={`text-2xl font-satoshiBold mb-3 ${isDark ? "text-white" : "text-neutral-900"}`}>
+          Ride History
         </Text>
 
-        {/* segmented filters */}
-        <View className="flex-row bg-white rounded-full p-1">
+        <View className={`flex-row rounded-full p-1 ${isDark ? "bg-neutral-800" : "bg-white"}`}>
           {[
-            { key: "ongoing" as const, label: "Ongoing" },
             { key: "completed" as const, label: "Completed" },
+            { key: "cancelled" as const, label: "Cancelled" },
             { key: "all" as const, label: "All" },
           ].map((opt) => {
             const active = filter === opt.key;
@@ -67,7 +70,11 @@ export default function RiderRidesScreen() {
               >
                 <Text
                   className={`text-[12px] font-satoshiMedium ${
-                    active ? "text-white" : "text-neutral-700"
+                    active
+                      ? "text-white"
+                      : isDark
+                        ? "text-neutral-300"
+                        : "text-neutral-700"
                   }`}
                 >
                   {opt.label}
@@ -85,13 +92,15 @@ export default function RiderRidesScreen() {
         {filtered.map((ride) => (
           <View
             key={ride.id}
-            className="bg-white rounded-3xl px-4 py-4 mb-3 border border-neutral-100"
+            className={`rounded-3xl px-4 py-4 mb-3 border ${
+              isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+            }`}
           >
             <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-[13px] font-satoshiMedium text-neutral-900">
+              <Text className={`text-[13px] font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
                 Order ID: {ride.id}
               </Text>
-              <Text className="text-[11px] font-satoshi text-neutral-500">
+              <Text className={`text-[11px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                 {ride.date}
               </Text>
             </View>
@@ -99,20 +108,20 @@ export default function RiderRidesScreen() {
             <View className="flex-row mt-2">
               <View className="items-center mr-3">
                 <View className="w-2 h-2 rounded-full bg-primary mb-1" />
-                <View className="w-0.5 flex-1 bg-neutral-200" />
+                <View className={`w-0.5 flex-1 ${isDark ? "bg-neutral-700" : "bg-neutral-200"}`} />
                 <View className="w-2 h-2 rounded-full bg-emerald-500 mt-1" />
               </View>
               <View className="flex-1">
-                <Text className="text-[12px] font-satoshi text-neutral-500">
+                <Text className={`text-[12px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                   Pickup
                 </Text>
-                <Text className="text-[13px] font-satoshiMedium text-neutral-900 mb-2">
+                <Text className={`text-[13px] font-satoshiMedium mb-2 ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
                   {ride.pickup}
                 </Text>
-                <Text className="text-[12px] font-satoshi text-neutral-500">
+                <Text className={`text-[12px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                   Dropoff
                 </Text>
-                <Text className="text-[13px] font-satoshiMedium text-neutral-900">
+                <Text className={`text-[13px] font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
                   {ride.dropoff}
                 </Text>
               </View>
@@ -123,10 +132,10 @@ export default function RiderRidesScreen() {
                 <Ionicons
                   name="cash-outline"
                   size={18}
-                  color="#111827"
+                  color={isDark ? "#E5E7EB" : "#111827"}
                   style={{ marginRight: 4 }}
                 />
-                <Text className="text-[13px] font-satoshiMedium text-neutral-900">
+                <Text className={`text-[13px] font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
                   {ride.amount}
                 </Text>
               </View>
@@ -137,7 +146,7 @@ export default function RiderRidesScreen() {
                   <Ionicons
                     name="chevron-forward"
                     size={18}
-                    color="#D1D5DB"
+                    color={isDark ? "#6B7280" : "#D1D5DB"}
                   />
                 </Pressable>
               </View>
@@ -147,8 +156,8 @@ export default function RiderRidesScreen() {
 
         {filtered.length === 0 && (
           <View className="mt-10 items-center">
-            <Ionicons name="bicycle-outline" size={42} color="#D1D5DB" />
-            <Text className="mt-3 text-[13px] text-neutral-500 font-satoshi">
+            <Ionicons name="bicycle-outline" size={42} color={isDark ? "#6B7280" : "#D1D5DB"} />
+            <Text className={`mt-3 text-[13px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
               No rides in this category yet.
             </Text>
           </View>
@@ -159,10 +168,10 @@ export default function RiderRidesScreen() {
 }
 
 function StatusPill({ status }: { status: RideStatus }) {
-  const isOngoing = status === "ongoing";
-  const bg = isOngoing ? "bg-amber-100" : "bg-emerald-100";
-  const text = isOngoing ? "text-amber-700" : "text-emerald-700";
-  const label = isOngoing ? "Ongoing" : "Completed";
+  const isCancelled = status === "cancelled";
+  const bg = isCancelled ? "bg-rose-100" : "bg-emerald-100";
+  const text = isCancelled ? "text-rose-700" : "text-emerald-700";
+  const label = isCancelled ? "Cancelled" : "Completed";
 
   return (
     <View className={`px-3 py-1 rounded-full ${bg}`}>

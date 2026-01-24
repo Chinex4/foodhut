@@ -1,8 +1,10 @@
 import MealCard from "@/components/home/MealCard";
+import KitchenCard from "@/components/home/KitchenCard";
 import SearchBar from "@/components/search/SearchBar";
 import {
   selectSearchError,
-  selectSearchItems,
+  selectSearchKitchens,
+  selectSearchMeals,
   selectSearchStatus,
 } from "@/redux/search/search.selectors";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
@@ -24,9 +26,12 @@ export default function SearchResultsScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const status = useAppSelector(selectSearchStatus);
   const error = useAppSelector(selectSearchError);
-  const items = useAppSelector(selectSearchItems);
+  const meals = useAppSelector(selectSearchMeals);
+  const kitchens = useAppSelector(selectSearchKitchens);
 
-  const meals = items.filter((x) => x.kind === "meal");
+  const sectionTitleClass = `text-[16px] font-satoshiBold ${
+    isDark ? "text-neutral-200" : "text-neutral-900"
+  }`;
 
   return (
     <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"} pt-16`}>
@@ -47,6 +52,28 @@ export default function SearchResultsScreen() {
         removeClippedSubviews
         windowSize={7}
         initialNumToRender={6}
+        ListHeaderComponent={
+          kitchens.length ? (
+            <View className="mb-6">
+              <Text className={sectionTitleClass}>Kitchens</Text>
+              <FlatList
+                data={kitchens}
+                keyExtractor={(k: any) => String(k.id)}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingTop: 12, paddingBottom: 4, paddingRight: 16 }}
+                renderItem={({ item }: any) => <KitchenCard kitchen={item} />}
+              />
+              {meals.length ? (
+                <Text className={`${sectionTitleClass} mt-2`}>Meals</Text>
+              ) : null}
+            </View>
+          ) : meals.length ? (
+            <View className="mb-3">
+              <Text className={sectionTitleClass}>Meals</Text>
+            </View>
+          ) : null
+        }
         renderItem={({ item }: any) => (
           <View className="mb-4">
             <MealCard
@@ -61,14 +88,14 @@ export default function SearchResultsScreen() {
               <ActivityIndicator style={{ marginTop: 40 }} color="#ffa800" />
             ) : status === "failed" ? (
               <Text className="text-center text-red-600 mt-6">{error}</Text>
-            ) : (
+            ) : meals.length === 0 && kitchens.length === 0 ? (
               <View className="items-center">
                 <Image source={require("@/assets/images/trayy.png")} />
                 <Text className={`mt-4 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                  Search for meals or kitchen.
+                  Search for meals or kitchens.
                 </Text>
               </View>
-            )}
+            ) : null}
           </View>
         }
       />

@@ -8,6 +8,8 @@ export type User = {
   first_name: string;
   last_name: string;
   has_kitchen?: boolean;
+  has_rider?: boolean;
+  role?: "user" | "rider" | "kitchen" | string;
   birthday: string | null;
   referral_code: string | null;
   profile_picture: {

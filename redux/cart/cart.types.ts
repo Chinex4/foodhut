@@ -45,7 +45,7 @@ export type KitchenSummary = {
   likes: number;
   is_available: boolean;
   owner_id: string;
-  cover_image: string | null;
+  cover_image: string | Media | null;
   city_id: string | null;
   city?: CitySummary;
   created_at: string;
