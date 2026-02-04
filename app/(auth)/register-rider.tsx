@@ -9,7 +9,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useRouter } from "expo-router";
 import CountryCodePickerModal from "@/components/auth/CountryCodePickerModal";
-import FoodhutButton from "@/components/ui/FoodhutButton";
+import FoodhutButtonComponent from "@/components/ui/FoodhutButton";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createRider } from "@/redux/rider/rider.thunk";
 import {
@@ -85,18 +85,16 @@ export default function RiderRegisterScreen() {
 
   const onSubmit = handleSubmit(async (v) => {
     const local = sanitizeLocal(country.dial, v.phone_local);
-    // const res = await dispatch(
-    //   createRider({
-    //     full_name: v.full_name.trim(),
-    //     email: v.email.trim(),
-    //     phone_number: fullPhone(local),
-    //   })
-    // );
-    // if (createRider.fulfilled.match(res)) {
-    //   // after rider creation you may want verification again or go to rider dashboard
-    //   router.replace("/riders/(tabs)");
-    // }
-    router.replace("/riders/(tabs)");
+    const res = await dispatch(
+      createRider({
+        full_name: v.full_name.trim(),
+        email: v.email.trim(),
+        phone_number: fullPhone(local),
+      })
+    );
+    if (createRider.fulfilled.match(res)) {
+      router.replace("/riders/(tabs)");
+    }
   });
 
   return (
@@ -196,7 +194,7 @@ export default function RiderRegisterScreen() {
         {!!error && <Text className="text-red-600 text-xs mt-3">{error}</Text>}
 
         <View className="mt-8" />
-        <FoodhutButton
+        <FoodhutButtonComponent
           title="Create Rider Profile"
           loading={loading}
           onPress={onSubmit}

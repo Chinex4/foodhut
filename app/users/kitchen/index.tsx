@@ -13,7 +13,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
 import KitchenCard from "@/components/home/KitchenCard";
-import { api } from "@/api/axios";
+import { mockKitchens } from "@/utils/mockData";
 
 // adjust paths to match your structure
 import { fetchKitchenTypes } from "@/redux/kitchen/kitchen.thunks";
@@ -43,14 +43,7 @@ export default function AllKitchensScreen() {
     try {
       setLoading(true);
 
-      const res = await api.get("/kitchens", {
-        params: {
-          per_page: 100,
-          page: 1,
-        },
-      });
-
-      const items = res.data?.items ?? [];
+      const items = mockKitchens;
       setKitchens(items);
       setFiltered(items);
     } catch (err) {

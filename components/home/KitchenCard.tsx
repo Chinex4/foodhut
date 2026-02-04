@@ -61,18 +61,13 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
     >
       {/* cover */}
       <View className="h-28 rounded-3xl overflow-hidden bg-secondary">
-        {coverUrl ? (
-          <Image
-            source={{ uri: coverUrl }}
-            className="w-full h-full"
-          />
-        ) : (
-          <View className="flex-1 items-center justify-center bg-secondary">
-            <Text className="text-[24px] font-satoshiBold text-primary">
-              {getKitchenInitials(kitchen.name)}
-            </Text>
-          </View>
-        )}
+        <Image
+          source={
+            coverUrl ? { uri: coverUrl } : require("@/assets/images/food1.png")
+          }
+          className="w-full h-full"
+          resizeMode="cover"
+        />
       </View>
 
       {/* content */}

@@ -8,10 +8,10 @@ import SearchBar from "@/components/search/SearchBar";
 import { useSelectedCity } from "@/hooks/useSelectedCity";
 import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 import type { KitchenCity } from "@/redux/kitchen/kitchen.types";
+import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
 import {
   makeSelectMostPopular,
   makeSelectTrendingDiscounts,
-  makeSelectVendorsCloseBy,
   selectMealsError,
   selectMealsListStatus,
 } from "@/redux/meals/meals.selectors";
@@ -20,7 +20,7 @@ import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { selectFetchMeStatus, selectMe } from "@/redux/users/users.selectors";
 import { fetchMyProfile } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import FloatingCartButton from "@/components/cart/FloatingCartButton";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -39,12 +39,11 @@ export default function HomeScreen() {
 
   const trendingSel = useMemo(() => makeSelectTrendingDiscounts(10), []);
   const popularSel = useMemo(() => makeSelectMostPopular(10), []);
-  const vendorsSel = useMemo(() => makeSelectVendorsCloseBy(10), []);
 
   const trending = useAppSelector(trendingSel);
   const popular = useAppSelector(popularSel);
-  const vendors = useAppSelector(vendorsSel);
   const me = useAppSelector(selectMe);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const router = useRouter();
   const { ensureAuth } = useEnsureAuthenticated();
 
@@ -54,10 +53,10 @@ export default function HomeScreen() {
     }
   }, [status, dispatch]);
   useEffect(() => {
-    if (fetchMestatus === "idle") {
+    if (fetchMestatus === "idle" && isAuthenticated) {
       dispatch(fetchMyProfile());
     }
-  }, [fetchMestatus, dispatch]);
+  }, [fetchMestatus, dispatch, isAuthenticated]);
 
   const handleCitySelect = (city: KitchenCity) => {
     updateCity(city);
@@ -81,7 +80,7 @@ export default function HomeScreen() {
               <Text
                 className={`font-satoshiMedium ${isDark ? "text-neutral-400" : "text-neutral-500"}`}
               >
-                Welcome, {me?.first_name}
+                Welcome, {isAuthenticated ? me?.first_name : "Guest"}
               </Text>
               <Text
                 className={`text-[32px] font-satoshiBold mt-1 ${isDark ? "text-white" : "text-neutral-900"}`}
@@ -206,18 +205,9 @@ export default function HomeScreen() {
         selectedCity={selectedCity}
       />
 
-      <View className="absolute bottom-6 right-4">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open orders"
-          onPress={() => ensureAuth(() => router.push("/users/(tabs)/orders"))}
-          android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
-          className="w-20 h-20 rounded-full bg-primary items-center justify-center shadow-lg"
-          style={Platform.select({ android: { elevation: 8 } })}
-        >
-          <Ionicons name="cart" size={30} color="#fff" />
-        </Pressable>
-      </View>
+      <FloatingCartButton
+        onPress={() => ensureAuth(() => router.push("/users/(tabs)/orders"))}
+      />
     </SafeAreaView>
   );
 }

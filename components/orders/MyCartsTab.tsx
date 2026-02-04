@@ -25,7 +25,7 @@ import {
   Text,
   View,
 } from "react-native";
-import CachedImage from "../ui/CachedImage";
+import CachedImageView from "../ui/CachedImage";
 import OrderCard from "./OrderCard";
 
 type CartListItem = { type: "cart"; kitchenId: string };
@@ -100,10 +100,11 @@ function KitchenCartCard({
       {/* header row */}
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center flex-1">
-          <CachedImage
+          <CachedImageView
             uri={coverUri}
             fallback={
-              <View
+              <Image
+                source={require("@/assets/images/food1.png")}
                 className={`w-8 h-8 rounded-lg ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
               />
             }

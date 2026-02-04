@@ -17,7 +17,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createAd } from "@/redux/ads/ads.thunks";
 import { selectAdCreateStatus } from "@/redux/ads/ads.selectors";
 import { showSuccess } from "@/components/ui/toast";
-import CachedImage from "@/components/ui/CachedImage";
+import CachedImageView from "@/components/ui/CachedImage";
 
 export default function CreatedAdFormScreen() {
   const router = useRouter();
@@ -78,7 +78,7 @@ export default function CreatedAdFormScreen() {
 
       showSuccess("Ad created!");
       router.back();
-    } catch (e) {
+    } catch {
       // errors already toasted by axios interceptor / thunk reject
     }
   };
@@ -117,7 +117,7 @@ export default function CreatedAdFormScreen() {
         >
           {banner ? (
             <View className="w-full rounded-2xl overflow-hidden mb-3">
-              <CachedImage uri={banner.uri} className="w-full h-36" />
+              <CachedImageView uri={banner.uri} className="w-full h-36" />
             </View>
           ) : (
             <Text className="text-[13px] font-satoshi text-neutral-700 mb-4">

@@ -5,42 +5,19 @@ import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { mockRiderHistory } from "@/utils/mock/mockRider";
 
 type RideStatus = "completed" | "cancelled";
-
-const mockRides = [
-  {
-    id: "#237895",
-    date: "01 Aug 2025, 2:25PM",
-    pickup: "12, Kaduri street, Lagos",
-    dropoff: "1, Umu street, Lagos",
-    amount: "₦3,000.04",
-    status: "completed" as RideStatus,
-  },
-  {
-    id: "#214578",
-    date: "31 Jul 2025, 6:10PM",
-    pickup: "2, Adebayo street, Lagos",
-    dropoff: "45, Herbert Macaulay, Lagos",
-    amount: "₦2,560.00",
-    status: "completed" as RideStatus,
-  },
-  {
-    id: "#214579",
-    date: "30 Jul 2025, 4:00PM",
-    pickup: "Shoprite, Lekki, Lagos",
-    dropoff: "Phase 1 estate, Lagos",
-    amount: "₦4,000.01",
-    status: "cancelled" as RideStatus,
-  },
-];
 
 export default function RiderRidesScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const [filter, setFilter] = useState<RideStatus | "all">("all");
 
   const filtered = useMemo(
-    () => mockRides.filter((r) => (filter === "all" ? true : r.status === filter)),
+    () =>
+      mockRiderHistory.filter((r) =>
+        filter === "all" ? true : r.status === filter
+      ),
     [filter]
   );
 

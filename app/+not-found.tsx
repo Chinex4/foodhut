@@ -49,16 +49,16 @@ export default function NotFoundScreen() {
         </Text>
 
         <View className="mt-7 w-full">
-          <Pressable
+          {/* <Pressable
             onPress={() => router.back()}
             className="bg-primary rounded-2xl py-4 items-center justify-center border border-primary-500"
           >
             <Text className="text-white font-satoshiBold">Go Back</Text>
-          </Pressable>
+          </Pressable> */}
 
           <Pressable
             onPress={() => router.replace("/")}
-            className="mt-3 bg-white rounded-2xl py-4 items-center justify-center border border-neutral-200"
+            className="mt-3 bg-primary rounded-2xl py-4 items-center justify-center border border-neutral-200"
           >
             <Text className="text-neutral-900 font-satoshiBold">
               Back to Home

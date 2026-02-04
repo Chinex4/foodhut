@@ -16,7 +16,7 @@ type Props = {
 };
 
 export default function SearchBar({
-  placeholder = "Search for food",
+  placeholder = "search food/vendor/groceries",
   initial = "",
   perPage = 20,
   autoFocus,
@@ -44,7 +44,7 @@ export default function SearchBar({
       if (pathname !== "/users/(tabs)/search") {
         router.push("/users/(tabs)/search");
       }
-    } catch (e) {
+    } catch {
       // optional toast here
     }
   };
@@ -56,7 +56,7 @@ export default function SearchBar({
       if (value.trim()) {
         doSearch(value);
       }
-    }, 350);
+    }, 800);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };

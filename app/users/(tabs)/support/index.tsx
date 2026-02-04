@@ -180,7 +180,11 @@ export default function SupportScreen() {
     animate();
     setOpenIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
@@ -242,7 +246,7 @@ My name is ${[me?.first_name, me?.last_name].filter(Boolean).join(" ") || "—"}
           { text: "OK" },
         ]
       );
-    } catch (e) {
+    } catch {
       Alert.alert(
         "Couldn’t open email",
         "Please try again or copy the address: support@foodhut.co",

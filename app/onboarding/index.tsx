@@ -42,7 +42,7 @@ export default function Onboarding() {
 
   const goRegister = useCallback(async () => {
     await AsyncStorage.setItem(STORAGE_KEYS.HAS_ONBOARDED, "1");
-    router.replace("/(auth)/register"); // go straight to register after Get Started
+    router.replace("/users/(tabs)"); // explore as guest after Get Started
   }, [router]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
@@ -60,9 +60,9 @@ export default function Onboarding() {
   };
 
   const skip = async () => {
-    // mark as seen and jump to register
+    // mark as seen and jump to guest dashboard
     await AsyncStorage.setItem(STORAGE_KEYS.HAS_ONBOARDED, "1");
-    router.replace("/(auth)/register");
+    router.replace("/users/(tabs)");
   };
 
   return (

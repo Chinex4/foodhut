@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   Image,
@@ -15,6 +15,7 @@ import {
 
 import { showError, showSuccess } from "@/components/ui/toast";
 import { logout } from "@/redux/auth/auth.thunks";
+import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
 import {
   selectFetchMeStatus,
   selectMe,
@@ -22,13 +23,11 @@ import {
 } from "@/redux/users/users.selectors";
 import { uploadProfilePicture } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import CachedImage from "@/components/ui/CachedImage";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import {
   persistThemePreference,
   setThemeMode,
 } from "@/redux/theme/theme.slice";
-import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 
 function Row({
   icon,
@@ -88,22 +87,18 @@ export default function ProfileHomeScreen() {
   const themeMode = useAppSelector(selectThemeMode);
   const isDark = themeMode === "dark";
   const dispatch = useAppDispatch();
-  const { isAuthenticated, redirectToLogin } = useEnsureAuthenticated();
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      redirectToLogin();
-    }
-  }, [isAuthenticated, redirectToLogin]);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   const fullName =
-    [me?.first_name, me?.last_name].filter(Boolean).join(" ") || "—";
+    !isAuthenticated
+      ? "Guest"
+      : [me?.first_name, me?.last_name].filter(Boolean).join(" ") || "—";
 
   const handleLogout = async () => {
     try {
       await dispatch(logout()).unwrap();
       router.replace("/(auth)/login");
-    } catch (error) {
+    } catch {
       // err handled in thunk
     }
   };
@@ -163,7 +158,7 @@ export default function ProfileHomeScreen() {
 
             <Pressable
               onPress={handleUploadProfilePicture}
-              disabled={uploadPicStatus === "loading"}
+              disabled={uploadPicStatus === "loading" || !isAuthenticated}
               className="absolute bottom-0 right-0 bg-primary rounded-full p-2 border-2 border-white"
             >
               {uploadPicStatus === "loading" ? (
@@ -201,6 +196,48 @@ export default function ProfileHomeScreen() {
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
       >
+        {!isAuthenticated && (
+          <View
+            className={`mb-6 rounded-3xl border p-4 ${
+              isDark ? "bg-neutral-900 border-neutral-800" : "bg-primary-50 border-primary-100"
+            }`}
+          >
+            <Text
+              className={`text-[16px] font-satoshiBold ${
+                isDark ? "text-white" : "text-neutral-900"
+              }`}
+            >
+              You are browsing as a guest
+            </Text>
+            <Text
+              className={`mt-1 text-[13px] font-satoshi ${
+                isDark ? "text-neutral-300" : "text-neutral-600"
+              }`}
+            >
+              Create an account to save orders, rewards, and your favorites.
+            </Text>
+            <View className="mt-4">
+              <Pressable
+                onPress={() => router.push("/(auth)/register")}
+                className="rounded-2xl bg-primary py-4 items-center"
+              >
+                <Text className="text-white font-satoshiMedium">
+                  Create an account now
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push("/(auth)/register-kitchen")}
+                className={`mt-3 rounded-2xl border py-4 items-center ${
+                  isDark ? "border-neutral-700" : "border-primary"
+                }`}
+              >
+                <Text className={`${isDark ? "text-white" : "text-primary"} font-satoshiMedium`}>
+                  Create vendor account
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
         {/* Personal */}
         <Text
           className={`font-satoshi px-1 mb-2 ${
@@ -231,12 +268,6 @@ export default function ProfileHomeScreen() {
           onPress={() => router.push("/users/rewards")}
           isDark={isDark}
         />
-        <Row
-          icon={<Ionicons name="card-outline" size={18} color="#9CA3AF" />}
-          label="Gift Cards"
-          onPress={() => router.push("/users/profile/gift-cards")}
-          isDark={isDark}
-        />
 
         {/* App */}
         <Text
@@ -246,28 +277,6 @@ export default function ProfileHomeScreen() {
         >
           App
         </Text>
-        <Row
-          icon={<Ionicons name="sparkles-outline" size={18} color="#9CA3AF" />}
-          label="What’s New"
-          onPress={() => router.push("/users/profile/whats-new")}
-          isDark={isDark}
-        />
-        <Row
-          icon={
-            <Ionicons name="help-circle-outline" size={18} color="#9CA3AF" />
-          }
-          label="FAQ’s"
-          onPress={() => router.push("/users/profile/faqs")}
-          isDark={isDark}
-        />
-        <Row
-          icon={
-            <Ionicons name="chatbubbles-outline" size={18} color="#9CA3AF" />
-          }
-          label="Get Help"
-          onPress={() => router.push("/users/profile/get-help")}
-          isDark={isDark}
-        />
         <Row
           icon={
             <Ionicons name="document-text-outline" size={18} color="#9CA3AF" />
@@ -279,7 +288,7 @@ export default function ProfileHomeScreen() {
         <Row
           icon={<Ionicons name="swap-horizontal-outline" size={18} color="#9CA3AF" />}
           label="Switch to Rider Dashboard"
-          onPress={() => router.replace("/riders/(tabs)/index")}
+          onPress={() => router.replace("/riders/(tabs)")}
           isDark={isDark}
         />
         <Row
@@ -298,13 +307,15 @@ export default function ProfileHomeScreen() {
         />
 
         {/* Danger / sign out */}
-        <Row
-          icon={<Ionicons name="log-out-outline" size={18} color="#DC2626" />}
-          label="Sign Out"
-          danger
-          onPress={handleLogout}
-          isDark={isDark}
-        />
+        {isAuthenticated && (
+          <Row
+            icon={<Ionicons name="log-out-outline" size={18} color="#DC2626" />}
+            label="Sign Out"
+            danger
+            onPress={handleLogout}
+            isDark={isDark}
+          />
+        )}
       </ScrollView>
     </View>
   );

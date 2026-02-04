@@ -33,36 +33,27 @@ export default function KitchenTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "Dashboard",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={26} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="orders"
+        name="menu/index"
+        options={{
+          title: "Menu",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="restaurant-outline" size={26} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="orders/index"
         options={{
           title: "Orders",
           tabBarIcon: ({ color }) => (
             <Ionicons name="bag-handle-outline" size={26} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="wallet/index"
-        options={{
-          title: "Wallet",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="wallet-outline" size={26} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: "Settings",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="settings-outline" size={26} color={color} />
           ),
         }}
       />

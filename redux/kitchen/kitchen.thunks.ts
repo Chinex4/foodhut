@@ -1,5 +1,4 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { api } from "@/api/axios";
 import type {
   CreateCityPayload,
   CreateKitchenPayload,
@@ -9,19 +8,37 @@ import type {
   KitchensQuery,
   UpdateKitchenPayload,
 } from "./kitchen.types";
+import {
+  mockKitchenCities,
+  mockKitchenTypes,
+  mockKitchens,
+} from "@/utils/mockData";
 
-const BASE = "/kitchens";
+let kitchens: Kitchen[] = [...mockKitchens];
+let kitchenCities: KitchenCity[] = [...mockKitchenCities];
+let kitchenTypes: string[] = [...mockKitchenTypes];
+let profileKitchenId: string | null = kitchens[0]?.id ?? null;
 
-const buildQuery = (q?: KitchensQuery) => {
-  if (!q) return "";
-  const p = new URLSearchParams();
-  if (q.page) p.set("page", String(q.page));
-  if (q.per_page) p.set("per_page", String(q.per_page));
-  if (typeof q.is_available === "boolean")
-    p.set("is_available", String(q.is_available));
-  const s = p.toString();
-  return s ? `?${s}` : "";
+const listKitchens = (query?: KitchensQuery): KitchensListResponse => {
+  const page = query?.page ?? 1;
+  const perPage = query?.per_page ?? kitchens.length;
+  const filtered =
+    typeof query?.is_available === "boolean"
+      ? kitchens.filter((k) => k.is_available === query.is_available)
+      : kitchens;
+  const start = (page - 1) * perPage;
+  const items = filtered.slice(start, start + perPage);
+  return {
+    items,
+    meta: {
+      page,
+      per_page: perPage,
+      total: filtered.length,
+    },
+  };
 };
+
+const findKitchen = (id: string) => kitchens.find((k) => k.id === id) || null;
 
 export const createKitchen = createAsyncThunk<
   { message: string },
@@ -29,30 +46,34 @@ export const createKitchen = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/createKitchen", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}`, body);
-    console.log(res)
-    const message = res.data?.message ?? res.data?.data ?? "Kitchen created!";
-    return { message };
+    const now = new Date().toISOString();
+    const newKitchen: Kitchen = {
+      id: `kitchen-${kitchens.length + 1}`,
+      name: body.name,
+      address: body.address,
+      phone_number: body.phone_number,
+      type: body.type,
+      opening_time: body.opening_time,
+      closing_time: body.closing_time,
+      delivery_time: body.delivery_time,
+      preparation_time: body.preparation_time,
+      is_available: true,
+      likes: 0,
+      rating: 0,
+      owner_id: "owner-local",
+      cover_image: { url: null },
+      city_id: body.city_id ?? null,
+      city: body.city_id
+        ? kitchenCities.find((c) => c.id === body.city_id) ?? undefined
+        : undefined,
+      created_at: now,
+      updated_at: null,
+    };
+    kitchens = [newKitchen, ...kitchens];
+    if (!profileKitchenId) profileKitchenId = newKitchen.id;
+    return { message: "Kitchen created!" };
   } catch (err: any) {
-    const payload = err?.response?.data;
-    console.log("Create kitchen error:", payload || err);
-
-    const validation = payload?.errors;
-    if (validation && typeof validation === "object") {
-      const flattened = Object.values(validation)
-        .flat()
-        .filter(Boolean)
-        .join("\n");
-      if (flattened) return rejectWithValue(flattened);
-    }
-
-    const message =
-      payload?.message ||
-      payload?.error ||
-      err?.message ||
-      "Failed to create kitchen";
-
-    return rejectWithValue(message);
+    return rejectWithValue("Failed to create kitchen");
   }
 });
 
@@ -62,13 +83,9 @@ export const fetchKitchens = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/fetchKitchens", async (query, { rejectWithValue }) => {
   try {
-    const url = `${BASE}${buildQuery(query)}`;
-    const res = await api.get(url);
-    return res.data as KitchensListResponse;
+    return listKitchens(query);
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch kitchens"
-    );
+    return rejectWithValue("Failed to fetch kitchens");
   }
 });
 
@@ -78,12 +95,9 @@ export const fetchKitchenTypes = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/fetchKitchenTypes", async (_, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/types`);
-    return res.data as string[];
+    return kitchenTypes;
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch kitchen types"
-    );
+    return rejectWithValue("Failed to fetch kitchen types");
   }
 });
 
@@ -93,12 +107,9 @@ export const fetchKitchenCities = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/fetchKitchenCities", async (_, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/cities`);
-    return res.data as KitchenCity[];
+    return kitchenCities;
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch cities"
-    );
+    return rejectWithValue("Failed to fetch cities");
   }
 });
 
@@ -108,13 +119,18 @@ export const createKitchenCity = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/createKitchenCity", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/cities`, body);
-    const message = res.data?.message ?? "City created";
-    return { message };
+    const now = new Date().toISOString();
+    const newCity: KitchenCity = {
+      id: `city-${kitchenCities.length + 1}`,
+      name: body.name,
+      state: body.state,
+      created_at: now,
+      updated_at: null,
+    };
+    kitchenCities = [...kitchenCities, newCity];
+    return { message: "City created" };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to create city"
-    );
+    return rejectWithValue("Failed to create city");
   }
 });
 
@@ -124,12 +140,11 @@ export const fetchKitchenById = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/fetchKitchenById", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/${id}`);
-    return res.data as Kitchen;
+    const kitchen = findKitchen(id);
+    if (!kitchen) return rejectWithValue("Failed to fetch kitchen");
+    return kitchen;
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch kitchen"
-    );
+    return rejectWithValue("Failed to fetch kitchen");
   }
 });
 
@@ -139,12 +154,13 @@ export const fetchKitchenProfile = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/fetchKitchenProfile", async (_, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/profile`);
-    return res.data as Kitchen;
+    const kitchen = profileKitchenId
+      ? findKitchen(profileKitchenId)
+      : kitchens[0];
+    if (!kitchen) return rejectWithValue("Failed to fetch your kitchen");
+    return kitchen;
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch your kitchen"
-    );
+    return rejectWithValue("Failed to fetch your kitchen");
   }
 });
 
@@ -154,13 +170,18 @@ export const updateKitchenById = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/updateKitchenById", async ({ id, body }, { rejectWithValue }) => {
   try {
-    const res = await api.patch(`${BASE}/${id}`, body);
-    const message = res.data?.message ?? "Kitchen updated successfully";
-    return { message, id };
-  } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to update kitchen"
+    kitchens = kitchens.map((k) =>
+      k.id === id
+        ? {
+            ...k,
+            ...body,
+            updated_at: new Date().toISOString(),
+          }
+        : k
     );
+    return { message: "Kitchen updated successfully", id };
+  } catch (err: any) {
+    return rejectWithValue("Failed to update kitchen");
   }
 });
 
@@ -170,13 +191,19 @@ export const updateKitchenByProfile = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/updateKitchenByProfile", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.patch(`${BASE}/profile`, body);
-    const message = res.data?.message ?? "Kitchen updated successfully";
-    return { message };
-  } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to update your kitchen"
+    if (!profileKitchenId) return { message: "Kitchen updated successfully" };
+    kitchens = kitchens.map((k) =>
+      k.id === profileKitchenId
+        ? {
+            ...k,
+            ...body,
+            updated_at: new Date().toISOString(),
+          }
+        : k
     );
+    return { message: "Kitchen updated successfully" };
+  } catch (err: any) {
+    return rejectWithValue("Failed to update your kitchen");
   }
 });
 
@@ -186,30 +213,26 @@ export const uploadKitchenCoverByProfile = createAsyncThunk<
   { rejectValue: string }
 >(
   "kitchen/uploadKitchenCoverByProfile",
-  async ({ uri, name, type }, { rejectWithValue }) => {
+  async ({ uri }, { rejectWithValue }) => {
     try {
-      const form = new FormData();
-      // @ts-ignore RN FormData shape
-      form.append("cover_image" as any, {
-        uri,
-        name: name ?? "cover.jpg",
-        type: type ?? "image/jpeg",
-      });
-
-      const res = await api.put(`${BASE}/profile/profile-picture`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      // API returns message only; refetch canonical object
-      const res2 = await api.get(`${BASE}/profile`);
+      if (!profileKitchenId) return rejectWithValue("No kitchen found");
+      kitchens = kitchens.map((k) =>
+        k.id === profileKitchenId
+          ? {
+              ...k,
+              cover_image: { url: uri },
+              updated_at: new Date().toISOString(),
+            }
+          : k
+      );
+      const updated = findKitchen(profileKitchenId);
+      if (!updated) return rejectWithValue("Failed to upload cover image");
       return {
-        message: res.data?.message ?? "Profile picture updated successfully",
-        kitchen: res2.data as Kitchen,
+        message: "Profile picture updated successfully",
+        kitchen: updated,
       };
     } catch (err: any) {
-      return rejectWithValue(
-        err?.response?.data?.error || "Failed to upload cover image"
-      );
+      return rejectWithValue("Failed to upload cover image");
     }
   }
 );
@@ -220,31 +243,26 @@ export const uploadKitchenCoverById = createAsyncThunk<
   { rejectValue: string }
 >(
   "kitchen/uploadKitchenCoverById",
-  async ({ id, uri, name, type }, { rejectWithValue }) => {
+  async ({ id, uri }, { rejectWithValue }) => {
     try {
-      const form = new FormData();
-      // @ts-ignore RN FormData shape
-      form.append("cover_image" as any, {
-        uri,
-        name: name ?? "cover.jpg",
-        type: type ?? "image/jpeg",
-      });
-
-      const res = await api.put(`${BASE}/${id}/profile-picture`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      // Refetch updated
-      const res2 = await api.get(`${BASE}/${id}`);
+      kitchens = kitchens.map((k) =>
+        k.id === id
+          ? {
+              ...k,
+              cover_image: { url: uri },
+              updated_at: new Date().toISOString(),
+            }
+          : k
+      );
+      const updated = findKitchen(id);
+      if (!updated) return rejectWithValue("Failed to upload cover image");
       return {
-        message: res.data?.message ?? "Profile picture updated successfully",
+        message: "Profile picture updated successfully",
         id,
-        kitchen: res2.data as Kitchen,
+        kitchen: updated,
       };
     } catch (err: any) {
-      return rejectWithValue(
-        err?.response?.data?.error || "Failed to upload cover image"
-      );
+      return rejectWithValue("Failed to upload cover image");
     }
   }
 );
@@ -255,13 +273,12 @@ export const likeKitchen = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/likeKitchen", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.put(`${BASE}/${id}/like`);
-    const message = res.data?.message ?? "Kitchen liked successfully";
-    return { message, id };
-  } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to like kitchen"
+    kitchens = kitchens.map((k) =>
+      k.id === id ? { ...k, likes: k.likes + 1 } : k
     );
+    return { message: "Kitchen liked successfully", id };
+  } catch (err: any) {
+    return rejectWithValue("Failed to like kitchen");
   }
 });
 
@@ -271,13 +288,12 @@ export const unlikeKitchen = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/unlikeKitchen", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.put(`${BASE}/${id}/unlike`);
-    const message = res.data?.message ?? "Kitchen unliked successfully";
-    return { message, id };
-  } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to unlike kitchen"
+    kitchens = kitchens.map((k) =>
+      k.id === id ? { ...k, likes: Math.max(0, k.likes - 1) } : k
     );
+    return { message: "Kitchen unliked successfully", id };
+  } catch (err: any) {
+    return rejectWithValue("Failed to unlike kitchen");
   }
 });
 
@@ -287,13 +303,9 @@ export const blockKitchen = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/blockKitchen", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.put(`${BASE}/${id}/block`);
-    const message = res.data?.message ?? "Kitchen blocked successfully";
-    return { message, id };
+    return { message: "Kitchen blocked successfully", id };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to block kitchen"
-    );
+    return rejectWithValue("Failed to block kitchen");
   }
 });
 
@@ -303,13 +315,9 @@ export const unblockKitchen = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/unblockKitchen", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.put(`${BASE}/${id}/unblock`);
-    const message = res.data?.message ?? "Kitchen unblocked successfully";
-    return { message, id };
+    return { message: "Kitchen unblocked successfully", id };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to unblock kitchen"
-    );
+    return rejectWithValue("Failed to unblock kitchen");
   }
 });
 
@@ -319,13 +327,9 @@ export const verifyKitchen = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/verifyKitchen", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.put(`${BASE}/${id}/verify`);
-    const message = res.data?.message ?? "Kitchen verified successfully";
-    return { message, id };
+    return { message: "Kitchen verified successfully", id };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to verify kitchen"
-    );
+    return rejectWithValue("Failed to verify kitchen");
   }
 });
 
@@ -335,12 +339,8 @@ export const unverifyKitchen = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/unverifyKitchen", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.put(`${BASE}/${id}/unverify`);
-    const message = res.data?.message ?? "Kitchen unverified successfully";
-    return { message, id };
+    return { message: "Kitchen unverified successfully", id };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to unverify kitchen"
-    );
+    return rejectWithValue("Failed to unverify kitchen");
   }
 });

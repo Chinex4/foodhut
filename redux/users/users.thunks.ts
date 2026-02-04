@@ -1,10 +1,10 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { api } from "@/api/axios";
 import type { UpdateUserPayload, User } from "./users.types";
 import type { RootState } from "@/store";
 import { setUser as setAuthUser } from "@/redux/auth/auth.slice";
+import { mockUser } from "@/utils/mockData";
 
-const BASE = "/users";
+let currentUser: User = { ...mockUser };
 
 export const fetchMyProfile = createAsyncThunk<
   User,
@@ -12,8 +12,7 @@ export const fetchMyProfile = createAsyncThunk<
   { rejectValue: string }
 >("users/fetchMyProfile", async (_, { dispatch, rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/profile`);
-    const user: User = res.data;
+    const user: User = currentUser;
     dispatch(
       setAuthUser({
         email: user.email,
@@ -24,9 +23,7 @@ export const fetchMyProfile = createAsyncThunk<
     );
     return user;
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.message || "Failed to load profile"
-    );
+    return rejectWithValue("Failed to load profile");
   }
 });
 
@@ -36,11 +33,14 @@ export const updateMyProfile = createAsyncThunk<
   { rejectValue: string }
 >(
   "users/updateMyProfile",
-  async (body, { dispatch, getState, rejectWithValue }) => {
+  async (body, { dispatch, rejectWithValue }) => {
     try {
-      await api.patch(`${BASE}/profile`, body);
-      const res = await api.get(`${BASE}/profile`);
-      const user: User = res.data;
+      currentUser = {
+        ...currentUser,
+        ...body,
+        updated_at: new Date().toISOString(),
+      };
+      const user: User = currentUser;
 
       dispatch(
         setAuthUser({
@@ -52,9 +52,7 @@ export const updateMyProfile = createAsyncThunk<
       );
       return user;
     } catch (err: any) {
-      return rejectWithValue(
-        err?.response?.data?.message || "Failed to update profile"
-      );
+      return rejectWithValue("Failed to update profile");
     }
   }
 );
@@ -67,22 +65,14 @@ export const uploadProfilePicture = createAsyncThunk<
   "users/uploadProfilePicture",
   async ({ uri, name, type }, { rejectWithValue }) => {
     try {
-      const form = new FormData();
-      form.append("profile_picture" as any, {
-        uri,
-        name: name ?? "avatar.jpg",
-        type: type ?? "image/jpeg",
-      });
-
-      const resMsg = await api.put(`${BASE}/profile/profile-picture`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      const res = await api.get(`${BASE}/profile`);
-      return res.data as User;
+      currentUser = {
+        ...currentUser,
+        profile_picture: { url: uri },
+        updated_at: new Date().toISOString(),
+      };
+      return currentUser as User;
     } catch (err: any) {
-      return rejectWithValue(
-        err?.response?.data?.message || "Failed to upload picture"
-      );
+      return rejectWithValue("Failed to upload picture");
     }
   }
 );
@@ -93,12 +83,15 @@ export const fetchUserById = createAsyncThunk<
   { rejectValue: string }
 >("users/fetchUserById", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/${id}`);
-    return res.data as User;
+    if (id === currentUser.id) return currentUser;
+    return {
+      ...currentUser,
+      id,
+      first_name: "Foodhut",
+      last_name: "User",
+    };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.message || "Failed to load user"
-    );
+    return rejectWithValue("Failed to load user");
   }
 });
 
@@ -108,11 +101,8 @@ export const deleteMyProfile = createAsyncThunk<
   { state: RootState; rejectValue: string }
 >("users/deleteMyProfile", async (_, { rejectWithValue }) => {
   try {
-    const res = await api.delete(`${BASE}/profile`);
-    return { message: res.data?.message ?? "Account deleted" };
+    return { message: "Account deleted" };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.message || "Failed to delete account"
-    );
+    return rejectWithValue("Failed to delete account");
   }
 });

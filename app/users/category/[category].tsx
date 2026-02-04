@@ -23,8 +23,7 @@ import {
 } from "@/redux/meals/meals.selectors";
 import { fetchMeals } from "@/redux/meals/meals.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { useAppDispatch } from "@/store/hooks";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 import AdsCarousel from "@/components/home/AdsCarousel";
 import MealCard from "@/components/home/MealCard";

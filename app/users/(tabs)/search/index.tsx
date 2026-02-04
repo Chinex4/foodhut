@@ -9,15 +9,14 @@ import {
 } from "@/redux/search/search.selectors";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppSelector } from "@/store/hooks";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import FloatingCartButton from "@/components/cart/FloatingCartButton";
 import { router } from "expo-router";
-import React from "react";
+import React, { useMemo } from "react";
+import { mockKitchens } from "@/utils/mockData";
 import {
   ActivityIndicator,
   FlatList,
   Image,
-  Platform,
-  Pressable,
   Text,
   View,
 } from "react-native";
@@ -28,6 +27,17 @@ export default function SearchResultsScreen() {
   const error = useAppSelector(selectSearchError);
   const meals = useAppSelector(selectSearchMeals);
   const kitchens = useAppSelector(selectSearchKitchens);
+
+  const kitchenMap = useMemo(() => {
+    const map = new Map<string, { name: string; rating?: string | number | null }>();
+    mockKitchens.forEach((k) => {
+      map.set(String(k.id), { name: k.name, rating: k.rating });
+    });
+    kitchens.forEach((k: any) => {
+      map.set(String(k.id), { name: k.name, rating: k.rating });
+    });
+    return map;
+  }, [kitchens]);
 
   const sectionTitleClass = `text-[16px] font-satoshiBold ${
     isDark ? "text-neutral-200" : "text-neutral-900"
@@ -79,6 +89,8 @@ export default function SearchResultsScreen() {
             <MealCard
               item={item}
               onPress={() => router.push(`/users/meal/${item.id}`)}
+              kitchenName={kitchenMap.get(String(item.kitchen_id))?.name}
+              kitchenRating={kitchenMap.get(String(item.kitchen_id))?.rating}
             />
           </View>
         )}
@@ -100,18 +112,7 @@ export default function SearchResultsScreen() {
         }
       />
 
-      <View className="absolute bottom-6 right-4">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open orders"
-          onPress={() => router.push("/users/(tabs)/orders")}
-          android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
-          className="w-20 h-20 rounded-full bg-primary items-center justify-center shadow-lg"
-          style={Platform.select({ android: { elevation: 8 } })}
-        >
-          <Ionicons name="cart" size={30} color="#fff" />
-        </Pressable>
-      </View>
+      <FloatingCartButton onPress={() => router.push("/users/(tabs)/orders")} />
     </View>
   );
 }

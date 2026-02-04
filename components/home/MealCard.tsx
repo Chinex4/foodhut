@@ -3,20 +3,19 @@ import { setCartItem } from "@/redux/cart/cart.thunks";
 import type { Meal } from "@/redux/meals/meals.types";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
+import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
 import { capitalizeFirst } from "@/utils/capitalize";
 import { formatNGN, toNum } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { router } from "expo-router";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { showError, showSuccess } from "../ui/toast";
 
 function AddToCartButton({
-  itemId,
   qty,
   onAdd,
 }: {
-  itemId: string;
   qty: number;
   onAdd: () => Promise<void> | void;
 }) {
@@ -35,21 +34,21 @@ function AddToCartButton({
 
   return (
     <Pressable
-      onPress={added ? undefined : handlePress}
-      disabled={pending || added}
+      onPress={added ? () => router.push("/users/(tabs)/orders") : handlePress}
+      disabled={pending}
       accessibilityRole="button"
-      accessibilityLabel={added ? "Added to cart" : "Add to cart"}
+      accessibilityLabel={added ? "View cart" : "Add to cart"}
       className={[
         "rounded-full px-3 py-1 flex-row items-center",
         added ? "bg-secondary" : "bg-primary",
-        pending || added ? "opacity-90" : "",
+        pending ? "opacity-90" : "",
       ].join(" ")}
       style={{ justifyContent: "center" }}
     >
       {added ? (
         <>
           <Text className="ml-1 text-black font-satoshiMedium text-[12px]">
-            Added to Cart
+            View Cart
           </Text>
         </>
       ) : (
@@ -65,19 +64,31 @@ export default function MealCard({
   item,
   onPress,
   compact = false,
+  kitchenName,
+  kitchenRating,
 }: {
   item: Meal;
   compact?: boolean;
   onPress?: () => void;
+  kitchenName?: string;
+  kitchenRating?: string | number | null;
 }) {
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
-  const { ensureAuth } = useEnsureAuthenticated();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const kitchenId = item?.kitchen_id ?? "";
   const qty = useAppSelector(selectCartItemQuantity(kitchenId, item.id));
+  const warnedRef = React.useRef(false);
+
+  const warnGuest = () => {
+    if (!isAuthenticated && !warnedRef.current) {
+      warnedRef.current = true;
+      showError("You're adding items as a guest. Create an account to save your orders.");
+    }
+  };
 
   const addOne = async () => {
-    if (!ensureAuth()) return;
+    warnGuest();
     try {
       const res = await dispatch(
         setCartItem({ mealId: item.id, quantity: qty + 1 })
@@ -100,14 +111,15 @@ export default function MealCard({
     >
       {/* cover */}
       <View className={`${compact ? "h-36" : "h-44"} w-full`}>
-        {item.cover_image?.url ? (
-          <Image
-            source={{ uri: item.cover_image.url }}
-            className="w-full h-full"
-          />
-        ) : (
-          <View className={`flex-1 ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`} />
-        )}
+        <Image
+          source={
+            item.cover_image?.url
+              ? { uri: item.cover_image.url }
+              : require("@/assets/images/food1.png")
+          }
+          className="w-full h-full"
+          resizeMode="cover"
+        />
         <View className={`absolute right-3 top-3 ${isDark ? "bg-neutral-900/90" : "bg-white/90"} rounded-full px-2 py-1 flex-row items-center`}>
           <Ionicons name="star" size={14} color="#FFA800" />
           <Text className={`ml-1 font-satoshiMedium text-[12px] ${isDark ? "text-neutral-200" : "text-neutral-800"}`}>
@@ -124,6 +136,29 @@ export default function MealCard({
         >
           {capitalizeFirst(item.name)}
         </Text>
+        {kitchenName ? (
+          <View className="flex-row items-center mt-1">
+            <Text
+              className={`text-[12px] ${isDark ? "text-neutral-300" : "text-neutral-600"}`}
+              numberOfLines={1}
+            >
+              {kitchenName}
+            </Text>
+            {kitchenRating ? (
+              <>
+                <Text className={`mx-1 ${isDark ? "text-neutral-500" : "text-neutral-400"}`}>
+                  •
+                </Text>
+                <Ionicons name="star" size={12} color="#FFA800" />
+                <Text
+                  className={`ml-1 text-[12px] ${isDark ? "text-neutral-300" : "text-neutral-600"}`}
+                >
+                  {String(kitchenRating)}
+                </Text>
+              </>
+            ) : null}
+          </View>
+        ) : null}
         <Text className={`text-[12px] mt-0.5 ${isDark ? "text-neutral-400" : "text-neutral-500"}`} numberOfLines={1}>
           {capitalizeFirst(item.description)}
         </Text>
@@ -141,7 +176,7 @@ export default function MealCard({
           </View>
 
           {/* Add / Added button */}
-          <AddToCartButton itemId={item.id} qty={qty} onAdd={addOne} />
+          <AddToCartButton qty={qty} onAdd={addOne} />
         </View>
       </View>
     </Pressable>

@@ -29,12 +29,11 @@ import {
     selectMealsEntities,
     selectMealsIds,
     selectMealsListStatus,
-    selectMealsMeta,
 } from "@/redux/meals/meals.selectors";
 import { createMeal, fetchMeals } from "@/redux/meals/meals.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatNGN } from "@/utils/money";
-import CachedImage from "@/components/ui/CachedImage";
+import CachedImageView from "@/components/ui/CachedImage";
 
 export default function KitchenDashboardScreen() {
   const router = useRouter();
@@ -44,7 +43,6 @@ export default function KitchenDashboardScreen() {
   const kitchenStatus = useAppSelector(selectKitchenProfileStatus);
   const mealIds = useAppSelector(selectMealsIds);
   const meals = useAppSelector(selectMealsEntities);
-  const meta = useAppSelector(selectMealsMeta);
   const mealsStatus = useAppSelector(selectMealsListStatus);
 
   const [showAddMealModal, setShowAddMealModal] = useState(false);
@@ -89,7 +87,7 @@ export default function KitchenDashboardScreen() {
           type: asset.type || "image/jpeg",
         });
       }
-    } catch (err: any) {
+    } catch {
       showError("Failed to pick image");
     }
   };
@@ -194,7 +192,7 @@ export default function KitchenDashboardScreen() {
             </View>
           </View>
           {kitchen.cover_image && (
-            <CachedImage
+            <CachedImageView
               uri={kitchen.cover_image}
               className="w-20 h-20 rounded-2xl"
             />
@@ -273,7 +271,7 @@ export default function KitchenDashboardScreen() {
             renderItem={({ item }) => (
               <View className="bg-white rounded-2xl border border-neutral-100 mb-4 overflow-hidden flex-row">
                 {item.cover_image && (
-                  <CachedImage
+                  <CachedImageView
                     uri={item.cover_image.url}
                     className="w-24 h-24 bg-neutral-200"
                   />
@@ -359,7 +357,7 @@ export default function KitchenDashboardScreen() {
                 className="bg-neutral-100 rounded-2xl border border-neutral-200 overflow-hidden mb-4 h-40 items-center justify-center"
               >
                 {mealImage ? (
-                  <CachedImage
+                  <CachedImageView
                     uri={mealImage.uri}
                     className="w-full h-full"
                   />

@@ -1,16 +1,19 @@
-import { api } from "@/api/axios";
-import CachedImage from "@/components/ui/CachedImage";
+import FloatingCartButton from "@/components/cart/FloatingCartButton";
+import QuantityStepper from "@/components/ui/QuantityStepper";
+import { selectCartItemQuantity } from "@/redux/cart/cart.selectors";
+import { setCartItem } from "@/redux/cart/cart.thunks";
+import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatNGN } from "@/utils/money";
+import { mockKitchens, mockMeals, mockKitchenTypes } from "@/utils/mockData";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Linking,
   Pressable,
   ScrollView,
   Text,
@@ -62,6 +65,87 @@ function getInitials(name: string) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+function KitchenMealRow({
+  item,
+  isDark,
+}: {
+  item: Meal;
+  isDark: boolean;
+}) {
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const qty = useAppSelector(selectCartItemQuantity(item.kitchen_id, item.id));
+
+  const addOne = async () => {
+    if (!isAuthenticated) {
+      // allow but warn elsewhere if needed
+    }
+    await dispatch(setCartItem({ mealId: item.id, quantity: qty + 1 }));
+  };
+
+  const setQty = async (next: number) => {
+    await dispatch(setCartItem({ mealId: item.id, quantity: next }));
+  };
+
+  return (
+    <Pressable
+      onPress={() => router.push(`/users/meal/${item.id}` as any)}
+      className={`rounded-2xl border overflow-hidden flex-row ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
+    >
+      <View
+        className={`w-28 h-28 ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
+      >
+        {item.cover_image?.url ? (
+          <Image
+            source={{ uri: item.cover_image.url }}
+            className="w-full h-full"
+            resizeMode="cover"
+          />
+        ) : (
+          <Image
+            source={require("@/assets/images/food1.png")}
+            className="w-full h-full"
+            resizeMode="cover"
+          />
+        )}
+      </View>
+      <View className="flex-1 p-4 justify-between">
+        <View>
+          <Text
+            numberOfLines={1}
+            className={`font-satoshiBold text-[16px] ${isDark ? "text-white" : "text-neutral-900"}`}
+          >
+            {item.name}
+          </Text>
+          <Text
+            numberOfLines={1}
+            className={`text-[13px] mt-1 font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}
+          >
+            {item.description}
+          </Text>
+        </View>
+        <View className="flex-row items-center justify-between mt-3">
+          <Text className="font-satoshiBold text-primary text-[15px]">
+            {formatNGN(Number(item.price))}
+          </Text>
+          {qty > 0 ? (
+            <QuantityStepper isDark={isDark} value={qty} onChange={setQty} />
+          ) : (
+            <Pressable
+              onPress={addOne}
+              className="px-3 py-1 rounded-full bg-primary"
+            >
+              <Text className="text-white text-[12px] font-satoshiBold">
+                Add
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 export default function KitchenDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const isDark = useAppSelector(selectThemeMode) === "dark";
@@ -69,48 +153,62 @@ export default function KitchenDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [kitchen, setKitchen] = useState<Kitchen | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
-  const [mealsLoading, setMealsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchKitchen = async () => {
+  const fetchKitchen = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
       setError(null);
 
-      const res = await api.get(`/kitchens/${id}`);
-      // If your backend wraps it like { item: {...} } adjust here
-      const data = (res.data?.item || res.data) as Kitchen;
+      const source = mockKitchens.find((item) => item.id === id);
+      const data = source
+        ? ({
+            id: source.id,
+            name: source.name,
+            address: source.address,
+            phone_number: source.phone_number,
+            type: source.type ?? null,
+            delivery_time: source.delivery_time ?? null,
+            preparation_time: source.preparation_time ?? null,
+            rating: source.rating ? String(source.rating) : null,
+            is_available: source.is_available,
+            opening_time: source.opening_time ?? null,
+            closing_time: source.closing_time ?? null,
+            cover_image: source.cover_image?.url ?? null,
+            city: source.city
+              ? {
+                  id: source.city.id,
+                  name: source.city.name,
+                  state: source.city.state,
+                }
+              : null,
+          } as Kitchen)
+        : null;
       setKitchen(data);
     } catch (e: any) {
-      console.log("Fetch kitchen error", e?.response || e);
+      console.log("Fetch kitchen error", e);
       setError("Unable to load kitchen details.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchMeals = async () => {
+  const fetchMeals = useCallback(async () => {
     if (!id) return;
     try {
-      setMealsLoading(true);
-      const res = await api.get(`/meals`, {
-        params: { kitchen_id: id, per_page: 100 },
-      });
-      const data = (res.data?.items || res.data) as Meal[];
+      const data = mockMeals.filter((meal) => meal.kitchen_id === id) as Meal[];
       setMeals(Array.isArray(data) ? data : []);
     } catch (e: any) {
-      console.log("Fetch meals error", e?.response || e);
+      console.log("Fetch meals error", e);
       // Don't fail the page if meals fail to load
-    } finally {
-      setMealsLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchKitchen();
     fetchMeals();
-  }, [id]);
+  }, [fetchKitchen, fetchMeals]);
 
   const imageUri = useMemo(() => {
     if (!kitchen) return null;
@@ -165,10 +263,6 @@ export default function KitchenDetailScreen() {
       ? `${kitchen.opening_time} - ${kitchen.closing_time}`
       : null;
 
-  const handleCall = () => {
-    if (!kitchen.phone_number) return;
-    Linking.openURL(`tel:${kitchen.phone_number}`);
-  };
 
   return (
     <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
@@ -180,6 +274,8 @@ export default function KitchenDetailScreen() {
             source={{
               uri: imageUri,
             }}
+            className="w-full h-full"
+            resizeMode="cover"
           />
         ) : (
           <View className="flex-1 items-center justify-center">
@@ -227,12 +323,20 @@ export default function KitchenDetailScreen() {
           </Text>
 
           <View className="mt-3 flex-row items-center gap-x-2">
-            <View className="flex-row items-center px-2 py-1 rounded-full bg-[#FFF7E6]">
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/users/reviews/[id]",
+                  params: { id: kitchen.id, type: "kitchen" },
+                })
+              }
+              className="flex-row items-center px-2 py-1 rounded-full bg-[#FFF7E6]"
+            >
               <Ionicons name="star" size={13} color="#F59E0B" />
               <Text className="ml-1 text-[12px] font-satoshiBold text-primary">
                 {rating}
               </Text>
-            </View>
+            </Pressable>
 
             {timeLabel ? (
               <View
@@ -329,11 +433,34 @@ export default function KitchenDetailScreen() {
           </View>
         </View>
 
+        {/* categories */}
+        <View className="px-4 mt-6">
+          <Text
+            className={`text-[16px] font-satoshiBold mb-3 ${isDark ? "text-white" : "text-neutral-900"}`}
+          >
+            Categories
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {mockKitchenTypes.map((type) => (
+              <View
+                key={type}
+                className={`px-3 py-2 rounded-full ${isDark ? "bg-neutral-900 border border-neutral-800" : "bg-[#FFF7E6] border border-[#FFE7C2]"}`}
+              >
+                <Text
+                  className={`text-[12px] font-satoshiMedium ${isDark ? "text-neutral-200" : "text-neutral-800"}`}
+                >
+                  {type}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
         {/* Meals Section */}
         {meals.length > 0 && (
           <View className="mt-6">
             <Text
-              className={`px-4 text-[16px] font-satoshiBold mb-3 ${isDark ? "text-white" : "text-neutral-900"}`}
+              className={`px-4 text-[18px] font-satoshiBold mb-3 ${isDark ? "text-white" : "text-neutral-900"}`}
             >
               Menu ({meals.length})
             </Text>
@@ -344,79 +471,13 @@ export default function KitchenDetailScreen() {
               scrollEnabled={false}
               contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
               renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => router.push(`/users/meal/${item.id}` as any)}
-                  className={`rounded-2xl border overflow-hidden flex-row ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
-                >
-                  <View
-                    className={`w-24 h-24 ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
-                  >
-                    {item.cover_image?.url ? (
-                      <Image
-                        source={{ uri: item.cover_image.url }}
-                        className="w-full h-full"
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Image
-                        source={require("@/assets/images/logo-transparent.png")}
-                        className="w-full h-full"
-                        resizeMode="cover"
-                      />
-                    )}
-                  </View>
-                  <View className="flex-1 p-3 justify-between">
-                    <View>
-                      <Text
-                        numberOfLines={1}
-                        className={`font-satoshiBold text-[14px] ${isDark ? "text-white" : "text-neutral-900"}`}
-                      >
-                        {item.name}
-                      </Text>
-                      <Text
-                        numberOfLines={1}
-                        className={`text-[12px] mt-1 font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}
-                      >
-                        {item.description}
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center justify-between mt-2">
-                      <Text className="font-satoshiBold text-primary text-[14px]">
-                        {formatNGN(Number(item.price))}
-                      </Text>
-                      <View
-                        className={`px-2 py-1 rounded-full ${
-                          item.is_available
-                            ? isDark
-                              ? "bg-green-900"
-                              : "bg-green-100"
-                            : isDark
-                              ? "bg-neutral-700"
-                              : "bg-neutral-200"
-                        }`}
-                      >
-                        <Text
-                          className={`text-[10px] font-satoshiBold ${
-                            item.is_available
-                              ? isDark
-                                ? "text-green-300"
-                                : "text-green-700"
-                              : isDark
-                                ? "text-neutral-400"
-                                : "text-neutral-600"
-                          }`}
-                        >
-                          {item.is_available ? "Available" : "Out"}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </Pressable>
+                <KitchenMealRow item={item} isDark={isDark} />
               )}
             />
           </View>
         )}
       </ScrollView>
+      <FloatingCartButton onPress={() => router.push("/users/(tabs)/orders")} />
     </View>
   );
 }

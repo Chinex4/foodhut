@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { setCartItem } from "@/redux/cart/cart.thunks";
 
 type Props = {
   order: Order;
@@ -29,6 +30,7 @@ export default function OrderCard({ order, isDark }: Props) {
   const isPendingPayment = order.status === "AWAITING_PAYMENT";
   const canMarkReceived =
     order.status === "PREPARING" || order.status === "IN_TRANSIT";
+  const canRepeat = order.status === "DELIVERED";
 
   const handleCompletePayment = async () => {
     try {
@@ -59,6 +61,19 @@ export default function OrderCard({ order, isDark }: Props) {
       showSuccess("Order Delivered!");
     } catch (err: any) {
       showError(err || "Failed to update order");
+    }
+  };
+
+  const handleRepeat = async () => {
+    try {
+      for (const item of order.items) {
+        await dispatch(
+          setCartItem({ mealId: item.meal_id, quantity: item.quantity })
+        ).unwrap();
+      }
+      showSuccess("Order items added to cart");
+    } catch (err: any) {
+      showError(err || "Failed to repeat order");
     }
   };
 
@@ -119,6 +134,19 @@ export default function OrderCard({ order, isDark }: Props) {
             </Text>
           </View>
         </Pressable>
+        {canRepeat && (
+          <Pressable
+            onPress={handleRepeat}
+            className="flex-1 bg-primary rounded-xl py-2 items-center"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="refresh-outline" size={16} color="#000" />
+              <Text className="text-neutral-800 font-satoshiMedium ml-2">
+                Repeat Order
+              </Text>
+            </View>
+          </Pressable>
+        )}
         {isPendingPayment && (
           <Pressable
             onPress={handleCompletePayment}

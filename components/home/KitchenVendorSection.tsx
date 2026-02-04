@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import Section from "./Section";
 import KitchenCard from "./KitchenCard";
-import { api } from "@/api/axios";
 import { router } from "expo-router";
+import { mockKitchens } from "@/utils/mockData";
 
 type KitchenResponseItem = {
   id: string;
@@ -20,15 +20,6 @@ type KitchenResponseItem = {
   } | null;
 };
 
-type KitchensApiResponse = {
-  items: KitchenResponseItem[];
-  meta: {
-    page: number;
-    per_page: number;
-    total: number;
-  };
-};
-
 export default function KitchenVendorsSection() {
   const [loading, setLoading] = useState(true);
   const [kitchens, setKitchens] = useState<KitchenResponseItem[]>([]);
@@ -39,17 +30,26 @@ export default function KitchenVendorsSection() {
       setError(null);
       setLoading(true);
 
-      const res = await api.get<KitchensApiResponse>("/kitchens", {
-        params: {
-          per_page: 10,
-          page: 1,
-          is_available: true,
-        },
-      });
+      const items = mockKitchens
+        .filter((k) => k.is_available)
+        .slice(0, 10)
+        .map((k) => ({
+          id: k.id,
+          name: k.name,
+          cover_image: k.cover_image?.url ?? null,
+          type: k.type ?? null,
+          delivery_time: k.delivery_time ?? null,
+          preparation_time: k.preparation_time ?? null,
+          rating: String(k.rating ?? "0"),
+          is_available: k.is_available,
+          city: k.city
+            ? { name: k.city.name, state: k.city.state }
+            : null,
+        }));
 
-      setKitchens(res.data.items || []);
+      setKitchens(items || []);
     } catch (e: any) {
-      console.log("Error loading kitchens", e?.response || e);
+      console.log("Error loading kitchens", e);
       setError("Unable to load kitchens right now.");
     } finally {
       setLoading(false);

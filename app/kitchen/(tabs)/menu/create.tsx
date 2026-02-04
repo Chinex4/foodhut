@@ -1,0 +1,79 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useState } from "react";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useAppSelector } from "@/store/hooks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+
+export default function KitchenCreateMealScreen() {
+  const isDark = useAppSelector(selectThemeMode) === "dark";
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [portion, setPortion] = useState("");
+  const [desc, setDesc] = useState("");
+
+  return (
+    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View className="px-5 pt-5 pb-3 flex-row items-center">
+        <Pressable onPress={() => router.back()} className="mr-2">
+          <Ionicons name="chevron-back" size={22} color={isDark ? "#fff" : "#111827"} />
+        </Pressable>
+        <Text className={`text-2xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
+          Create Meal
+        </Text>
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        {[{ label: "Meal name", value: name, onChange: setName },
+          { label: "Price", value: price, onChange: setPrice },
+          { label: "Portion type", value: portion, onChange: setPortion }].map((field) => (
+          <View key={field.label} className="mb-4">
+            <Text className={`text-[12px] mb-1 ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
+              {field.label}
+            </Text>
+            <TextInput
+              value={field.value}
+              onChangeText={field.onChange}
+              placeholder={field.label}
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+              className={`rounded-2xl px-3 py-3 border ${
+                isDark ? "bg-neutral-900 border-neutral-800 text-white" : "bg-white border-neutral-200 text-neutral-900"
+              }`}
+            />
+          </View>
+        ))}
+
+        <View className="mb-4">
+          <Text className={`text-[12px] mb-1 ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
+            Description
+          </Text>
+          <TextInput
+            value={desc}
+            onChangeText={setDesc}
+            placeholder="Meal description"
+            placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+            multiline
+            className={`rounded-2xl px-3 py-3 border min-h-[100px] ${
+              isDark ? "bg-neutral-900 border-neutral-800 text-white" : "bg-white border-neutral-200 text-neutral-900"
+            }`}
+          />
+        </View>
+
+        <View
+          className={`rounded-2xl p-4 border border-dashed mb-4 ${
+            isDark ? "bg-neutral-900 border-neutral-700" : "bg-white border-neutral-200"
+          }`}
+        >
+          <Text className={`${isDark ? "text-neutral-300" : "text-neutral-600"}`}>
+            Image placeholder
+          </Text>
+        </View>
+
+        <Pressable className="bg-primary rounded-2xl py-4 items-center">
+          <Text className="text-white font-satoshiBold">Save Meal</Text>
+        </Pressable>
+      </ScrollView>
+    </View>
+  );
+}

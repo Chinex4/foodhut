@@ -114,7 +114,6 @@ export async function showPromise<T>(
     return res;
   } catch (e: any) {
     // 🔎 noisy console logging so you can see what's going on
-    // eslint-disable-next-line no-console
     console.log("[showPromise] error", {
       message: e?.message,
       status: e?.response?.status,

@@ -11,7 +11,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import MealCard from "@/components/home/MealCard";
 import MealCardSkeleton from "@/components/home/MealCardSkeleton";
-import CachedImage from "@/components/ui/CachedImage";
+import CachedImageView from "@/components/ui/CachedImage";
 import type { Kitchen } from "@/redux/kitchen/kitchen.types";
 import type { Meal } from "@/redux/meals/meals.types";
 
@@ -51,7 +51,7 @@ export default function HomeTab({
           }`}
         >
           <View className={`h-36 ${isDark ? "bg-neutral-800" : "bg-[#FFF3D6]"}`}>
-            <CachedImage
+            <CachedImageView
               uri={coverUri}
               className="w-full h-full"
               fallback={

@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import CachedImage from "@/components/ui/CachedImage";
+import CachedImageView from "@/components/ui/CachedImage";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { selectMe } from "@/redux/users/users.selectors";
@@ -393,7 +393,7 @@ export default function ReferralsScreen() {
                 }`}
               >
                 <View className="flex-row items-center">
-                  <CachedImage
+                  <CachedImageView
                     uri={item.avatar || undefined}
                     fallback={
                       <Image

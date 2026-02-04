@@ -3,23 +3,18 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import {
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View
-} from "react-native";
+import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as yup from "yup";
 
 import CountryCodePickerModal from "@/components/auth/CountryCodePickerModal";
-import FoodhutButton from "@/components/ui/FoodhutButton";
+import FoodhutButtonComponent from "@/components/ui/FoodhutButton";
 import { selectAuthError, selectAuthStatus } from "@/redux/auth/auth.selectors";
 import { sendSignInOtp } from "@/redux/auth/auth.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { StatusBar } from "expo-status-bar";
+import { Image } from "expo-image";
 
 type FormValues = { phone_local: string };
 
@@ -84,14 +79,14 @@ export default function LoginScreen() {
 
   const fullPhone = useMemo(
     () => (val: string) => `${country.dial}${val}`,
-    [country.dial]
+    [country.dial],
   );
 
   const onSubmit = handleSubmit(async (values) => {
     let local = sanitizeLocal(country.dial, values.phone_local, country.code);
     if (local.startsWith("0")) local = local.slice(1);
     const res = await dispatch(
-      sendSignInOtp({ phone_number: fullPhone(local) })
+      sendSignInOtp({ phone_number: fullPhone(local) }),
     );
     if (sendSignInOtp.fulfilled.match(res)) {
       router.push({
@@ -102,30 +97,55 @@ export default function LoginScreen() {
   });
 
   return (
-    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <SafeAreaView
+      className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}
+    >
       <StatusBar style={isDark ? "light" : "dark"} />
       <KeyboardAwareScrollView
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: 28,
+          paddingTop: 36,
+          marginTop: 100,
+        }}
       >
-        <Text className={`text-3xl font-satoshiBold mt-2 ${isDark ? "text-neutral-100" : "text-black"}`}>
+        <View>
+          <Image
+            className="w-44 h-44"
+            source={require("@/assets/images/logo-transparent.png")}
+          />
+        </View>
+        <Text
+          className={`text-3xl font-satoshiBold mt-2 ${isDark ? "text-neutral-100" : "text-black"}`}
+        >
           Welcome back
         </Text>
-        <Text className={`text-base font-satoshi mt-1 ${isDark ? "text-neutral-300" : "text-gray-600"}`}>
+        <Text
+          className={`text-base font-satoshi mt-1 ${isDark ? "text-neutral-300" : "text-gray-600"}`}
+        >
           Enter your phone number to continue.
         </Text>
 
-        <Text className={`mt-6 mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>
+        <Text
+          className={`mt-6 mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}
+        >
           Phone Number
         </Text>
-        <View className={`${isDark ? "bg-neutral-900" : "bg-gray-100"} rounded-xl px-3 py-1 flex-row items-center`}>
+        <View
+          className={`${isDark ? "bg-neutral-900" : "bg-gray-100"} rounded-xl px-3 py-1 flex-row items-center`}
+        >
           <Pressable
             onPress={() => setPickerOpen(true)}
             className="flex-row items-center px-2 py-2 mr-2 rounded-lg"
           >
             <Text className="text-lg mr-2">{country.flag}</Text>
-            <Text className={`text-base font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>{country.dial}</Text>
+            <Text
+              className={`text-base font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}
+            >
+              {country.dial}
+            </Text>
             <Ionicons name="chevron-down" size={16} style={{ marginLeft: 4 }} />
           </Pressable>
 
@@ -158,7 +178,11 @@ export default function LoginScreen() {
         {!!error && <Text className="text-red-600 text-xs mt-3">{error}</Text>}
 
         <View className="mt-8" />
-        <FoodhutButton title="Continue" loading={loading} onPress={onSubmit} />
+        <FoodhutButtonComponent
+          title="Continue"
+          loading={loading}
+          onPress={onSubmit}
+        />
         <Pressable
           onPress={() => router.replace("/users/(tabs)")}
           className="mt-3 rounded-2xl border border-primary px-4 py-4 items-center justify-center"
@@ -167,16 +191,6 @@ export default function LoginScreen() {
             Continue as guest
           </Text>
         </Pressable>
-
-        <Text
-          className={`text-center mt-4 font-satoshi ${isDark ? "text-neutral-200" : "text-black"}`}
-          onPress={() => router.replace("/(auth)/register")}
-        >
-          New here?{" "}
-          <Text className="text-primary font-satoshiMedium">
-            Create an account
-          </Text>
-        </Text>
       </KeyboardAwareScrollView>
 
       <CountryCodePickerModal

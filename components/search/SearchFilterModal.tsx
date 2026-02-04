@@ -30,7 +30,7 @@ export default function SearchFilterModal({
       setScope(initial.scope ?? "ALL");
       setPerPage(String(initial.per_page ?? 20));
     }
-  }, [open]);
+  }, [open, initial.scope, initial.per_page]);
 
   return (
     <Modal

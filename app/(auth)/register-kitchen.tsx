@@ -1,5 +1,5 @@
 import CountryCodePickerModal from "@/components/auth/CountryCodePickerModal";
-import FoodhutButton from "@/components/ui/FoodhutButton";
+import FoodhutButtonComponent from "@/components/ui/FoodhutButton";
 import {
     createKitchen,
     fetchKitchenCities,
@@ -82,10 +82,6 @@ export default function KitchenRegisterScreen() {
     })();
   }, [dispatch]);
 
-  const onLocalChange = (t: string) =>
-    setValue("phone_local", sanitizeLocal(country.dial, t), {
-      shouldValidate: true,
-    });
   const fullPhone = useMemo(
     () => (v: string) => `${country.dial}${v}`,
     [country.dial]
@@ -372,7 +368,7 @@ export default function KitchenRegisterScreen() {
         </Text>
 
         <View className="mt-4" />
-        <FoodhutButton title="Create Kitchen" onPress={onSubmit} />
+        <FoodhutButtonComponent title="Create Kitchen" onPress={onSubmit} />
       </KeyboardAwareScrollView>
 
       <CountryCodePickerModal

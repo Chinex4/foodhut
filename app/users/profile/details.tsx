@@ -8,11 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { logout } from "@/redux/auth/auth.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import {
-    selectDeleteMeStatus,
-    selectMe,
-    selectUpdateMeStatus,
-} from "@/redux/users/users.selectors";
+import { selectMe, selectUpdateMeStatus } from "@/redux/users/users.selectors";
 import { deleteMyProfile, updateMyProfile } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
@@ -58,7 +54,6 @@ export default function ProfileDetailsScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const me = useAppSelector(selectMe);
   const updating = useAppSelector(selectUpdateMeStatus) === "loading";
-  const deleting = useAppSelector(selectDeleteMeStatus) === "loading";
 
   // name is the only editable field per your UpdateUserPayload
   const [firstName, setFirstName] = useState(me?.first_name ?? "");
@@ -100,7 +95,7 @@ export default function ProfileDetailsScreen() {
     try {
       await dispatch(logout()).unwrap();
       router.replace("/(auth)/login");
-    } catch (error) {
+    } catch {
       // err handled in thunk
     }
   };

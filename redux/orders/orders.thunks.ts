@@ -1,6 +1,6 @@
 // redux/orders/orders.thunks.ts
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { api } from "@/api/axios";
+import { mockOrders } from "@/utils/mockData";
 import type {
   OrdersListResponse,
   OrdersQuery,
@@ -12,20 +12,25 @@ import type {
   UpdateOrderStatusPayload,
 } from "./orders.types";
 
-const BASE = "/orders";
+let orders: Order[] = [...mockOrders];
 
-const buildQuery = (q?: OrdersQuery) => {
-  if (!q) return "";
-  const p = new URLSearchParams();
-  if (q.page) p.set("page", String(q.page));
-  if (q.per_page) p.set("per_page", String(q.per_page));
-  if (q.status) p.set("status", q.status);
-  if (q.kitchen_id) p.set("kitchen_id", q.kitchen_id);
-  if (typeof q.as_kitchen !== "undefined") {
-    p.set("as_kitchen", q.as_kitchen ? "true" : "false");
-  }
-  const s = p.toString();
-  return s ? `?${s}` : "";
+export const addMockOrder = (order: Order) => {
+  orders = [order, ...orders];
+};
+
+const listOrders = (q?: OrdersQuery): OrdersListResponse => {
+  const page = q?.page ?? 1;
+  const perPage = q?.per_page ?? orders.length;
+  let filtered = [...orders];
+  if (q?.status) filtered = filtered.filter((o) => o.status === q.status);
+  if (q?.kitchen_id)
+    filtered = filtered.filter((o) => o.kitchen_id === q.kitchen_id);
+  const start = (page - 1) * perPage;
+  const items = filtered.slice(start, start + perPage);
+  return {
+    items,
+    meta: { page, per_page: perPage, total: filtered.length },
+  };
 };
 
 // LIST
@@ -35,12 +40,9 @@ export const fetchOrders = createAsyncThunk<
   { rejectValue: string }
 >("orders/fetchOrders", async (query, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}${buildQuery(query)}`);
-    return res.data as OrdersListResponse;
+    return listOrders(query);
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch orders"
-    );
+    return rejectWithValue("Failed to fetch orders");
   }
 });
 
@@ -51,12 +53,11 @@ export const fetchOrderById = createAsyncThunk<
   { rejectValue: string }
 >("orders/fetchOrderById", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/${id}`);
-    return res.data as Order;
+    const found = orders.find((o) => o.id === id);
+    if (!found) return rejectWithValue("Failed to fetch order");
+    return found;
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch order"
-    );
+    return rejectWithValue("Failed to fetch order");
   }
 });
 
@@ -67,19 +68,20 @@ export const payForOrder = createAsyncThunk<
   { rejectValue: string }
 >("orders/payForOrder", async ({ id, with: method }, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/${id}/pay`, { with: method });
     if (method === "ONLINE") {
-      return { id, with: "ONLINE", url: res.data?.url as string };
+      return {
+        id,
+        with: "ONLINE",
+        url: `https://foodhut.app/pay/${id}`,
+      };
     }
     return {
       id,
       with: "WALLET",
-      message: res.data?.message ?? "Payment successful",
+      message: "Payment successful",
     };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to initiate payment"
-    );
+    return rejectWithValue("Failed to initiate payment");
   }
 });
 
@@ -91,23 +93,23 @@ export const updateOrderItemStatus = createAsyncThunk<
   "orders/updateOrderItemStatus",
   async ({ orderId, itemId, status, as_kitchen }, { rejectWithValue }) => {
     try {
-      const body: any = { status };
-      if (typeof as_kitchen === "boolean") body.as_kitchen = as_kitchen;
-
-      const res = await api.put(
-        `${BASE}/${orderId}/items/${itemId}/status`,
-        body
+      orders = orders.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status,
+              updated_at: new Date().toISOString(),
+            }
+          : o
       );
-      const refreshed = await api.get(`${BASE}/${orderId}`);
+      const refreshed = orders.find((o) => o.id === orderId)!;
       return {
-        message: res.data?.message ?? "Order item status updated successfully",
-        order: refreshed.data as Order,
+        message: "Order item status updated successfully",
+        order: refreshed as Order,
         itemId,
       };
     } catch (err: any) {
-      return rejectWithValue(
-        err?.response?.data?.error || "Failed to update order item status"
-      );
+      return rejectWithValue("Failed to update order item status");
     }
   }
 );
@@ -119,54 +121,23 @@ export const updateOrderStatus = createAsyncThunk<
 >(
   "orders/updateOrderStatus",
   async ({ orderId, status, as_kitchen }, { rejectWithValue }) => {
-    const body: any = { status };
-    if (typeof as_kitchen === "boolean") body.as_kitchen = as_kitchen;
-
     try {
-      const url = `${BASE}/${orderId}/status`;
-
-      // debug: what are we sending?
-      console.log("[updateOrderStatus] PUT", url, body);
-
-      const res = await api.put(url, body);
-
-      console.log("[updateOrderStatus] PUT ok", {
-        status: res.status,
-        data: res.data,
-      });
-
-      const refreshed = await api.get(`${BASE}/${orderId}`);
+      orders = orders.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status,
+              updated_at: new Date().toISOString(),
+            }
+          : o
+      );
+      const refreshed = orders.find((o) => o.id === orderId)!;
       return {
-        message: res.data?.message ?? "Order status updated successfully",
-        order: refreshed.data as Order,
+        message: "Order status updated successfully",
+        order: refreshed as Order,
       };
     } catch (err: any) {
-      // Axios-style diagnostics
-      const statusCode = err?.response?.status;
-      const data = err?.response?.data;
-      const method = err?.config?.method;
-      const fullUrl = err?.config?.baseURL
-        ? `${err.config.baseURL}${err.config.url}`
-        : err?.config?.url;
-
-      console.log("[updateOrderStatus] FAILED", {
-        statusCode,
-        data,
-        method,
-        url: fullUrl,
-        sentBody: err?.config?.data, // may be JSON string
-        message: err?.message,
-      });
-
-      return rejectWithValue({
-        message:
-          data?.error ??
-          data?.message ??
-          err?.message ??
-          "Failed to update order status",
-        statusCode,
-        data,
-      });
+      return rejectWithValue({ message: "Failed to update order status" });
     }
   }
 );

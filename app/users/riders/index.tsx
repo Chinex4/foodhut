@@ -10,7 +10,7 @@ import {
     TextInput,
     View,
 } from "react-native";
-import CachedImage from "@/components/ui/CachedImage";
+import CachedImageView from "@/components/ui/CachedImage";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
@@ -66,11 +66,10 @@ export default function RidersList() {
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center">
-                <CachedImage
+                <CachedImageView
                   uri={item.avatar}
                   fallback={
-                    <CachedImage
-                      uri={null}
+                    <View
                       className={`w-10 h-10 rounded-full ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
                     />
                   }

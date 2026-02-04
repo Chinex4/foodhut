@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   Text,
   TextInput,
@@ -21,7 +22,7 @@ import {
 } from "@/redux/ads/ads.selectors";
 import { deleteAdById, fetchAds } from "@/redux/ads/ads.thunks";
 import type { Ad } from "@/redux/ads/ads.types";
-import CachedImage from "@/components/ui/CachedImage";
+import CachedImageView from "@/components/ui/CachedImage";
 
 export default function CreatedAdsListScreen() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function CreatedAdsListScreen() {
           search: search || undefined,
         })
       ).unwrap();
-    } catch (e) {
+    } catch {
       // errors already handled
     } finally {
       setRefreshing(false);
@@ -98,7 +99,7 @@ export default function CreatedAdsListScreen() {
       try {
         await dispatch(deleteAdById(id)).unwrap();
         // slice already updates list
-      } catch (e) {
+      } catch {
         // errors toasted
       }
     },
@@ -111,7 +112,7 @@ export default function CreatedAdsListScreen() {
       className="bg-white rounded-3xl mb-3 overflow-hidden"
     >
       <View className="m-3 rounded-2xl overflow-hidden bg-gray-200 h-24">
-        <CachedImage
+        <CachedImageView
           uri={item.banner_image?.url || undefined}
           fallback={
             <Image

@@ -11,7 +11,8 @@ import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
-import CachedImage from "@/components/ui/CachedImage";
+import CachedImageView from "@/components/ui/CachedImage";
+import { setCartItem } from "@/redux/cart/cart.thunks";
 import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 
 export default function OrderDetails() {
@@ -21,6 +22,7 @@ export default function OrderDetails() {
   const status = useAppSelector(makeSelectOrderByIdStatus(id!));
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const { isAuthenticated, redirectToLogin } = useEnsureAuthenticated();
+  const canRepeat = order?.status === "DELIVERED";
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -64,8 +66,13 @@ export default function OrderDetails() {
             className={`rounded-2xl border p-3 mb-3 ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
           >
             <View className="flex-row">
-              <CachedImage
-                uri={item.meal.cover_image?.url ?? ""}
+              <CachedImageView
+                uri={item.meal.cover_image?.url ?? undefined}
+                fallback={
+                  <View
+                    className={`w-16 h-16 rounded-xl ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
+                  />
+                }
                 className={`w-16 h-16 rounded-xl ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
               />
               <View className="ml-3 flex-1">
@@ -103,6 +110,23 @@ export default function OrderDetails() {
                 {formatNGN(order.total)}
               </Text>
             </View>
+            {canRepeat && (
+              <Pressable
+                onPress={async () => {
+                  for (const item of order.items) {
+                    await dispatch(
+                      setCartItem({ mealId: item.meal_id, quantity: item.quantity })
+                    );
+                  }
+                  router.push("/users/(tabs)/orders");
+                }}
+                className="mt-5 bg-primary rounded-2xl py-4 items-center justify-center"
+              >
+                <Text className="text-white font-satoshiBold">
+                  Repeat Order
+                </Text>
+              </Pressable>
+            )}
           </View>
         }
       />

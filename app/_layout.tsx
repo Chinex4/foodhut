@@ -6,7 +6,6 @@ import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { Provider } from "react-redux";
 import Toast from "react-native-toast-message";
-import { useColorScheme } from "nativewind";
 
 import { store } from "@/store";
 import { attachStore } from "@/api/axios";

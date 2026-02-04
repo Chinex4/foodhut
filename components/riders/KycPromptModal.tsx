@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal, Pressable, Text, View } from "react-native";
-import FoodhutButton from "@/components/ui/FoodhutButton";
+import FoodhutButtonComponent from "@/components/ui/FoodhutButton";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 type Props = {
@@ -37,7 +37,7 @@ export default function KycPromptModal({
             your account secure.
           </Text>
 
-          <FoodhutButton title="Verify now" onPress={onContinue} />
+          <FoodhutButtonComponent title="Verify now" onPress={onContinue} />
 
           <Pressable onPress={onClose} className="mt-3 items-center">
             <Text className="text-sm font-satoshiMedium text-gray-500">

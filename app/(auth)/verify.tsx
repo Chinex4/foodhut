@@ -1,4 +1,4 @@
-import FoodhutButton from "@/components/ui/FoodhutButton";
+import FoodhutButtonComponent from "@/components/ui/FoodhutButton";
 import { selectAuthError, selectAuthStatus } from "@/redux/auth/auth.selectors";
 import { resendVerificationOtp, verifyOtp } from "@/redux/auth/auth.thunks";
 import { fetchMyProfile } from "@/redux/users/users.thunks";
@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
     NativeSyntheticEvent,
@@ -45,7 +45,7 @@ export default function VerifyScreen() {
   const themeMode = useAppSelector((state) => state.theme.mode);
   const isDark = themeMode === "dark";
 
-  const { control, handleSubmit, setValue, getValues, watch } =
+  const { control, handleSubmit, setValue, watch } =
     useForm<FormValues>({
       resolver: yupResolver(schema),
       defaultValues: { d1: "", d2: "", d3: "", d4: "" },
@@ -71,10 +71,8 @@ export default function VerifyScreen() {
   }, []);
 
   // When user types across fields, submit automatically on 4 digits
-  const otpValue = useMemo(() => {
-    const { d1, d2, d3, d4 } = getValues();
-    return `${d1}${d2}${d3}${d4}`;
-  }, [watch(["d1", "d2", "d3", "d4"])]); // watch triggers recompute
+  const [d1, d2, d3, d4] = watch(["d1", "d2", "d3", "d4"]);
+  const otpValue = `${d1}${d2}${d3}${d4}`;
 
   useEffect(() => {
     if (otpValue.length === 4 && !loading && otpValue !== lastAutoOtp) {
@@ -160,9 +158,7 @@ export default function VerifyScreen() {
   const onResend = async () => {
     if (!canResend) return;
     setCooldown(60);
-    const res = await dispatch(
-      resendVerificationOtp({ phone_number: String(phone) })
-    );
+    await dispatch(resendVerificationOtp({ phone_number: String(phone) }));
   };
 
   return (
@@ -214,12 +210,16 @@ export default function VerifyScreen() {
 
         {/* Verify button (fallback manual submit) */}
         <View className="mt-8" />
-        <FoodhutButton title="Verify" loading={loading} onPress={onSubmit} />
+        <FoodhutButtonComponent
+          title="Verify"
+          loading={loading}
+          onPress={onSubmit}
+        />
 
         {/* Resend */}
         <View className="mt-4 flex-row items-center justify-center">
           <Text className={`font-satoshi ${isDark ? "text-neutral-200" : "text-gray-700"}`}>
-            Didn't receive code?{" "}
+            {"Didn't receive code? "}
           </Text>
           <Pressable
             disabled={!canResend}
@@ -235,9 +235,11 @@ export default function VerifyScreen() {
         {/* Change number */}
         <Pressable
           onPress={() => router.replace("/(auth)/login")}
-          className="mt-6 self-center"
+          className={`mt-6 rounded-2xl border px-4 py-4 items-center justify-center ${
+            isDark ? "border-neutral-700" : "border-primary"
+          }`}
         >
-          <Text className={`font-satoshi ${isDark ? "text-neutral-200" : "text-gray-700"}`}>
+          <Text className={`${isDark ? "text-white" : "text-primary"} font-satoshiMedium`}>
             Use a different number
           </Text>
         </Pressable>

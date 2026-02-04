@@ -74,6 +74,7 @@ export default function RiderKycScreen() {
           address: nokAddress,
         },
       };
+      void payload;
 
       // TODO: replace this with real API call
       // const res = await api.post("/riders/kyc", payload);

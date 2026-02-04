@@ -1,24 +1,12 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { api } from "@/api/axios";
+import { mockTransactions } from "@/utils/mockData";
 import type {
   Transaction,
   TransactionsListResponse,
   TransactionsQuery,
 } from "./transactions.types";
 
-const BASE = "/transactions";
-
-const buildQuery = (q?: TransactionsQuery) => {
-  if (!q) return "";
-  const p = new URLSearchParams();
-  if (q.page) p.set("page", String(q.page));
-  if (q.per_page) p.set("per_page", String(q.per_page));
-  if (typeof q.as_kitchen !== "undefined") {
-    p.set("as_kitchen", q.as_kitchen ? "true" : "false");
-  }
-  const s = p.toString();
-  return s ? `?${s}` : "";
-};
+let transactions: Transaction[] = [...mockTransactions];
 
 export const fetchTransactions = createAsyncThunk<
   TransactionsListResponse,
@@ -26,11 +14,17 @@ export const fetchTransactions = createAsyncThunk<
   { rejectValue: string }
 >("transactions/fetchTransactions", async (query, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}${buildQuery(query)}`);
-    return res.data as TransactionsListResponse;
+    const page = query?.page ?? 1;
+    const perPage = query?.per_page ?? transactions.length;
+    const start = (page - 1) * perPage;
+    const items = transactions.slice(start, start + perPage);
+    return {
+      items,
+      meta: { page, per_page: perPage, total: transactions.length },
+    };
   } catch (err: any) {
     return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch transactions"
+      "Failed to fetch transactions"
     );
   }
 });
@@ -41,11 +35,12 @@ export const fetchTransactionById = createAsyncThunk<
   { rejectValue: string }
 >("transactions/fetchTransactionById", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/${id}`);
-    return res.data as Transaction;
+    const found = transactions.find((t) => t.id === id);
+    if (!found) return rejectWithValue("Failed to fetch transaction");
+    return found;
   } catch (err: any) {
     return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch transaction"
+      "Failed to fetch transaction"
     );
   }
 });

@@ -1,4 +1,3 @@
-import CachedImage from "@/components/ui/CachedImage";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -26,17 +25,19 @@ import {
 } from "@/redux/meals/meals.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
+import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
 import { capitalizeFirst } from "@/utils/capitalize";
 import { formatNGN, toNum } from "@/utils/money";
+import FloatingCartButton from "@/components/cart/FloatingCartButton";
 
 export default function MealDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const mealId = id!;
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
-  const { ensureAuth } = useEnsureAuthenticated();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const [adding, setAdding] = useState(false);
+  const warnedRef = React.useRef(false);
 
   const meal = useAppSelector(selectMealById(mealId));
   const likeStatusSel = useMemo(
@@ -111,7 +112,10 @@ export default function MealDetailsScreen() {
   };
 
   const setQty = async (next: number) => {
-    if (!ensureAuth()) return;
+    if (!isAuthenticated && !warnedRef.current) {
+      warnedRef.current = true;
+      showError("You're updating the cart as a guest. Create an account to keep your orders.");
+    }
     try {
       const res = await dispatch(
         setCartItem({ mealId, quantity: next })
@@ -124,7 +128,10 @@ export default function MealDetailsScreen() {
 
   const addOne = async () => {
     if (adding) return;
-    if (!ensureAuth()) return;
+    if (!isAuthenticated && !warnedRef.current) {
+      warnedRef.current = true;
+      showError("You're adding items as a guest. Create an account to save your orders.");
+    }
     setAdding(true);
     try {
       const res = await dispatch(
@@ -147,13 +154,16 @@ export default function MealDetailsScreen() {
         {/* Image skeleton until onLoadEnd */}
         {!imageLoaded && <Skeleton className="absolute inset-0" />}
 
-        {!!meal!.cover_image?.url && (
-          <Image
-            source={{ uri: meal!.cover_image.url }}
-            className="w-full h-full"
-            onLoadEnd={() => setImageLoaded(true)}
-          />
-        )}
+        <Image
+          source={
+            meal!.cover_image?.url
+              ? { uri: meal!.cover_image.url }
+              : require("@/assets/images/food1.png")
+          }
+          className="w-full h-full"
+          resizeMode="cover"
+          onLoadEnd={() => setImageLoaded(true)}
+        />
 
         <View className="absolute top-20 left-4 right-4 flex-row items-center justify-between">
           <Pressable
@@ -227,14 +237,22 @@ export default function MealDetailsScreen() {
           <View
             className={`mt-4 rounded-2xl px-4 py-3 flex-row items-center justify-between ${isDark ? "bg-neutral-800" : "bg-white"}`}
           >
-            <View className="flex-row items-center">
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/users/reviews/[id]",
+                  params: { id: mealId, type: "meal" },
+                })
+              }
+              className="flex-row items-center"
+            >
               <Ionicons name="star" size={16} color="#ffa800" />
               <Text
                 className={`ml-2 ${isDark ? "text-neutral-100" : "text-neutral-800"}`}
               >
                 {String(meal!.rating)} Ratings
               </Text>
-            </View>
+            </Pressable>
             <View className="flex-row items-center">
               <Ionicons name="heart" size={16} color="#ffa800" />
               <Text
@@ -243,7 +261,11 @@ export default function MealDetailsScreen() {
                 {meal!.likes} Likes
               </Text>
             </View>
-            <QuantityStepper isDark={isDark} value={qty} onChange={setQty} />
+            {qty > 0 ? (
+              <QuantityStepper isDark={isDark} value={qty} onChange={setQty} />
+            ) : (
+              <View />
+            )}
           </View>
         </View>
       </ScrollView>
@@ -282,6 +304,7 @@ export default function MealDetailsScreen() {
           )}
         </Pressable>
       </View>
+      <FloatingCartButton onPress={() => router.push("/users/(tabs)/orders")} />
     </View>
   );
 }

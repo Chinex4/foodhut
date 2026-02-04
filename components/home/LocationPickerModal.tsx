@@ -74,7 +74,7 @@ export default function LocationPickerModal({
         }),
       ]).start();
     }
-  }, [visible]);
+  }, [visible, citiesStatus, dispatch, fadeAnim, slideAnim]);
 
   const filteredCities = useMemo(() => {
     if (!searchQuery.trim()) return cities;

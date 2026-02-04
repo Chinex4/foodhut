@@ -8,7 +8,6 @@ import {
   View,
   Pressable,
 } from "react-native";
-import CachedImage from "@/components/ui/CachedImage";
 import { formatNGN } from "@/utils/money";
 import type {
   Order,

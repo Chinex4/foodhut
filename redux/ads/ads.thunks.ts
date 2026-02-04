@@ -1,5 +1,4 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { api } from "@/api/axios";
 import type {
   Ad,
   AdsListResponse,
@@ -7,17 +6,27 @@ import type {
   CreateAdPayload,
   UpdateAdPayload,
 } from "./ads.types";
+import { mockAds } from "@/utils/mockData";
 
-const BASE = "/ads";
+let ads: Ad[] = [...mockAds];
 
-const buildQuery = (q?: AdsQuery) => {
-  if (!q) return "";
-  const p = new URLSearchParams();
-  if (q.page) p.set("page", String(q.page));
-  if (q.per_page) p.set("per_page", String(q.per_page));
-  if (q.search) p.set("search", q.search);
-  const s = p.toString();
-  return s ? `?${s}` : "";
+const listAds = (query?: AdsQuery): AdsListResponse => {
+  const page = query?.page ?? 1;
+  const perPage = query?.per_page ?? ads.length;
+  const search = query?.search?.toLowerCase();
+  const filtered = search
+    ? ads.filter((ad) => ad.link.toLowerCase().includes(search))
+    : ads;
+  const start = (page - 1) * perPage;
+  const items = filtered.slice(start, start + perPage);
+  return {
+    items,
+    meta: {
+      page,
+      per_page: perPage,
+      total: filtered.length,
+    },
+  };
 };
 
 export const createAd = createAsyncThunk<
@@ -26,27 +35,25 @@ export const createAd = createAsyncThunk<
   { rejectValue: string }
 >("ads/createAd", async (payload, { rejectWithValue }) => {
   try {
-    const form = new FormData();
-    form.append("duration", String(payload.duration));
-    form.append("link", payload.link);
-    if (payload.banner) {
-      // @ts-ignore RN FormData shape
-      form.append("banner_image" as any, {
-        uri: payload.banner.uri,
-        name: payload.banner.name ?? "banner.jpg",
-        type: payload.banner.type ?? "image/jpeg",
-      });
-    }
-    const res = await api.post(`${BASE}`, form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return {
-      id: res.data?.id as string | undefined,
-      message: res.data?.message ?? res.data?.data ?? "Ad created!",
+    const now = new Date().toISOString();
+    const newAd: Ad = {
+      id: `ad-${ads.length + 1}`,
+      link: payload.link,
+      duration: Number(payload.duration),
+      banner_image: payload.banner
+        ? {
+            public_id: "mock",
+            timestamp: Date.now(),
+            url: payload.banner.uri,
+          }
+        : null,
+      created_at: now,
+      updated_at: null,
     };
+    ads = [newAd, ...ads];
+    return { id: newAd.id, message: "Ad created!" };
   } catch (err: any) {
-    console.log("createAd response", err);
-    return rejectWithValue(err?.response?.data?.error || "Failed to create ad");
+    return rejectWithValue("Failed to create ad");
   }
 });
 
@@ -56,10 +63,9 @@ export const fetchAds = createAsyncThunk<
   { rejectValue: string }
 >("ads/fetchAds", async (query, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}${buildQuery(query)}`);
-    return res.data as AdsListResponse;
+    return listAds(query);
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error || "Failed to fetch ads");
+    return rejectWithValue("Failed to fetch ads");
   }
 });
 
@@ -69,10 +75,11 @@ export const fetchAdById = createAsyncThunk<
   { rejectValue: string }
 >("ads/fetchAdById", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/${id}`);
-    return res.data as Ad;
+    const ad = ads.find((item) => item.id === id);
+    if (!ad) return rejectWithValue("Failed to fetch ad");
+    return ad;
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error || "Failed to fetch ad");
+    return rejectWithValue("Failed to fetch ad");
   }
 });
 
@@ -82,30 +89,34 @@ export const updateAdById = createAsyncThunk<
   { rejectValue: string }
 >("ads/updateAdById", async ({ id, body }, { rejectWithValue }) => {
   try {
-    const form = new FormData();
-    if (body.duration !== undefined)
-      form.append("duration", String(body.duration));
-    if (body.link !== undefined) form.append("link", String(body.link));
-    if (body.banner) {
-      // @ts-ignore RN FormData shape
-      form.append("banner_image" as any, {
-        uri: body.banner.uri,
-        name: body.banner.name ?? "banner.jpg",
-        type: body.banner.type ?? "image/jpeg",
-      });
-    }
-    const res = await api.patch(`${BASE}/${id}`, form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    const latest = await api.get(`${BASE}/${id}`);
+    ads = ads.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            link: body.link ?? item.link,
+            duration:
+              body.duration !== undefined
+                ? Number(body.duration)
+                : item.duration,
+            banner_image: body.banner
+              ? {
+                  public_id: "mock",
+                  timestamp: Date.now(),
+                  url: body.banner.uri,
+                }
+              : item.banner_image,
+            updated_at: new Date().toISOString(),
+          }
+        : item
+    );
+    const updated = ads.find((item) => item.id === id);
     return {
-      message: res.data?.message ?? "Ad updated successfully",
+      message: "Ad updated successfully",
       id,
-      ad: latest.data as Ad,
+      ad: updated,
     };
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error || "Failed to update ad");
+    return rejectWithValue("Failed to update ad");
   }
 });
 
@@ -115,9 +126,9 @@ export const deleteAdById = createAsyncThunk<
   { rejectValue: string }
 >("ads/deleteAdById", async (id, { rejectWithValue }) => {
   try {
-    const res = await api.delete(`${BASE}/${id}`);
-    return { message: res.data?.message ?? "Ad deleted successfully", id };
+    ads = ads.filter((item) => item.id !== id);
+    return { message: "Ad deleted successfully", id };
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error || "Failed to delete ad");
+    return rejectWithValue("Failed to delete ad");
   }
 });

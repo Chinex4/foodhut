@@ -1,7 +1,7 @@
 import React from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import CachedImage from "@/components/ui/CachedImage";
+import CachedImageView from "@/components/ui/CachedImage";
 import type { Kitchen } from "@/redux/kitchen/kitchen.types";
 
 type Props = {
@@ -46,7 +46,7 @@ export default function SettingsTab({
           className="mt-3 h-40 rounded-2xl overflow-hidden border border-dashed border-primary items-center justify-center bg-neutral-50"
         >
           {kitchen?.cover_image ? (
-            <CachedImage
+            <CachedImageView
               uri={typeof kitchen.cover_image === "string" ? kitchen.cover_image : kitchen.cover_image?.url}
               className="w-full h-full"
             />

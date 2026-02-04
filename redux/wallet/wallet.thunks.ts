@@ -1,5 +1,5 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { api } from "@/api/axios";
+import { mockBanks, mockWalletProfile } from "@/utils/mockData";
 import type {
   BanksListResponse,
   BanksQuery,
@@ -13,17 +13,8 @@ import type {
   WithdrawPayload,
 } from "./wallet.types";
 
-const BASE = "/wallets";
-
-const buildQuery = (q?: BanksQuery) => {
-  if (!q) return "";
-  const p = new URLSearchParams();
-  if (q.page) p.set("page", String(q.page));
-  if (q.per_page) p.set("per_page", String(q.per_page));
-  if (q.search) p.set("search", q.search);
-  const s = p.toString();
-  return s ? `?${s}` : "";
-};
+let walletProfile: WalletProfile = { ...mockWalletProfile };
+let banks = [...mockBanks];
 
 export const fetchBanks = createAsyncThunk<
   BanksListResponse,
@@ -31,12 +22,20 @@ export const fetchBanks = createAsyncThunk<
   { rejectValue: string }
 >("wallet/fetchBanks", async (query, { rejectWithValue }) => {
   try {
-    const res = await api.get(`${BASE}/banks${buildQuery(query)}`);
-    return res.data as BanksListResponse;
+    const page = query?.page ?? 1;
+    const perPage = query?.per_page ?? banks.length;
+    const search = query?.search?.toLowerCase();
+    const filtered = search
+      ? banks.filter((b) => b.name.toLowerCase().includes(search))
+      : banks;
+    const start = (page - 1) * perPage;
+    const items = filtered.slice(start, start + perPage);
+    return {
+      items,
+      meta: { page, per_page: perPage, total: filtered.length },
+    };
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch banks"
-    );
+    return rejectWithValue("Failed to fetch banks");
   }
 });
 
@@ -46,15 +45,10 @@ export const resolveBankAccount = createAsyncThunk<
   { rejectValue: string }
 >("wallet/resolveBankAccount", async (body, { rejectWithValue }) => {
   try {
-    const payload: any = { ...body };
-    if (body.as_kitchen) {
-      payload.as_kitchen = true;
-    }
-    const res = await api.post(`${BASE}/bank-account/details`, payload);
-    return res.data as ResolveAccountResponse;
+    return { account_name: "Foodhut Account" };
   } catch (err: any) {
     return rejectWithValue(
-      err?.response?.data?.error || "Failed to resolve account details"
+      "Failed to resolve account details"
     );
   }
 });
@@ -65,12 +59,10 @@ export const fetchWalletProfile = createAsyncThunk<
   { rejectValue: string }
 >("wallet/fetchWalletProfile", async (opts, { rejectWithValue }) => {
   try {
-    const query = opts?.as_kitchen ? "?as_kitchen=true" : "";
-    const res = await api.get(`${BASE}/profile${query}`);
-    return res.data as WalletProfile;
+    return walletProfile;
   } catch (err: any) {
     return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch wallet profile"
+      "Failed to fetch wallet profile"
     );
   }
 });
@@ -81,12 +73,10 @@ export const createBankAccount = createAsyncThunk<
   { rejectValue: string }
 >("wallet/createBankAccount", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/bank-account`, body);
-    const message = res.data?.message ?? "Verification request sent";
-    return { message };
+    return { message: "Verification request sent" };
   } catch (err: any) {
     return rejectWithValue(
-      err?.response?.data?.error || "Failed to create bank account"
+      "Failed to create bank account"
     );
   }
 });
@@ -97,15 +87,10 @@ export const createTopupLink = createAsyncThunk<
   { rejectValue: string }
 >("wallet/createTopupLink", async (body, { rejectWithValue }) => {
   try {
-    const payload: any = { amount: body.amount };
-    if (body.as_kitchen) {
-      payload.as_kitchen = true;
-    }
-    const res = await api.post(`${BASE}/top-up`, payload);
-    return res.data as TopupResponse;
+    return { url: "https://foodhut.app/topup/mock" };
   } catch (err: any) {
     return rejectWithValue(
-      err?.response?.data?.error || "Failed to create top-up link"
+      "Failed to create top-up link"
     );
   }
 });
@@ -116,21 +101,17 @@ export const withdrawFunds = createAsyncThunk<
   { rejectValue: string }
 >("wallet/withdrawFunds", async (body, { rejectWithValue }) => {
   try {
-    const payload: any = {
-      account_number: body.account_number,
-      bank_code: body.bank_code,
-      account_name: body.account_name,
-      amount: body.amount,
+    walletProfile = {
+      ...walletProfile,
+      balance: String(
+        Math.max(0, Number(walletProfile.balance) - Number(body.amount))
+      ),
+      updated_at: new Date().toISOString(),
     };
-    if (body.as_kitchen) {
-      payload.as_kitchen = true;
-    }
-    const res = await api.post(`${BASE}/withdraw`, payload);
-    const message = res.data?.message ?? "Withdrawal request placed";
-    return { message };
+    return { message: "Withdrawal request placed" };
   } catch (err: any) {
     return rejectWithValue(
-      err?.response?.data?.error || "Failed to withdraw funds"
+      "Failed to withdraw funds"
     );
   }
 });

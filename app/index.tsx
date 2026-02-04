@@ -6,12 +6,9 @@ import React, { useEffect } from "react";
 import { Image, StyleSheet, View } from "react-native";
 
 import { STORAGE_KEYS } from "@/storage/keys";
-import { useAppDispatch } from "@/store/hooks";
-import { fetchMyProfile } from "@/redux/users/users.thunks";
 
 export default function Splash() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
 
   useEffect(() => {
     let isMounted = true;
@@ -29,26 +26,14 @@ export default function Splash() {
         if (!isMounted) return;
 
         if (token) {
-          try {
-            const me = await dispatch(fetchMyProfile()).unwrap();
-            if (!isMounted) return;
-            if (me?.role === "rider" || me?.has_rider) {
-              router.replace("/riders/(tabs)");
-            } else if (me?.has_kitchen) {
-              router.replace("/kitchen/(tabs)");
-            } else {
-              router.replace("/users/(tabs)");
-            }
-          } catch {
-            if (isMounted) router.replace("/users/(tabs)");
-          }
+          router.replace("/users/(tabs)");
         } else if (!hasOnboarded) {
           router.replace("/onboarding");
         } else {
-          router.replace("/(auth)/login");
+          router.replace("/users/(tabs)");
         }
       } catch {
-        if (isMounted) router.replace("/(auth)/login");
+        if (isMounted) router.replace("/users/(tabs)");
       }
     };
 
@@ -56,7 +41,7 @@ export default function Splash() {
     return () => {
       isMounted = false;
     };
-  }, [dispatch, router]);
+  }, [router]);
 
   return (
     <View style={styles.container}>

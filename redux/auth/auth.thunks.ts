@@ -1,22 +1,17 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { api } from "@/api/axios";
 import type {
   SignupPayload,
   SendOtpPayload,
   VerifyOtpPayload,
-  RefreshPayload,
   Tokens,
 } from "./auth.types";
 import {
   saveToken,
   saveRefreshToken,
-  saveUser as persistUser,
   clearToken,
   clearUser,
   getRefreshToken,
 } from "@/storage/auth";
-
-const BASE = "/auth";
 
 /**
  * SIGN UP (credentials strategy)
@@ -27,13 +22,12 @@ export const signUp = createAsyncThunk<
   { rejectValue: string }
 >("auth/signUp", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/sign-up/strategy/credentials`, body);
     return {
-      message: res.data?.error ?? "OK",
+      message: "OK",
       phone_number: body.phone_number,
     };
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error || "Sign up failed");
+    return rejectWithValue("Sign up failed");
   }
 });
 
@@ -46,13 +40,12 @@ export const sendSignInOtp = createAsyncThunk<
   { rejectValue: string }
 >("auth/sendSignInOtp", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/sign-in/strategy/phone`, body);
     return {
-      message: res.data?.error ?? "OK",
+      message: "OK",
       phone_number: body.phone_number,
     };
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error || "Sending OTP failed");
+    return rejectWithValue("Sending OTP failed");
   }
 });
 
@@ -65,13 +58,12 @@ export const resendVerificationOtp = createAsyncThunk<
   { rejectValue: string }
 >("auth/resendVerificationOtp", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/verification/send-otp`, body);
     return {
-      message: res.data?.error ?? "OK",
+      message: "OK",
       phone_number: body.phone_number,
     };
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error || "Resend OTP failed");
+    return rejectWithValue("Resend OTP failed");
   }
 });
 
@@ -84,19 +76,16 @@ export const verifyOtp = createAsyncThunk<
   { rejectValue: string }
 >("auth/verifyOtp", async (body, { rejectWithValue }) => {
   try {
-    const res = await api.post(`${BASE}/verification/verify-otp`, body);
     const tokens: Tokens = {
-      access_token: res.data?.access_token,
-      refresh_token: res.data?.refresh_token,
+      access_token: "mock-access-token",
+      refresh_token: "mock-refresh-token",
     };
     await saveToken(tokens.access_token);
     await saveRefreshToken(tokens.refresh_token);
     // persistUser(user) if backend returns user later
     return tokens;
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "OTP verification failed"
-    );
+    return rejectWithValue("OTP verification failed");
   }
 });
 
@@ -111,17 +100,15 @@ export const refreshTokens = createAsyncThunk<
   try {
     const refresh = await getRefreshToken();
     if (!refresh) return rejectWithValue("No refresh token");
-    const body: RefreshPayload = { token: refresh };
-    const res = await api.post(`${BASE}/refresh`, body);
     const tokens: Tokens = {
-      access_token: res.data?.access_token,
-      refresh_token: res.data?.refresh_token,
+      access_token: "mock-access-token",
+      refresh_token: "mock-refresh-token",
     };
     await saveToken(tokens.access_token);
     await saveRefreshToken(tokens.refresh_token);
     return tokens;
   } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error || "Refresh failed");
+    return rejectWithValue("Refresh failed");
   }
 });
 

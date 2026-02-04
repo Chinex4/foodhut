@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -7,124 +7,42 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppSelector } from "@/store/hooks";
 import { showSuccess } from "@/components/ui/toast";
-
-type RideOffer = {
-  id: string;
-  pickup: string;
-  dropoff: string;
-  distance: string;
-  eta: string;
-  customerName: string;
-  customerPhone: string;
-  suggestedFare: string;
-  note?: string;
-};
-
-type RideStage =
-  | "pending"
-  | "accepted"
-  | "arrived_pickup"
-  | "picked_up"
-  | "arrived_dropoff"
-  | "completed";
-
-const mockOffers: RideOffer[] = [
-  {
-    id: "FH-237895",
-    pickup: "Food Hut - Ikoyi",
-    dropoff: "12, Kaduri street, Lagos",
-    distance: "4.2 km",
-    eta: "18 mins",
-    customerName: "Faith A.",
-    customerPhone: "+234 809 260 4955",
-    suggestedFare: "₦2,500",
-    note: "Leave at reception if I’m not home.",
-  },
-  {
-    id: "FH-237896",
-    pickup: "Mama’s Kitchen - Lekki",
-    dropoff: "1, Umu street, Lagos",
-    distance: "6.8 km",
-    eta: "25 mins",
-    customerName: "Kunle O.",
-    customerPhone: "+234 701 222 9931",
-    suggestedFare: "₦3,400",
-  },
-  {
-    id: "FH-237897",
-    pickup: "Urban Eats - VI",
-    dropoff: "45, Herbert Macaulay, Lagos",
-    distance: "5.5 km",
-    eta: "21 mins",
-    customerName: "Maya I.",
-    customerPhone: "+234 812 334 1001",
-    suggestedFare: "₦2,900",
-    note: "Call when you arrive.",
-  },
-];
+import {
+  mockRiderJobs,
+  mockRiderWallet,
+  type RiderJob,
+  type RiderJobStatus,
+} from "@/utils/mock/mockRider";
 
 export default function RiderHomeScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const [online, setOnline] = useState(true);
-  const [offers, setOffers] = useState<RideOffer[]>(mockOffers);
-  const [activeRide, setActiveRide] = useState<RideOffer | null>(null);
-  const [stage, setStage] = useState<RideStage>("pending");
-  const [negotiationId, setNegotiationId] = useState<string | null>(null);
-  const [negotiationAmount, setNegotiationAmount] = useState("");
-  const [shareLocation, setShareLocation] = useState(true);
+  const [jobs, setJobs] = useState<RiderJob[]>(mockRiderJobs);
 
   const canProgress = useMemo(() => {
-    return activeRide && stage !== "completed";
-  }, [activeRide, stage]);
+    return jobs.some((j) => j.status === "ACTIVE" || j.status === "IN_PROGRESS");
+  }, [jobs]);
 
-  const acceptOffer = (offer: RideOffer) => {
-    setActiveRide(offer);
-    setStage("accepted");
-    setOffers((prev) => prev.filter((o) => o.id !== offer.id));
-    showSuccess("Ride accepted. Head to pickup.");
+  const setJobStatus = (id: string, status: RiderJobStatus) => {
+    setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, status } : j)));
   };
 
-  const rejectOffer = (id: string) => {
-    setOffers((prev) => prev.filter((o) => o.id !== id));
+  const acceptJob = (id: string) => {
+    setJobStatus(id, "ACTIVE");
+    showSuccess("Job accepted. Head to pickup.");
   };
 
-  const sendNegotiation = (id: string) => {
-    if (!negotiationAmount.trim()) return;
-    setNegotiationId(null);
-    setNegotiationAmount("");
-    showSuccess("Offer sent to customer.");
+  const startRide = (id: string) => {
+    setJobStatus(id, "IN_PROGRESS");
+    showSuccess("Ride started.");
   };
 
-  const advanceStage = () => {
-    const order: RideStage[] = [
-      "accepted",
-      "arrived_pickup",
-      "picked_up",
-      "arrived_dropoff",
-      "completed",
-    ];
-    const currentIndex = order.indexOf(stage);
-    const nextStage = order[Math.min(currentIndex + 1, order.length - 1)];
-    setStage(nextStage);
-    if (nextStage === "completed") {
-      showSuccess("Ride completed.");
-      setActiveRide(null);
-      setStage("pending");
-    }
+  const endRide = (id: string) => {
+    const job = jobs.find((j) => j.id === id);
+    if (!job) return;
+    setJobs((prev) => prev.filter((j) => j.id !== id));
+    showSuccess("Ride completed.");
   };
-
-  const stageLabel =
-    stage === "accepted"
-      ? "Accepted"
-      : stage === "arrived_pickup"
-        ? "Arrived at pickup"
-        : stage === "picked_up"
-          ? "Picked up order"
-          : stage === "arrived_dropoff"
-            ? "Arrived at customer"
-            : stage === "completed"
-              ? "Completed"
-              : "Idle";
 
   return (
     <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
@@ -153,15 +71,19 @@ export default function RiderHomeScreen() {
           <View className="flex-row items-center gap-2">
             <Text
               className={`text-[12px] font-satoshiMedium ${
-                online ? "text-emerald-500" : isDark ? "text-neutral-400" : "text-neutral-500"
+                online
+                  ? "text-emerald-500"
+                  : isDark
+                    ? "text-neutral-400"
+                    : "text-neutral-500"
               }`}
             >
               {online ? "Online" : "Offline"}
             </Text>
             <Switch
-              value={shareLocation}
-              onValueChange={setShareLocation}
-              thumbColor={shareLocation ? "#F59E0B" : "#9CA3AF"}
+              value={online}
+              onValueChange={setOnline}
+              thumbColor={online ? "#F59E0B" : "#9CA3AF"}
               trackColor={{ false: "#d1d5db", true: "#92400e" }}
             />
           </View>
@@ -178,262 +100,255 @@ export default function RiderHomeScreen() {
                 isDark ? "text-neutral-100" : "text-neutral-900"
               }`}
             >
-              Live location
+              Live map
             </Text>
-            <Pressable
-              onPress={() => showSuccess("Live location shared with customer.")}
-              className="flex-row items-center"
-            >
-              <Ionicons name="share-social-outline" size={16} color={isDark ? "#E5E7EB" : "#0F172A"} />
-              <Text className={`ml-1 text-[12px] font-satoshiMedium ${isDark ? "text-neutral-200" : "text-neutral-700"}`}>
-                Broadcast
-              </Text>
-            </Pressable>
           </View>
           <View
-            className={`h-36 rounded-2xl items-center justify-center ${
+            className={`h-44 rounded-2xl items-center justify-center ${
               isDark ? "bg-neutral-800" : "bg-amber-50"
             }`}
           >
             <Ionicons
               name="map-outline"
               size={28}
-              color={isDark ? "#9CA3AF" : "#92400e"}
+              color={isDark ? "#9CA3AF" : "#f59e0b"}
             />
             <Text
-              className={`mt-2 text-[12px] font-satoshi ${
+              className={`text-[12px] mt-2 ${
                 isDark ? "text-neutral-400" : "text-neutral-600"
               }`}
             >
-              Google Maps preview (live tracking)
+              Map preview placeholder
             </Text>
-          </View>
-          <View className="flex-row items-center justify-between mt-3">
-            <Text className={`text-[12px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-              Share live updates with customer
-            </Text>
-            <Switch
-              value={online}
-              onValueChange={setOnline}
-              thumbColor={online ? "#F59E0B" : "#9CA3AF"}
-              trackColor={{ false: "#d1d5db", true: "#92400e" }}
-            />
           </View>
         </View>
 
-        <View className="flex-row gap-3 mb-5">
+        <View className="flex-row gap-3 mb-4">
           {[
-            { label: "Today", value: "₦24,500" },
-            { label: "Week", value: "₦102,300" },
-          ].map((stat) => (
+            { label: "Wallet", value: mockRiderWallet.balance },
+            { label: "Daily Cash", value: mockRiderWallet.dailyCash },
+          ].map((card) => (
             <View
-              key={stat.label}
-              className={`flex-1 rounded-3xl px-4 py-3 ${
-                isDark ? "bg-neutral-900" : "bg-[#FFE7BA]"
+              key={card.label}
+              className={`flex-1 rounded-2xl p-3 border ${
+                isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
               }`}
             >
-              <Text className={`text-xs font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-700"} mb-1`}>
-                {stat.label} earnings
+              <Text
+                className={`text-[12px] ${
+                  isDark ? "text-neutral-400" : "text-neutral-500"
+                }`}
+              >
+                {card.label}
               </Text>
-              <Text className={`text-xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
-                {stat.value}
+              <Text
+                className={`mt-1 text-[16px] font-satoshiBold ${
+                  isDark ? "text-white" : "text-neutral-900"
+                }`}
+              >
+                {card.value}
               </Text>
             </View>
           ))}
         </View>
 
-        <Text className={`text-base font-satoshiBold mb-2 ${isDark ? "text-white" : "text-neutral-900"}`}>
-          Available Rides
+        <View className="flex-row gap-3 mb-6">
+          {[
+            { label: "Trips Today", value: String(mockRiderWallet.todayTrips) },
+            { label: "Hours", value: mockRiderWallet.todayHours },
+          ].map((card) => (
+            <View
+              key={card.label}
+              className={`flex-1 rounded-2xl p-3 border ${
+                isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+              }`}
+            >
+              <Text
+                className={`text-[12px] ${
+                  isDark ? "text-neutral-400" : "text-neutral-500"
+                }`}
+              >
+                {card.label}
+              </Text>
+              <Text
+                className={`mt-1 text-[16px] font-satoshiBold ${
+                  isDark ? "text-white" : "text-neutral-900"
+                }`}
+              >
+                {card.value}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <Text
+          className={`text-[16px] font-satoshiBold mb-3 ${
+            isDark ? "text-white" : "text-neutral-900"
+          }`}
+        >
+          Available jobs
         </Text>
-        {offers.map((offer) => (
+
+        {!online ? (
           <View
-            key={offer.id}
-            className={`rounded-3xl px-5 py-4 mb-4 border ${
-              isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-[#FFD7A3]"
+            className={`rounded-2xl p-4 border ${
+              isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
             }`}
           >
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className={`text-sm font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
-                {offer.id}
-              </Text>
-              <View className={`px-2 py-1 rounded-full ${isDark ? "bg-neutral-800" : "bg-amber-100"}`}>
-                <Text className={`text-[11px] font-satoshiMedium ${isDark ? "text-neutral-200" : "text-amber-700"}`}>
-                  {offer.distance} • {offer.eta}
-                </Text>
-              </View>
-            </View>
-
-            <View className="flex-row justify-between mb-2">
-              <Text className={`text-sm font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-                Pickup
-              </Text>
-              <Text className={`text-sm font-satoshiMedium text-right flex-1 ml-4 ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
-                {offer.pickup}
-              </Text>
-            </View>
-            <View className="flex-row justify-between mb-2">
-              <Text className={`text-sm font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-                Dropoff
-              </Text>
-              <Text className={`text-sm font-satoshiMedium text-right flex-1 ml-4 ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
-                {offer.dropoff}
-              </Text>
-            </View>
-            <View className="flex-row justify-between mb-2">
-              <Text className={`text-sm font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-                Customer
-              </Text>
-              <Text className={`text-sm font-satoshiMedium text-right ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
-                {offer.customerName}
-              </Text>
-            </View>
-            <View className="flex-row justify-between mb-2">
-              <Text className={`text-sm font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-                Contact
-              </Text>
-              <Text className={`text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
-                {offer.customerPhone}
-              </Text>
-            </View>
-            <View className="flex-row justify-between mb-2">
-              <Text className={`text-sm font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-                Offer
-              </Text>
-              <Text className={`text-sm font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
-                {offer.suggestedFare}
-              </Text>
-            </View>
-            {offer.note ? (
-              <Text className={`text-[12px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"} mb-3`}>
-                Note: {offer.note}
-              </Text>
-            ) : null}
-
-            {negotiationId === offer.id ? (
-              <View className={`rounded-2xl p-3 mb-3 ${isDark ? "bg-neutral-800" : "bg-amber-50"}`}>
-                <Text className={`text-[12px] font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-600"} mb-2`}>
-                  Send a counter-offer
-                </Text>
-                <View className="flex-row items-center">
-                  <TextInput
-                    placeholder="Enter amount (e.g ₦3000)"
-                    value={negotiationAmount}
-                    onChangeText={setNegotiationAmount}
-                    placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-                    className={`flex-1 px-3 py-2 rounded-xl border ${
-                      isDark ? "text-white border-neutral-700" : "text-neutral-900 border-neutral-200"
+            <Text className={isDark ? "text-neutral-300" : "text-neutral-600"}>
+              You are offline. Go online to see available jobs.
+            </Text>
+          </View>
+        ) : (
+          jobs
+            .filter((j) => j.status === "AVAILABLE")
+            .map((job) => (
+              <View
+                key={job.id}
+                className={`rounded-3xl px-4 py-4 mb-3 border ${
+                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+                }`}
+              >
+                <View className="flex-row items-center justify-between">
+                  <Text
+                    className={`text-[13px] font-satoshiMedium ${
+                      isDark ? "text-white" : "text-neutral-900"
                     }`}
-                  />
-                  <Pressable
-                    onPress={() => sendNegotiation(offer.id)}
-                    className="ml-2 bg-primary rounded-xl px-3 py-2"
                   >
-                    <Text className="text-white font-satoshiMedium">Send</Text>
+                    {job.id}
+                  </Text>
+                  <View className="px-2 py-1 rounded-full bg-amber-100">
+                    <Text className="text-[10px] font-satoshiBold text-amber-700">
+                      {job.fare}
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  className={`mt-2 text-[12px] ${
+                    isDark ? "text-neutral-400" : "text-neutral-600"
+                  }`}
+                >
+                  Pickup: {job.pickup}
+                </Text>
+                <Text
+                  className={`mt-1 text-[12px] ${
+                    isDark ? "text-neutral-400" : "text-neutral-600"
+                  }`}
+                >
+                  Dropoff: {job.dropoff}
+                </Text>
+                <View className="flex-row items-center mt-2">
+                  <Text
+                    className={`text-[11px] ${
+                      isDark ? "text-neutral-500" : "text-neutral-500"
+                    }`}
+                  >
+                    {job.distance} • {job.eta}
+                  </Text>
+                </View>
+                <View className="flex-row mt-3">
+                  <Pressable
+                    onPress={() => acceptJob(job.id)}
+                    className="flex-1 rounded-2xl py-3 items-center bg-primary mr-2"
+                  >
+                    <Text className="text-white font-satoshiBold">Accept</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() =>
+                      setJobs((prev) => prev.filter((j) => j.id !== job.id))
+                    }
+                    className={`flex-1 rounded-2xl py-3 items-center ${
+                      isDark ? "bg-neutral-800" : "bg-neutral-100"
+                    }`}
+                  >
+                    <Text
+                      className={`${
+                        isDark ? "text-neutral-200" : "text-neutral-700"
+                      } font-satoshiMedium`}
+                    >
+                      Decline
+                    </Text>
                   </Pressable>
                 </View>
               </View>
-            ) : null}
-
-            <View className="flex-row gap-3">
-              <Pressable
-                onPress={() => rejectOffer(offer.id)}
-                className={`flex-1 rounded-2xl py-3 items-center border ${
-                  isDark ? "border-neutral-700" : "border-primary"
-                }`}
-              >
-                <Text className={`${isDark ? "text-neutral-200" : "text-primary"} font-satoshiMedium`}>
-                  Reject
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setNegotiationId(offer.id)}
-                className={`flex-1 rounded-2xl py-3 items-center border ${
-                  isDark ? "border-neutral-700" : "border-neutral-200"
-                }`}
-              >
-                <Text className={`font-satoshiMedium ${isDark ? "text-neutral-200" : "text-neutral-700"}`}>
-                  Negotiate
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => acceptOffer(offer)}
-                className="flex-1 bg-primary rounded-2xl py-3 items-center"
-              >
-                <Text className="text-white font-satoshiMedium">Accept</Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
-        {offers.length === 0 && (
-          <View className="items-center py-8">
-            <Ionicons name="bicycle-outline" size={36} color={isDark ? "#6B7280" : "#D1D5DB"} />
-            <Text className={`mt-3 font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-              No ride offers right now.
-            </Text>
-          </View>
+            ))
         )}
 
-        <Text className={`text-base font-satoshiBold mt-4 mb-2 ${isDark ? "text-white" : "text-neutral-900"}`}>
-          Active Ride
-        </Text>
-        <View
-          className={`rounded-3xl px-5 py-4 mb-6 border ${
-            isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
-          }`}
-        >
-          {activeRide ? (
-            <>
-              <Text className={`text-sm font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
-                {activeRide.id} • {stageLabel}
-              </Text>
-              <Text className={`text-[12px] mt-1 font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                Pickup: {activeRide.pickup}
-              </Text>
-              <Text className={`text-[12px] mt-1 font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                Dropoff: {activeRide.dropoff}
-              </Text>
-
-              <View className="flex-row items-center justify-between mt-4">
-                <Pressable
-                  onPress={() => showSuccess("Customer notified of arrival.")}
-                  className={`flex-1 rounded-2xl py-3 items-center border ${
-                    isDark ? "border-neutral-700" : "border-neutral-200"
+        {canProgress && (
+          <>
+            <Text
+              className={`text-[16px] font-satoshiBold mt-4 mb-3 ${
+                isDark ? "text-white" : "text-neutral-900"
+              }`}
+            >
+              Active ride
+            </Text>
+            {jobs
+              .filter((j) => j.status === "ACTIVE" || j.status === "IN_PROGRESS")
+              .map((job) => (
+                <View
+                  key={job.id}
+                  className={`rounded-3xl px-4 py-4 mb-3 border ${
+                    isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
                   }`}
                 >
-                  <Text className={`font-satoshiMedium ${isDark ? "text-neutral-200" : "text-neutral-700"}`}>
-                    Notify Customer
+                  <View className="flex-row items-center justify-between">
+                    <Text
+                      className={`text-[13px] font-satoshiMedium ${
+                        isDark ? "text-white" : "text-neutral-900"
+                      }`}
+                    >
+                      {job.id}
+                    </Text>
+                    <View
+                      className={`px-2 py-1 rounded-full ${
+                        job.status === "IN_PROGRESS" ? "bg-emerald-100" : "bg-amber-100"
+                      }`}
+                    >
+                      <Text
+                        className={`text-[10px] font-satoshiBold ${
+                          job.status === "IN_PROGRESS" ? "text-emerald-700" : "text-amber-700"
+                        }`}
+                      >
+                        {job.status === "IN_PROGRESS" ? "In Progress" : "Active"}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text
+                    className={`mt-2 text-[12px] ${
+                      isDark ? "text-neutral-400" : "text-neutral-600"
+                    }`}
+                  >
+                    Pickup: {job.pickup}
                   </Text>
-                </Pressable>
-                <Pressable
-                  onPress={advanceStage}
-                  disabled={!canProgress}
-                  className={`ml-3 flex-1 rounded-2xl py-3 items-center ${
-                    canProgress ? "bg-primary" : "bg-neutral-400"
-                  }`}
-                >
-                  <Text className="text-white font-satoshiMedium">
-                    {stage === "accepted"
-                      ? "Arrived Pickup"
-                      : stage === "arrived_pickup"
-                        ? "Picked Up"
-                        : stage === "picked_up"
-                          ? "Arrived Dropoff"
-                          : stage === "arrived_dropoff"
-                            ? "Complete"
-                            : "Start"}
+                  <Text
+                    className={`mt-1 text-[12px] ${
+                      isDark ? "text-neutral-400" : "text-neutral-600"
+                    }`}
+                  >
+                    Dropoff: {job.dropoff}
                   </Text>
-                </Pressable>
-              </View>
-            </>
-          ) : (
-            <View className="items-center py-6">
-              <Ionicons name="time-outline" size={32} color={isDark ? "#6B7280" : "#D1D5DB"} />
-              <Text className={`mt-3 font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                Accept a ride to start delivery.
-              </Text>
-            </View>
-          )}
-        </View>
+                  <View className="flex-row mt-3">
+                    {job.status === "ACTIVE" ? (
+                      <Pressable
+                        onPress={() => startRide(job.id)}
+                        className="flex-1 rounded-2xl py-3 items-center bg-primary"
+                      >
+                        <Text className="text-white font-satoshiBold">Start Ride</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        onPress={() => endRide(job.id)}
+                        className="flex-1 rounded-2xl py-3 items-center bg-primary"
+                      >
+                        <Text className="text-white font-satoshiBold">End Ride</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              ))}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

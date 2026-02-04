@@ -8,13 +8,12 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 export default function RiderRatings() {
-  const { id } = useLocalSearchParams<{ id: string }>();
   const [stars, setStars] = useState(0);
   const [text, setText] = useState("");
   const isDark = useAppSelector(selectThemeMode) === "dark";

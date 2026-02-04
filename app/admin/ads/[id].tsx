@@ -18,7 +18,7 @@ import {
   makeSelectAdByIdStatus,
 } from "@/redux/ads/ads.selectors";
 import { deleteAdById, fetchAdById } from "@/redux/ads/ads.thunks";
-import CachedImage from "@/components/ui/CachedImage";
+import CachedImageView from "@/components/ui/CachedImage";
 
 export default function AdDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,7 +40,7 @@ export default function AdDetailScreen() {
     try {
       await dispatch(deleteAdById(id)).unwrap();
       router.back();
-    } catch (e) {
+    } catch {
       // error already toasted
     }
   };
@@ -81,7 +81,7 @@ export default function AdDetailScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View className="rounded-3xl overflow-hidden bg-gray-200 mb-4">
-          <CachedImage
+          <CachedImageView
             uri={ad.banner_image?.url}
             fallback={
               <Image

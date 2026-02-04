@@ -1,10 +1,10 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { api } from "@/api/axios";
 import type {
   AnalyticsResponse,
   AnalyticsType,
   DashboardInfo,
 } from "./dashboard.types";
+import { mockAnalyticsItems, mockDashboardInfo } from "@/utils/mockData";
 
 export const fetchDashboardInfo = createAsyncThunk<
   DashboardInfo,
@@ -12,12 +12,9 @@ export const fetchDashboardInfo = createAsyncThunk<
   { rejectValue: string }
 >("dashboard/fetchDashboardInfo", async (_, { rejectWithValue }) => {
   try {
-    const res = await api.get("/dashboard/info");
-    return res.data as DashboardInfo;
+    return mockDashboardInfo;
   } catch (err: any) {
-    return rejectWithValue(
-      err?.response?.data?.error || "Failed to fetch dashboard info"
-    );
+    return rejectWithValue("Failed to fetch dashboard info");
   }
 });
 
@@ -34,18 +31,24 @@ export const fetchDashboardAnalytics = createAsyncThunk<
   "dashboard/fetchDashboardAnalytics",
   async ({ type }, { rejectWithValue }) => {
     try {
-      const res = await api.get(`/dashboard/analytics`, { params: { type } });
-      const data = res.data as AnalyticsResponse;
+      const perPage = 10;
       return {
-        items: data.data.items,
-        meta: data.data.meta,
-        total: data.total,
+        items: mockAnalyticsItems,
+        meta: {
+          page: 1,
+          per_page: perPage,
+          total: mockAnalyticsItems.length,
+        },
+        total: String(
+          mockAnalyticsItems.reduce(
+            (sum, item) => sum + Number(item.amount || 0),
+            0
+          )
+        ),
         type,
       };
     } catch (err: any) {
-      return rejectWithValue(
-        err?.response?.data?.error || "Failed to fetch analytics"
-      );
+      return rejectWithValue("Failed to fetch analytics");
     }
   }
 );

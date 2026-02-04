@@ -1,13 +1,15 @@
-import CachedImage from "@/components/ui/CachedImage";
+import CachedImageView from "@/components/ui/CachedImage";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { capitalizeFirst } from "@/utils/capitalize";
 import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as Clipboard from "expo-clipboard";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   ActivityIndicator,
   FlatList,
   Image,
@@ -38,8 +40,9 @@ import {
 } from "@/redux/wallet/wallet.selectors";
 import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
+import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
 import { listenRiderPicked } from "@/utils/riderBus.native";
+import { mockMeals } from "@/utils/mockData";
 
 type PaymentUI = "ONLINE" | "WALLET" | "PAY_FOR_ME";
 
@@ -120,13 +123,7 @@ export default function CheckoutScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
-  const { isAuthenticated, redirectToLogin } = useEnsureAuthenticated();
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      redirectToLogin();
-    }
-  }, [isAuthenticated, redirectToLogin]);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   // inside component
   const { kitchen_id } = useLocalSearchParams<{ kitchen_id?: string }>();
@@ -164,7 +161,10 @@ export default function CheckoutScreen() {
   // UI state
   const [tab, setTab] = useState<"ORDER" | "DELIVERY">("ORDER");
   const [address, setAddress] = useState<string>("");
-  const [when, setWhen] = useState<"ASAP" | "SCHEDULE">("ASAP");
+  const when: "ASAP" | "SCHEDULE" = "ASAP";
+  const [fulfillment, setFulfillment] = useState<
+    "DELIVERY" | "PICKUP" | "SITIN"
+  >("DELIVERY");
   const [paymentMethod, setPaymentMethod] = useState<PaymentUI>("ONLINE");
 
   const [riderNote, setRiderNote] = useState<string>("");
@@ -173,7 +173,7 @@ export default function CheckoutScreen() {
 
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
 
-  const [scheduledAt, setScheduledAt] = useState<number | undefined>(undefined);
+  const scheduledAt: number | undefined = undefined;
 
   // simple static fees (replace if backend returns these)
   // const deliveryFee = useMemo(() => (subtotal > 0 ? 1200 : 0), [subtotal]);
@@ -196,10 +196,10 @@ export default function CheckoutScreen() {
   const walletProfileStatus = useAppSelector(selectWalletProfileStatus);
 
   useEffect(() => {
-    if (walletProfileStatus === "idle") {
+    if (walletProfileStatus === "idle" && isAuthenticated) {
       dispatch(fetchWalletProfile());
     }
-  }, [walletProfileStatus, dispatch]);
+  }, [walletProfileStatus, dispatch, isAuthenticated]);
 
   // ============ Fees (REMOVED) ============
   // Removed delivery_fee and service_fee as per requirements
@@ -217,9 +217,15 @@ export default function CheckoutScreen() {
     setKitchenId((k) => k ?? kitchenIds[0] ?? null);
   }, [kitchenIds]);
 
+  useEffect(() => {
+    if (kitchenId && orderRows.length === 0) {
+      router.replace("/users/(tabs)/orders?tab=carts");
+    }
+  }, [kitchenId, orderRows.length, router]);
+
   const canPlace =
     subtotal >= 0 &&
-    !!address.trim() &&
+    (fulfillment !== "DELIVERY" || !!address.trim()) &&
     !!kitchenId &&
     !(when === "SCHEDULE" && !scheduledAt) &&
     !isBusy;
@@ -227,6 +233,9 @@ export default function CheckoutScreen() {
   const handlePlaceOrder = async () => {
     try {
       if (!kitchenId) return showError("Select a kitchen to continue.");
+      if (!isAuthenticated) {
+        showError("You're checking out as a guest. Create an account to track your order history.");
+      }
       if (paymentMethod === "WALLET" && walletBalance < subtotal) {
         return showError("Insufficient wallet balance. Please top up.");
       }
@@ -241,7 +250,7 @@ export default function CheckoutScreen() {
             : "ONLINE",
         delivery_address: address.trim(),
         dispatch_rider_note: (riderNote ?? "").trim(),
-        delivery_date: when === "SCHEDULE" ? scheduledAt : undefined,
+        delivery_date: undefined,
         rider_id: selectedRider?.id || undefined,
       } as const;
 
@@ -265,8 +274,26 @@ export default function CheckoutScreen() {
             payRes && payRes.with === "ONLINE" ? (payRes as any).url : "";
           if (url && typeof url === "string") {
             const shareText = `Help me complete my food order! Tap to complete payment: ${url}`;
-            await Share.share({ message: shareText, url });
-            showSuccess("Payment link ready to share.");
+            Alert.alert(
+              "Share link",
+              "Copy the link or share it with a friend.",
+              [
+                {
+                  text: "Copy Link",
+                  onPress: async () => {
+                    await Clipboard.setStringAsync(url);
+                    showSuccess("Link copied to clipboard.");
+                  },
+                },
+                {
+                  text: "Share",
+                  onPress: async () => {
+                    await Share.share({ message: shareText, url });
+                  },
+                },
+                { text: "Cancel", style: "cancel" },
+              ]
+            );
           } else {
             showError("Payment link not available yet. Please try again.");
           }
@@ -334,6 +361,14 @@ export default function CheckoutScreen() {
           </Text>
           <View className="w-10" />
         </View>
+
+        {!isAuthenticated && (
+          <View className={`mt-4 rounded-2xl border px-3 py-2 ${isDark ? "border-neutral-800 bg-neutral-900" : "border-primary-100 bg-primary-50"}`}>
+            <Text className={`${isDark ? "text-neutral-200" : "text-neutral-700"} text-xs font-satoshi`}>
+              Guest checkout: create an account to save your details and track orders.
+            </Text>
+          </View>
+        )}
 
         {/* Tabs */}
         <View className="flex-row mt-5">
@@ -404,11 +439,11 @@ export default function CheckoutScreen() {
                 }}
               >
                 <View className="flex-row">
-                  <CachedImage
+                  <CachedImageView
                     uri={item.cover || undefined}
                     fallback={
                       <Image
-                        source={require("@/assets/images/logo-transparent.png")}
+                        source={require("@/assets/images/food1.png")}
                         className={`w-16 h-16 rounded-xl ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
                       />
                     }
@@ -455,7 +490,49 @@ export default function CheckoutScreen() {
               </View>
             );
           }}
-            ListFooterComponent={<View style={{ height: 6 }} />}
+            ListFooterComponent={
+              <View className="mt-2 mb-6">
+                <Text
+                  className={`font-satoshiBold text-[16px] mb-3 ${isDark ? "text-white" : "text-neutral-900"}`}
+                >
+                  You might also like
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View className="flex-row gap-3">
+                    {mockMeals.slice(0, 6).map((meal) => (
+                      <Pressable
+                        key={meal.id}
+                        onPress={() => router.push(`/users/meal/${meal.id}`)}
+                        className={`w-40 rounded-2xl border ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
+                      >
+                        <Image
+                          source={
+                            meal.cover_image?.url
+                              ? { uri: meal.cover_image.url }
+                              : require("@/assets/images/food1.png")
+                          }
+                          className="w-full h-24 rounded-t-2xl"
+                          resizeMode="cover"
+                        />
+                        <View className="p-3">
+                          <Text
+                            numberOfLines={1}
+                            className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}
+                          >
+                            {capitalizeFirst(meal.name)}
+                          </Text>
+                          <Text
+                            className={`text-[12px] mt-1 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}
+                          >
+                            {formatNGN(Number(meal.price))}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            }
             ListEmptyComponent={
               <View className="items-center mt-12">
                 <Image source={require("@/assets/images/trayy.png")} />
@@ -490,31 +567,52 @@ export default function CheckoutScreen() {
             contentContainerStyle={{ paddingBottom: 200 }}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Info banner / warning */}
-            <View
-              className={`flex-row items-start rounded-2xl px-3 py-3 mb-4 ${
-                isDark
-                  ? "bg-neutral-900 border border-neutral-800"
-                  : "bg-[#FFF1F2] border border-[#FEE2E2]"
-              }`}
-            >
-              <Ionicons
-                name="alert-circle"
-                size={18}
-                color={isDark ? "#f87171" : "#ef4444"}
-                style={{ marginTop: 2 }}
-              />
-              <Text
-                className={`ml-2 text-[13px] font-satoshiMedium ${
-                  isDark ? "text-neutral-200" : "text-[#ef4444]"
-                }`}
-              >
-                Pay for delivery when you get your food
-              </Text>
-            </View>
-
             {/* Form fields */}
             <View className="space-y-3">
+              {/* Fulfillment */}
+              <View
+                className={`rounded-2xl border p-3 ${
+                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
+                }`}
+              >
+                <Text
+                  className={`font-satoshiMedium mb-2 ${isDark ? "text-neutral-200" : "text-neutral-700"}`}
+                >
+                  Fulfillment
+                </Text>
+                <View className="flex-row">
+                  {[
+                    { k: "DELIVERY", label: "Delivery" },
+                    { k: "PICKUP", label: "Pickup" },
+                    { k: "SITIN", label: "Sitin" },
+                  ].map((opt) => (
+                    <Pressable
+                      key={opt.k}
+                      onPress={() => setFulfillment(opt.k as any)}
+                      className={`flex-1 mr-2 rounded-xl py-3 items-center ${
+                        fulfillment === opt.k
+                          ? "bg-primary"
+                          : isDark
+                            ? "bg-neutral-800"
+                            : "bg-neutral-100"
+                      }`}
+                    >
+                      <Text
+                        className={`text-[12px] font-satoshiMedium ${
+                          fulfillment === opt.k
+                            ? "text-white"
+                            : isDark
+                              ? "text-neutral-300"
+                              : "text-neutral-700"
+                        }`}
+                      >
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
               {/* Address */}
               <View
                 className={`rounded-2xl border px-3 py-4 flex-row items-center ${
@@ -525,7 +623,11 @@ export default function CheckoutScreen() {
                 <TextInput
                   value={address}
                   onChangeText={setAddress}
-                  placeholder="Enter Delivery Address"
+                  placeholder={
+                    fulfillment === "DELIVERY"
+                      ? "Enter Delivery Address"
+                      : "Optional pickup notes"
+                  }
                   placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                   className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
                 />
@@ -562,10 +664,15 @@ export default function CheckoutScreen() {
                   <TextInput
                     value={voucher}
                     onChangeText={setVoucher}
-                    placeholder="Enter Voucher Code"
+                    placeholder="Voucher / Discount code"
                     placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                     className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
                   />
+                  <Pressable className="ml-3 px-3 py-2 rounded-lg bg-primary">
+                    <Text className="text-white text-[12px] font-satoshiBold">
+                      Apply
+                    </Text>
+                  </Pressable>
                 </View>
                 <Text className={`text-[12px] mt-2 ${isDark ? "text-neutral-500" : "text-neutral-400"}`}>
                   Ends on {voucherEndsOn}
@@ -574,16 +681,17 @@ export default function CheckoutScreen() {
             </View>
 
             {/* Riders */}
-            <View className="mt-5">
-              <SectionHeader title="Delivery Rider" isDark={isDark} />
-              {selectedRider ? (
-                <View
-                  className={`rounded-2xl border p-3 flex-row items-center justify-between ${
-                    isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
-                  }`}
-                >
-                  <View className="flex-row items-center">
-                    <CachedImage
+            {fulfillment === "DELIVERY" ? (
+              <View className="mt-5">
+                <SectionHeader title="Delivery Rider" isDark={isDark} />
+                {selectedRider ? (
+                  <View
+                    className={`rounded-2xl border p-3 flex-row items-center justify-between ${
+                      isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+                    }`}
+                  >
+                    <View className="flex-row items-center">
+                    <CachedImageView
                       uri={selectedRider.avatar}
                       fallback={
                         <Image
@@ -593,37 +701,50 @@ export default function CheckoutScreen() {
                       }
                       className={`w-10 h-10 rounded-full ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
                     />
-                    <View className="ml-3">
-                      <Text className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
-                        {selectedRider.name}
-                      </Text>
-                      <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                        {selectedRider.city} • {selectedRider.priceLabel}
-                      </Text>
+                      <View className="ml-3">
+                        <Text className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
+                          {selectedRider.name}
+                        </Text>
+                        <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+                          {selectedRider.city} • {selectedRider.priceLabel}
+                        </Text>
+                      </View>
                     </View>
+                    <Pressable
+                      onPress={() => router.push("/users/riders")}
+                      className="px-3 py-2 rounded-xl bg-primary"
+                    >
+                      <Text className="text-white font-satoshiMedium">
+                        Change
+                      </Text>
+                    </Pressable>
                   </View>
-                  <Pressable
-                    onPress={() => router.push("/users/riders")}
-                    className="px-3 py-2 rounded-xl bg-primary"
+                ) : (
+                  <View
+                    className={`rounded-2xl border p-3 ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
                   >
-                    <Text className="text-white font-satoshiMedium">
-                      Change
+                    <Text
+                      className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}
+                    >
+                      Find a rider
                     </Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <View className="flex-row">
-                  <Pressable
-                    onPress={() => router.push("/users/riders")}
-                    className="flex-1 bg-primary rounded-2xl py-4 items-center justify-center"
-                  >
-                    <Text className="text-white font-satoshiBold">
-                      Find Riders
+                    <Text
+                      className={`text-[12px] mt-1 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}
+                    >
+                      We will match the closest rider and show their fee before you pay.
                     </Text>
-                  </Pressable>
-                </View>
-              )}
-            </View>
+                    <Pressable
+                      onPress={() => router.push("/users/riders")}
+                      className="mt-3 bg-primary rounded-2xl py-3 items-center justify-center"
+                    >
+                      <Text className="text-white font-satoshiBold">
+                        Find Riders
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            ) : null}
 
             {/* Payment Summary */}
             <View className="mt-5">
