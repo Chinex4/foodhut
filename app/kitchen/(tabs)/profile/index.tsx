@@ -2,20 +2,23 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { useAppSelector } from "@/store/hooks";
+import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { mockVendorSummary } from "@/utils/mock/mockVendor";
+import { persistThemePreference, setThemeMode } from "@/redux/theme/theme.slice";
 
 function Row({
   icon,
   label,
   onPress,
+  rightIcon,
   isDark,
 }: {
   icon: React.ReactNode;
   label: string;
   onPress?: () => void;
+  rightIcon?: React.ReactNode;
   isDark: boolean;
 }) {
   return (
@@ -31,13 +34,16 @@ function Row({
           {label}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
+      {rightIcon ?? (
+        <Ionicons name="chevron-forward" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
+      )}
     </Pressable>
   );
 }
 
 export default function KitchenProfileScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const dispatch = useAppDispatch();
   const [kitchenName, setKitchenName] = useState("Mama Ada Kitchen");
   const [address, setAddress] = useState("12 Market Street, Lagos");
   const [contact, setContact] = useState("+234 701 234 5678");
@@ -45,6 +51,12 @@ export default function KitchenProfileScreen() {
   const [openTime, setOpenTime] = useState("08:00");
   const [closeTime, setCloseTime] = useState("20:00");
   const [serviceAreas, setServiceAreas] = useState("Ikoyi, VI, Lekki");
+
+  const toggleTheme = () => {
+    const next = isDark ? "light" : "dark";
+    dispatch(setThemeMode(next));
+    dispatch(persistThemePreference(next));
+  };
 
   return (
     <View className={`pt-16 flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
@@ -110,6 +122,21 @@ export default function KitchenProfileScreen() {
             icon={<Ionicons name="storefront-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />}
             label="Outlets"
             onPress={() => router.push("/kitchen/profile/outlets")}
+            isDark={isDark}
+          />
+          <Row
+            icon={<Ionicons name="moon-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />}
+            label="Dark Mode"
+            onPress={toggleTheme}
+            rightIcon={
+              <Switch
+                value={isDark}
+                onValueChange={toggleTheme}
+                thumbColor={isDark ? "#F59E0B" : "#9CA3AF"}
+                trackColor={{ false: "#E5E7EB", true: "#92400e" }}
+                ios_backgroundColor={isDark ? "#1F2937" : "#E5E7EB"}
+              />
+            }
             isDark={isDark}
           />
           <Row

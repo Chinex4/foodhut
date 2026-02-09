@@ -66,6 +66,10 @@ export default function KitchenTabLayout() {
           ),
         }}
       />
+      {/* Hide non-tab routes */}
+      <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="menu/create" options={{ href: null }} />
+      <Tabs.Screen name="menu/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -59,7 +59,10 @@ export default function KitchenOutletsScreen() {
           </View>
         ))}
 
-        <Pressable className="mt-2 bg-primary rounded-2xl py-4 items-center">
+        <Pressable
+          onPress={() => router.push("/kitchen/profile/outlets-create")}
+          className="mt-2 bg-primary rounded-2xl py-4 items-center"
+        >
           <Text className="text-white font-satoshiBold">Create Outlet</Text>
         </Pressable>
       </ScrollView>
