@@ -10,6 +10,7 @@ type Props = {
   setVehicleType: (v: string | null) => void;
   vehicleReg: string;
   setVehicleReg: (v: string) => void;
+  isDark: boolean;
 };
 
 export default function VehicleStep({
@@ -17,10 +18,11 @@ export default function VehicleStep({
   setVehicleType,
   vehicleReg,
   setVehicleReg,
+  isDark,
 }: Props) {
   return (
     <View className="mt-4">
-      <Text className="text-sm font-satoshiMedium text-black mb-2">
+      <Text className={`text-sm font-satoshiMedium mb-2 ${isDark ? "text-neutral-200" : "text-black"}`}>
         Vehicle Type
       </Text>
       <VehicleSelect
@@ -28,16 +30,20 @@ export default function VehicleStep({
         value={vehicleType}
         options={VEHICLE_TYPES}
         onChange={setVehicleType}
+        isDark={isDark}
       />
 
-      <Text className="text-sm font-satoshiMedium text-black mt-6 mb-2">
+      <Text className={`text-sm font-satoshiMedium mt-6 mb-2 ${isDark ? "text-neutral-200" : "text-black"}`}>
         Vehicle Registration Number
       </Text>
       <TextInput
         value={vehicleReg}
         onChangeText={setVehicleReg}
         placeholder="23458N34567"
-        className="bg-[#ececec] rounded-2xl px-4 py-3 font-satoshi text-base"
+        placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+        className={`rounded-2xl px-4 py-3 font-satoshi text-base ${
+          isDark ? "bg-neutral-900 text-white" : "bg-[#ececec] text-black"
+        }`}
       />
     </View>
   );
@@ -48,6 +54,7 @@ type VehicleSelectProps = {
   value: string | null;
   options: string[];
   onChange: (v: string | null) => void;
+  isDark: boolean;
 };
 
 function VehicleSelect({
@@ -55,6 +62,7 @@ function VehicleSelect({
   value,
   options,
   onChange,
+  isDark,
 }: VehicleSelectProps) {
   const [open, setOpen] = useState(false);
 
@@ -62,11 +70,13 @@ function VehicleSelect({
     <View>
       <Pressable
         onPress={() => setOpen((prev) => !prev)}
-        className="bg-[#ececec] rounded-2xl px-4 py-3 flex-row items-center justify-between"
+        className={`rounded-2xl px-4 py-3 flex-row items-center justify-between ${
+          isDark ? "bg-neutral-900" : "bg-[#ececec]"
+        }`}
       >
         <Text
           className={`font-satoshi text-base ${
-            value ? "text-black" : "text-gray-400"
+            value ? (isDark ? "text-white" : "text-black") : "text-gray-400"
           }`}
         >
           {value || placeholder}
@@ -74,12 +84,12 @@ function VehicleSelect({
         <Ionicons
           name={open ? "chevron-up" : "chevron-down"}
           size={18}
-          color="#6B7280"
+          color={isDark ? "#9CA3AF" : "#6B7280"}
         />
       </Pressable>
 
       {open && (
-        <View className="mt-1 bg-white rounded-2xl shadow-lg overflow-hidden">
+        <View className={`mt-1 rounded-2xl shadow-lg overflow-hidden ${isDark ? "bg-neutral-900" : "bg-white"}`}>
           {options.map((opt) => {
             const selected = opt === value;
             return (
@@ -93,7 +103,9 @@ function VehicleSelect({
                   selected ? "bg-primary-500/40" : ""
                 }`}
               >
-                <Text className="font-satoshi text-base text-black">{opt}</Text>
+                <Text className={`font-satoshi text-base ${isDark ? "text-white" : "text-black"}`}>
+                  {opt}
+                </Text>
                 {selected && (
                   <Ionicons name="checkmark" size={18} color="#ffa800" />
                 )}

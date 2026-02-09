@@ -10,6 +10,7 @@ type SimpleSelectProps = {
   value: string | null;
   options: string[];
   onChange: (v: string | null) => void;
+  isDark?: boolean;
 };
 
 export function SimpleSelect({
@@ -17,6 +18,7 @@ export function SimpleSelect({
   value,
   options,
   onChange,
+  isDark = false,
 }: SimpleSelectProps) {
   const [open, setOpen] = useState(false);
 
@@ -24,11 +26,13 @@ export function SimpleSelect({
     <View>
       <Pressable
         onPress={() => setOpen((prev) => !prev)}
-        className="bg-[#ececec] rounded-2xl px-4 py-3 flex-row items-center justify-between"
+        className={`rounded-2xl px-4 py-3 flex-row items-center justify-between ${
+          isDark ? "bg-neutral-900" : "bg-[#ececec]"
+        }`}
       >
         <Text
           className={`font-satoshi text-base ${
-            value ? "text-black" : "text-gray-400"
+            value ? (isDark ? "text-white" : "text-black") : "text-gray-400"
           }`}
         >
           {value || placeholder}
@@ -36,12 +40,12 @@ export function SimpleSelect({
         <Ionicons
           name={open ? "chevron-up" : "chevron-down"}
           size={18}
-          color="#6B7280"
+          color={isDark ? "#9CA3AF" : "#6B7280"}
         />
       </Pressable>
 
       {open && (
-        <View className="mt-1 bg-white rounded-2xl shadow-lg overflow-hidden">
+        <View className={`mt-1 rounded-2xl shadow-lg overflow-hidden ${isDark ? "bg-neutral-900" : "bg-white"}`}>
           {options.map((opt) => {
             const selected = opt === value;
             return (
@@ -55,7 +59,9 @@ export function SimpleSelect({
                   selected ? "bg-primary-500/40" : ""
                 }`}
               >
-                <Text className="font-satoshi text-base text-black">{opt}</Text>
+                <Text className={`font-satoshi text-base ${isDark ? "text-white" : "text-black"}`}>
+                  {opt}
+                </Text>
                 {selected && (
                   <Ionicons name="checkmark" size={18} color="#ffa800" />
                 )}

@@ -18,7 +18,7 @@ export default function KitchenDashboardScreen() {
   const incoming = mockVendorOrders.filter((o) => o.status === "INCOMING");
 
   return (
-    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <View className={`pt-16 flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <Text className={`text-2xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>

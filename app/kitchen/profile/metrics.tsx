@@ -11,7 +11,7 @@ export default function KitchenMetricsScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
 
   return (
-    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <View className={`pt-16 flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <View className="px-5 pt-5 pb-3 flex-row items-center">
         <Pressable onPress={() => router.back()} className="mr-2">

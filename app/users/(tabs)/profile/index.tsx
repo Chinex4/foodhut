@@ -292,6 +292,12 @@ export default function ProfileHomeScreen() {
           isDark={isDark}
         />
         <Row
+          icon={<Ionicons name="swap-horizontal-outline" size={18} color="#9CA3AF" />}
+          label="Switch to Vendor Dashboard"
+          onPress={() => router.replace("/kitchen/(tabs)")}
+          isDark={isDark}
+        />
+        <Row
           icon={<Ionicons name="moon-outline" size={18} color="#9CA3AF" />}
           label="Dark Mode"
           onPress={toggleTheme}

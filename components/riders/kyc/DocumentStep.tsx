@@ -13,6 +13,7 @@ type Props = {
   setIdNumber: (v: string) => void;
   files: UploadFile[];
   setFiles: (files: UploadFile[]) => void;
+  isDark: boolean;
 };
 
 export default function DocumentsStep({
@@ -22,6 +23,7 @@ export default function DocumentsStep({
   setIdNumber,
   files,
   setFiles,
+  isDark,
 }: Props) {
   const canAddMore = files.length < 2;
 
@@ -71,7 +73,7 @@ export default function DocumentsStep({
 
   return (
     <View className="mt-4">
-      <Text className="text-sm font-satoshiMedium text-black mb-2">
+      <Text className={`text-sm font-satoshiMedium mb-2 ${isDark ? "text-neutral-200" : "text-black"}`}>
         ID Type
       </Text>
       <SimpleSelect
@@ -79,19 +81,23 @@ export default function DocumentsStep({
         value={idType}
         options={ID_TYPES}
         onChange={setIdType}
+        isDark={isDark}
       />
 
-      <Text className="text-sm font-satoshiMedium text-black mt-6 mb-2">
+      <Text className={`text-sm font-satoshiMedium mt-6 mb-2 ${isDark ? "text-neutral-200" : "text-black"}`}>
         ID Number
       </Text>
       <TextInput
         value={idNumber}
         onChangeText={setIdNumber}
         placeholder="Enter ID Number"
-        className="bg-[#ececec] rounded-2xl px-4 py-3 font-satoshi text-base mb-5"
+        placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+        className={`rounded-2xl px-4 py-3 font-satoshi text-base mb-5 ${
+          isDark ? "bg-neutral-900 text-white" : "bg-[#ececec] text-black"
+        }`}
       />
 
-      <Text className="text-sm font-satoshiMedium text-black mb-2">
+      <Text className={`text-sm font-satoshiMedium mb-2 ${isDark ? "text-neutral-200" : "text-black"}`}>
         Upload Document
       </Text>
 
@@ -99,10 +105,14 @@ export default function DocumentsStep({
         disabled={!canAddMore}
         onPress={handlePickImages}
         className={`rounded-3xl border-2 border-dashed px-4 py-6 items-center ${
-          canAddMore ? "border-primary" : "border-gray-300 opacity-60"
+          canAddMore
+            ? "border-primary"
+            : isDark
+              ? "border-neutral-700 opacity-60"
+              : "border-gray-300 opacity-60"
         }`}
       >
-        <Text className="text-sm font-satoshi text-gray-700 mb-4">
+        <Text className={`text-sm font-satoshi mb-4 ${isDark ? "text-neutral-300" : "text-gray-700"}`}>
           Drag and drop pictures here
         </Text>
         <View className="px-6 py-2 rounded-2xl bg-primary">
@@ -110,7 +120,7 @@ export default function DocumentsStep({
             Upload File
           </Text>
         </View>
-        <Text className="text-xs font-satoshi text-gray-400 mt-3">
+        <Text className={`text-xs font-satoshi mt-3 ${isDark ? "text-neutral-500" : "text-gray-400"}`}>
           Maximum Of 2 Pictures
         </Text>
       </Pressable>
@@ -119,7 +129,9 @@ export default function DocumentsStep({
         {files.map((file) => (
           <View
             key={file.id}
-            className="flex-row bg-white rounded-3xl px-4 py-3 mb-3 items-center"
+            className={`flex-row rounded-3xl px-4 py-3 mb-3 items-center ${
+              isDark ? "bg-neutral-900" : "bg-white"
+            }`}
           >
             <View className="w-12 h-12 rounded-xl overflow-hidden mr-3 bg-gray-200">
               <Image
@@ -129,10 +141,10 @@ export default function DocumentsStep({
               />
             </View>
             <View className="flex-1">
-              <Text className="text-sm font-satoshiMedium text-black">
+              <Text className={`text-sm font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>
                 {file.name}
               </Text>
-              <Text className="text-xs font-satoshi text-gray-500 mb-1">
+              <Text className={`text-xs font-satoshi mb-1 ${isDark ? "text-neutral-500" : "text-gray-500"}`}>
                 {file.sizeLabel}
               </Text>
               <Text className="text-xs font-satoshi text-primary">
@@ -141,7 +153,7 @@ export default function DocumentsStep({
             </View>
 
             <Pressable onPress={() => removeFile(file.id)}>
-              <Ionicons name="trash-outline" size={18} color="#111827" />
+              <Ionicons name="trash-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />
             </Pressable>
           </View>
         ))}

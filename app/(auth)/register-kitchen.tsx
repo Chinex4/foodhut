@@ -5,7 +5,8 @@ import {
     fetchKitchenCities,
     fetchKitchenTypes,
 } from "@/redux/kitchen/kitchen.thunks";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useState } from "react";
@@ -13,6 +14,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 type FormValues = {
   name: string;
@@ -40,6 +42,7 @@ const flagFromCode = (code: string) =>
     .replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
 
 export default function KitchenRegisterScreen() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const [types, setTypes] = useState<string[]>([]);
   const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
@@ -113,16 +116,26 @@ export default function KitchenRegisterScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
       >
-        <Text className="text-3xl font-satoshiBold text-black mt-2">
+        <Pressable
+          onPress={() => router.back()}
+          className="w-10 h-10 rounded-full items-center justify-center"
+        >
+          <Ionicons
+            name="chevron-back"
+            size={20}
+            color={isDark ? "#E5E7EB" : "#111827"}
+          />
+        </Pressable>
+        <Text className={`text-3xl font-satoshiBold mt-2 ${isDark ? "text-white" : "text-black"}`}>
           Create your kitchen
         </Text>
-        <Text className="text-base text-gray-600 font-satoshi mt-1">
+        <Text className={`text-base font-satoshi mt-1 ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
           Please enter your details to create a kitchen with FOODHUT
         </Text>
 
         {/* Name */}
         <View className="mt-6">
-          <Text className="mb-2 text-sm text-black font-satoshiMedium">
+          <Text className={`mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-200" : "text-black"}`}>
             Kitchen Name
           </Text>
           <Controller
@@ -134,7 +147,10 @@ export default function KitchenRegisterScreen() {
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+                placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                className={`rounded-xl px-4 py-3 text-base font-satoshi ${
+                  isDark ? "bg-neutral-900 text-white" : "bg-gray-100 text-black"
+                }`}
               />
             )}
           />
@@ -142,7 +158,7 @@ export default function KitchenRegisterScreen() {
 
         {/* Type */}
         <View className="mt-4">
-          <Text className="mb-2 text-sm text-black font-satoshiMedium">
+          <Text className={`mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-200" : "text-black"}`}>
             Type of Kitchen
           </Text>
           <Controller
@@ -153,14 +169,18 @@ export default function KitchenRegisterScreen() {
                 onPress={() => {
                   /* you can show ActionSheet / modal */
                 }}
-                className="bg-gray-100 rounded-xl px-4 py-3 flex-row justify-between items-center"
+                className={`rounded-xl px-4 py-3 flex-row justify-between items-center ${
+                  isDark ? "bg-neutral-900" : "bg-gray-100"
+                }`}
               >
                 <Text
-                  className={`text-base font-satoshi ${value ? "text-black" : "text-gray-400"}`}
+                  className={`text-base font-satoshi ${
+                    value ? (isDark ? "text-white" : "text-black") : "text-gray-400"
+                  }`}
                 >
                   {value || "Select Type of Kitchen"}
                 </Text>
-                <Ionicons name="chevron-down" size={18} />
+                <Ionicons name="chevron-down" size={18} color={isDark ? "#9CA3AF" : "#6B7280"} />
               </Pressable>
             )}
           />
@@ -171,10 +191,16 @@ export default function KitchenRegisterScreen() {
                 <Pressable
                   key={t}
                   onPress={() => setValue("type", t)}
-                  className={`px-3 py-2 rounded-xl border ${watch("type") === t ? "bg-primary border-primary" : "border-gray-200 bg-white"}`}
+                  className={`px-3 py-2 rounded-xl border ${
+                    watch("type") === t
+                      ? "bg-primary border-primary"
+                      : isDark
+                        ? "border-neutral-700 bg-neutral-900"
+                        : "border-gray-200 bg-white"
+                  }`}
                 >
                   <Text
-                    className={`${watch("type") === t ? "text-white" : "text-black"} font-satoshi`}
+                    className={`${watch("type") === t ? "text-white" : isDark ? "text-neutral-100" : "text-black"} font-satoshi`}
                   >
                     {t}
                   </Text>
@@ -186,7 +212,7 @@ export default function KitchenRegisterScreen() {
 
         {/* Address */}
         <View className="mt-4">
-          <Text className="mb-2 text-sm text-black font-satoshiMedium">
+          <Text className={`mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-200" : "text-black"}`}>
             Address
           </Text>
           <Controller
@@ -198,7 +224,10 @@ export default function KitchenRegisterScreen() {
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+                placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                className={`rounded-xl px-4 py-3 text-base font-satoshi ${
+                  isDark ? "bg-neutral-900 text-white" : "bg-gray-100 text-black"
+                }`}
               />
             )}
           />
@@ -206,22 +235,26 @@ export default function KitchenRegisterScreen() {
 
         {/* City */}
         <View className="mt-4">
-          <Text className="mb-2 text-sm text-black font-satoshiMedium">
+          <Text className={`mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-200" : "text-black"}`}>
             City
           </Text>
           <Controller
             control={control}
             name="cityId"
             render={({ field: { value, onChange } }) => (
-              <Pressable className="bg-gray-100 rounded-xl px-4 py-3 flex-row justify-between items-center">
+              <Pressable className={`rounded-xl px-4 py-3 flex-row justify-between items-center ${
+                isDark ? "bg-neutral-900" : "bg-gray-100"
+              }`}>
                 <Text
-                  className={`text-base font-satoshi ${value ? "text-black" : "text-gray-400"}`}
+                  className={`text-base font-satoshi ${
+                    value ? (isDark ? "text-white" : "text-black") : "text-gray-400"
+                  }`}
                 >
                   {value
                     ? (cities.find((c) => c.id === value)?.name ?? "")
                     : "Select City"}
                 </Text>
-                <Ionicons name="chevron-down" size={18} />
+                <Ionicons name="chevron-down" size={18} color={isDark ? "#9CA3AF" : "#6B7280"} />
               </Pressable>
             )}
           />
@@ -231,10 +264,16 @@ export default function KitchenRegisterScreen() {
                 <Pressable
                   key={c.id}
                   onPress={() => setValue("cityId", c.id)}
-                  className={`px-3 py-2 rounded-xl border ${watch("cityId") === c.id ? "bg-primary border-primary" : "border-gray-200 bg-white"}`}
+                  className={`px-3 py-2 rounded-xl border ${
+                    watch("cityId") === c.id
+                      ? "bg-primary border-primary"
+                      : isDark
+                        ? "border-neutral-700 bg-neutral-900"
+                        : "border-gray-200 bg-white"
+                  }`}
                 >
                   <Text
-                    className={`${watch("cityId") === c.id ? "text-white" : "text-black"} font-satoshi`}
+                    className={`${watch("cityId") === c.id ? "text-white" : isDark ? "text-neutral-100" : "text-black"} font-satoshi`}
                   >
                     {c.name}
                   </Text>
@@ -246,21 +285,24 @@ export default function KitchenRegisterScreen() {
 
         {/* Phone */}
         <View className="mt-4">
-          <Text className="mb-2 text-sm text-black font-satoshiMedium">
+          <Text className={`mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-200" : "text-black"}`}>
             Phone Number
           </Text>
-          <View className="bg-gray-100 rounded-xl px-3 py-1 flex-row items-center">
+          <View className={`rounded-xl px-3 py-1 flex-row items-center ${
+            isDark ? "bg-neutral-900" : "bg-gray-100"
+          }`}>
             <Pressable
               onPress={() => setPickerOpen(true)}
               className="flex-row items-center px-2 py-2 mr-2 rounded-lg"
             >
               <Text className="text-lg mr-2">{country.flag}</Text>
-              <Text className="text-base font-satoshiMedium">
+              <Text className={`text-base font-satoshiMedium ${isDark ? "text-neutral-100" : "text-black"}`}>
                 {country.dial}
               </Text>
               <Ionicons
                 name="chevron-down"
                 size={16}
+                color={isDark ? "#9CA3AF" : "#6B7280"}
                 style={{ marginLeft: 4 }}
               />
             </Pressable>
@@ -280,7 +322,10 @@ export default function KitchenRegisterScreen() {
                     })
                   }
                   onBlur={onBlur}
-                  className="flex-1 text-base font-satoshi py-2"
+                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  className={`flex-1 text-base font-satoshi py-2 ${
+                    isDark ? "text-white" : "text-black"
+                  }`}
                 />
               )}
             />
@@ -290,7 +335,7 @@ export default function KitchenRegisterScreen() {
         {/* Times */}
         <View className="mt-4 flex-row gap-3">
           <View className="flex-1">
-            <Text className="mb-2 text-sm text-black font-satoshiMedium">
+            <Text className={`mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-200" : "text-black"}`}>
               Opening Time
             </Text>
             <Controller
@@ -301,13 +346,16 @@ export default function KitchenRegisterScreen() {
                   placeholder="09:00"
                   value={value}
                   onChangeText={onChange}
-                  className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  className={`rounded-xl px-4 py-3 text-base font-satoshi ${
+                    isDark ? "bg-neutral-900 text-white" : "bg-gray-100 text-black"
+                  }`}
                 />
               )}
             />
           </View>
           <View className="flex-1">
-            <Text className="mb-2 text-sm text-black font-satoshiMedium">
+            <Text className={`mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-200" : "text-black"}`}>
               Closing Time
             </Text>
             <Controller
@@ -318,7 +366,10 @@ export default function KitchenRegisterScreen() {
                   placeholder="18:00"
                   value={value}
                   onChangeText={onChange}
-                  className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                  className={`rounded-xl px-4 py-3 text-base font-satoshi ${
+                    isDark ? "bg-neutral-900 text-white" : "bg-gray-100 text-black"
+                  }`}
                 />
               )}
             />
@@ -327,7 +378,7 @@ export default function KitchenRegisterScreen() {
 
         {/* Prep / Delivery */}
         <View className="mt-4">
-          <Text className="mb-2 text-sm text-black font-satoshiMedium">
+          <Text className={`mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-200" : "text-black"}`}>
             Preparation Time
           </Text>
           <Controller
@@ -338,13 +389,16 @@ export default function KitchenRegisterScreen() {
                 placeholder="e.g. 20-30 mins"
                 value={value}
                 onChangeText={onChange}
-                className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+                placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                className={`rounded-xl px-4 py-3 text-base font-satoshi ${
+                  isDark ? "bg-neutral-900 text-white" : "bg-gray-100 text-black"
+                }`}
               />
             )}
           />
         </View>
         <View className="mt-4">
-          <Text className="mb-2 text-sm text-black font-satoshiMedium">
+          <Text className={`mb-2 text-sm font-satoshiMedium ${isDark ? "text-neutral-200" : "text-black"}`}>
             Delivery Time
           </Text>
           <Controller
@@ -355,13 +409,16 @@ export default function KitchenRegisterScreen() {
                 placeholder="e.g. 30-45 mins"
                 value={value}
                 onChangeText={onChange}
-                className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+                placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                className={`rounded-xl px-4 py-3 text-base font-satoshi ${
+                  isDark ? "bg-neutral-900 text-white" : "bg-gray-100 text-black"
+                }`}
               />
             )}
           />
         </View>
 
-        <Text className="text-center mt-6 text-gray-700 font-satoshi">
+        <Text className={`text-center mt-6 font-satoshi ${isDark ? "text-neutral-400" : "text-gray-700"}`}>
           By proceeding, you agree to our{" "}
           <Text className="text-primary">Terms Of Use</Text> and{" "}
           <Text className="text-primary">Privacy Policy</Text>

@@ -47,7 +47,7 @@ export default function KitchenProfileScreen() {
   const [serviceAreas, setServiceAreas] = useState("Ikoyi, VI, Lekki");
 
   return (
-    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <View className={`pt-16 flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <Text className={`text-2xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
@@ -115,6 +115,7 @@ export default function KitchenProfileScreen() {
           <Row
             icon={<Ionicons name="lock-closed-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />}
             label="Wallet/Finance Password"
+            onPress={() => router.push("/kitchen/profile/wallet-password")}
             isDark={isDark}
           />
         </View>

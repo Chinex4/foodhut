@@ -5,6 +5,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { useAppSelector } from "@/store/hooks";
 
 import VehicleStep from "@/components/riders/kyc/VehicleStep";
 import DocumentsStep from "@/components/riders/kyc/DocumentStep";
@@ -15,6 +17,7 @@ import KycProcessingModal from "@/components/riders/kyc/KycProcessingModal";
 
 export default function RiderKycScreen() {
   const router = useRouter();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const [step, setStep] = useState<StepKey>("vehicle");
   const stepIndex = steps.indexOf(step);
 
@@ -106,11 +109,11 @@ export default function RiderKycScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <View className="px-5 pt-3">
-        <ProgressHeader currentIndex={stepIndex} />
+        <ProgressHeader currentIndex={stepIndex} isDark={isDark} />
       </View>
 
       <View className="flex-row items-center justify-between px-5 mt-6 mb-2">
@@ -119,15 +122,15 @@ export default function RiderKycScreen() {
           className="w-9 h-9 rounded-full items-center justify-center mr-3"
           disabled={submitting}
         >
-          <Ionicons name="chevron-back" size={18} color="#111827" />
+          <Ionicons name="chevron-back" size={18} color={isDark ? "#E5E7EB" : "#111827"} />
         </Pressable>
-        <Text className="text-2xl text-center font-satoshiBold text-black">
+        <Text className={`text-2xl text-center font-satoshiBold ${isDark ? "text-white" : "text-black"}`}>
           {titleByStep[step]}
         </Text>
         <View className="w-10" />
       </View>
 
-      <Text className="px-5 text-sm text-gray-600 font-satoshi mb-3">
+      <Text className={`px-5 text-sm font-satoshi mb-3 ${isDark ? "text-neutral-400" : "text-gray-600"}`}>
         {subtitleByStep[step]}
       </Text>
 
@@ -142,6 +145,7 @@ export default function RiderKycScreen() {
             setVehicleType={setVehicleType}
             vehicleReg={vehicleReg}
             setVehicleReg={setVehicleReg}
+            isDark={isDark}
           />
         )}
 
@@ -153,6 +157,7 @@ export default function RiderKycScreen() {
             setIdNumber={setIdNumber}
             files={files}
             setFiles={setFiles}
+            isDark={isDark}
           />
         )}
 
@@ -166,6 +171,7 @@ export default function RiderKycScreen() {
             setNokPhone={setNokPhone}
             nokAddress={nokAddress}
             setNokAddress={setNokAddress}
+            isDark={isDark}
           />
         )}
       </ScrollView>
@@ -185,12 +191,18 @@ export default function RiderKycScreen() {
       </View>
 
       {/* processing overlay */}
-      <KycProcessingModal visible={submitting} />
+      <KycProcessingModal visible={submitting} isDark={isDark} />
     </SafeAreaView>
   );
 }
 
-function ProgressHeader({ currentIndex }: { currentIndex: number }) {
+function ProgressHeader({
+  currentIndex,
+  isDark,
+}: {
+  currentIndex: number;
+  isDark: boolean;
+}) {
   return (
     <View className="flex-row items-center justify-between">
       {steps.map((_, index) => {
@@ -199,7 +211,7 @@ function ProgressHeader({ currentIndex }: { currentIndex: number }) {
           <View
             key={index}
             className={`flex-1 h-1.5 rounded-full ${
-              active ? "bg-primary" : "bg-gray-300"
+              active ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-gray-300"
             } mx-1`}
           />
         );

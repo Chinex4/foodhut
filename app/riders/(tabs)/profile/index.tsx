@@ -11,24 +11,34 @@ import {
   View,
 } from "react-native";
 
+import { logout } from "@/redux/auth/auth.thunks";
+import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   mockRiderProfile,
   mockRiderWallet,
 } from "@/utils/mock/mockRider";
+import {
+  persistThemePreference,
+  setThemeMode,
+} from "@/redux/theme/theme.slice";
 
 function Row({
   icon,
   label,
   onPress,
   rightText,
+  rightIcon,
+  danger = false,
   isDark,
 }: {
   icon: React.ReactNode;
   label: string;
   onPress?: () => void;
   rightText?: string;
+  rightIcon?: React.ReactNode;
+  danger?: boolean;
   isDark: boolean;
 }) {
   return (
@@ -42,36 +52,59 @@ function Row({
         {icon}
         <Text
           className={`ml-3 text-[14px] font-satoshi ${
-            isDark ? "text-neutral-100" : "text-neutral-900"
+            danger
+              ? "text-red-600"
+              : isDark
+                ? "text-neutral-100"
+                : "text-neutral-900"
           }`}
         >
           {label}
         </Text>
       </View>
-      {rightText ? (
-        <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-          {rightText}
-        </Text>
-      ) : (
-        <Ionicons
-          name="chevron-forward"
-          size={18}
-          color={isDark ? "#9CA3AF" : "#9CA3AF"}
-        />
-      )}
+      {rightIcon ??
+        (rightText ? (
+          <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+            {rightText}
+          </Text>
+        ) : (
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={danger ? "#DC2626" : isDark ? "#9CA3AF" : "#9CA3AF"}
+          />
+        ))}
     </Pressable>
   );
 }
 
 export default function RiderProfileScreen() {
   const router = useRouter();
-  const isDark = useAppSelector(selectThemeMode) === "dark";
+  const themeMode = useAppSelector(selectThemeMode);
+  const isDark = themeMode === "dark";
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const [online, setOnline] = useState(true);
 
   const profile = useMemo(() => mockRiderProfile, []);
 
+  const toggleTheme = () => {
+    const next = isDark ? "light" : "dark";
+    dispatch(setThemeMode(next));
+    dispatch(persistThemePreference(next));
+  };
+
+  const handleLogout = async () => {
+    try {
+      await dispatch(logout()).unwrap();
+      router.replace("/(auth)/login");
+    } catch {
+      // handled in thunk
+    }
+  };
+
   return (
-    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <View className={`pt-16 flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View className="items-center mb-6">
@@ -137,6 +170,20 @@ export default function RiderProfileScreen() {
           onPress={() => router.push("/riders/profile/reviews")}
           isDark={isDark}
         />
+        <Row
+          icon={<Ionicons name="moon-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />}
+          label="Dark Mode"
+          onPress={toggleTheme}
+          rightIcon={
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              thumbColor={isDark ? "#F59E0B" : "#f5f5f5"}
+              trackColor={{ false: "#d1d5db", true: "#92400e" }}
+            />
+          }
+          isDark={isDark}
+        />
 
         <View
           className={`rounded-2xl px-4 py-4 mt-2 border ${
@@ -155,6 +202,16 @@ export default function RiderProfileScreen() {
             />
           </View>
         </View>
+
+        {isAuthenticated && (
+          <Row
+            icon={<Ionicons name="log-out-outline" size={18} color="#DC2626" />}
+            label="Sign Out"
+            danger
+            onPress={handleLogout}
+            isDark={isDark}
+          />
+        )}
       </ScrollView>
     </View>
   );

@@ -50,7 +50,7 @@ export default function KitchenMenuScreen() {
   };
 
   return (
-    <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <View className={`pt-16 flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View className="flex-row items-center justify-between">
