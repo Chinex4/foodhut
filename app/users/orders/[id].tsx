@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchOrderById } from "@/redux/orders/orders.thunks";
+import { fetchOrderById, payForOrder } from "@/redux/orders/orders.thunks";
 import {
+  makeSelectPayStatus,
   selectOrderById,
   makeSelectOrderByIdStatus,
 } from "@/redux/orders/orders.selectors";
@@ -11,18 +12,22 @@ import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
+import * as WebBrowser from "expo-web-browser";
 import CachedImageView from "@/components/ui/CachedImage";
 import { setCartItem } from "@/redux/cart/cart.thunks";
 import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
+import { showError, showSuccess } from "@/components/ui/toast";
 
 export default function OrderDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const dispatch = useAppDispatch();
   const order = useAppSelector(selectOrderById(id!));
   const status = useAppSelector(makeSelectOrderByIdStatus(id!));
+  const payStatus = useAppSelector(makeSelectPayStatus(id!));
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const { isAuthenticated, redirectToLogin } = useEnsureAuthenticated();
   const canRepeat = order?.status === "DELIVERED";
+  const canPay = order?.status === "AWAITING_PAYMENT";
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -110,6 +115,35 @@ export default function OrderDetails() {
                 {formatNGN(order.total)}
               </Text>
             </View>
+            {canPay && (
+              <Pressable
+                onPress={async () => {
+                  try {
+                    const payRes = await dispatch(
+                      payForOrder({ id: order.id, with: "ONLINE" })
+                    ).unwrap();
+                    if (payRes.with === "ONLINE" && payRes.url) {
+                      await WebBrowser.openBrowserAsync(payRes.url);
+                      showSuccess("Complete payment in your browser");
+                    }
+                  } catch (err: any) {
+                    showError(err?.message || "Failed to start payment");
+                  }
+                }}
+                disabled={payStatus === "loading"}
+                className={`mt-5 rounded-2xl py-4 items-center justify-center ${
+                  payStatus === "loading" ? "bg-neutral-500" : "bg-primary"
+                }`}
+              >
+                {payStatus === "loading" ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text className="text-white font-satoshiBold">
+                    Complete Payment
+                  </Text>
+                )}
+              </Pressable>
+            )}
             {canRepeat && (
               <Pressable
                 onPress={async () => {

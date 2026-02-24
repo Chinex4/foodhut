@@ -26,9 +26,9 @@ import {
 import {
   selectCartCheckoutStatus,
   selectCartKitchenIds,
-  selectCartSubtotalForKitchen,
-  selectCartTotalItemsForKitchen,
-  selectOrderRowsForKitchen
+  selectCartSubtotalForKitchens,
+  selectCartTotalItemsForKitchens,
+  selectOrderRowsForKitchens,
 } from "@/redux/cart/cart.selectors";
 import { checkoutActiveCart, removeCartItem, setCartItem } from "@/redux/cart/cart.thunks";
 import { makeSelectPayStatus } from "@/redux/orders/orders.selectors";
@@ -119,49 +119,66 @@ type Rider = {
   avatar?: string;
 };
 
+const parseKitchenIdsParam = (
+  kitchenIdsParam?: string | string[],
+  kitchenIdParam?: string
+) => {
+  const source =
+    typeof kitchenIdsParam === "string"
+      ? kitchenIdsParam
+      : Array.isArray(kitchenIdsParam)
+        ? kitchenIdsParam.join(",")
+        : kitchenIdParam ?? "";
+
+  const ids = source
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(ids));
+};
+
 export default function CheckoutScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
-  // inside component
-  const { kitchen_id } = useLocalSearchParams<{ kitchen_id?: string }>();
+  const { kitchen_id, kitchen_ids, tab: startTab } = useLocalSearchParams<{
+    kitchen_id?: string;
+    kitchen_ids?: string | string[];
+    tab?: string;
+  }>();
   const kitchenIds = useAppSelector(selectCartKitchenIds);
 
-  const [kitchenId, setKitchenId] = useState<string | null>(
-    kitchen_id ?? kitchenIds[0] ?? null
+  const requestedKitchenIds = useMemo(
+    () => parseKitchenIdsParam(kitchen_ids, kitchen_id),
+    [kitchen_ids, kitchen_id]
   );
-  useEffect(() => {
-    if (!kitchenId && kitchenIds[0]) setKitchenId(kitchenIds[0]);
-  }, [kitchenId, kitchenIds]);
+
+  const activeKitchenIds = useMemo(() => {
+    const filteredRequested = requestedKitchenIds.filter((id) =>
+      kitchenIds.includes(id)
+    );
+    if (filteredRequested.length) return filteredRequested;
+    return kitchenIds[0] ? [kitchenIds[0]] : [];
+  }, [kitchenIds, requestedKitchenIds]);
 
   const orderRowsSelector = useMemo(
-    () => selectOrderRowsForKitchen(kitchenId),
-    [kitchenId]
+    () => selectOrderRowsForKitchens(activeKitchenIds),
+    [activeKitchenIds]
   );
-
   const orderRows = useAppSelector(orderRowsSelector);
-  // const orderRows = useAppSelector((s) => {
-  //   if (!kitchenId) return [];
-  //   const items = selectCartItemsForKitchen(kitchenId)(s);
-  //   return items.map((it) => ({
-  //     id: String(it.meal.id),
-  //     title: it.meal.name,
-  //     qty: it.quantity,
-  //     price: Number(it.meal.price),
-  //     cover: it.meal.cover_image?.url ?? null,
-  //   }));
-  // });
-
-  const subtotal = useAppSelector(selectCartSubtotalForKitchen(kitchenId));
-  const totalItems = useAppSelector(selectCartTotalItemsForKitchen(kitchenId));
+  const subtotal = useAppSelector(selectCartSubtotalForKitchens(activeKitchenIds));
+  const totalItems = useAppSelector(selectCartTotalItemsForKitchens(activeKitchenIds));
   const checkoutStatus = useAppSelector(selectCartCheckoutStatus);
 
   // UI state
-  const [tab, setTab] = useState<"ORDER" | "DELIVERY">("ORDER");
+  const isGroupCheckout = activeKitchenIds.length > 1;
+  const [tab, setTab] = useState<"ORDER" | "DELIVERY">(
+    String(startTab ?? "").toUpperCase() === "DELIVERY" ? "DELIVERY" : "ORDER"
+  );
   const [address, setAddress] = useState<string>("");
-  const when: "ASAP" | "SCHEDULE" = "ASAP";
   const [fulfillment, setFulfillment] = useState<
     "DELIVERY" | "PICKUP" | "SITIN"
   >("DELIVERY");
@@ -172,8 +189,6 @@ export default function CheckoutScreen() {
   const voucherEndsOn = "02/10/2025";
 
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
-
-  const scheduledAt: number | undefined = undefined;
 
   // simple static fees (replace if backend returns these)
   // const deliveryFee = useMemo(() => (subtotal > 0 ? 1200 : 0), [subtotal]);
@@ -214,25 +229,23 @@ export default function CheckoutScreen() {
   }, []);
 
   useEffect(() => {
-    setKitchenId((k) => k ?? kitchenIds[0] ?? null);
-  }, [kitchenIds]);
-
-  useEffect(() => {
-    if (kitchenId && orderRows.length === 0) {
+    if (activeKitchenIds.length > 0 && orderRows.length === 0) {
       router.replace("/users/(tabs)/orders?tab=carts");
     }
-  }, [kitchenId, orderRows.length, router]);
+  }, [activeKitchenIds.length, orderRows.length, router]);
 
   const canPlace =
     subtotal >= 0 &&
+    totalItems > 0 &&
     (fulfillment !== "DELIVERY" || !!address.trim()) &&
-    !!kitchenId &&
-    !(when === "SCHEDULE" && !scheduledAt) &&
+    activeKitchenIds.length > 0 &&
     !isBusy;
 
   const handlePlaceOrder = async () => {
     try {
-      if (!kitchenId) return showError("Select a kitchen to continue.");
+      if (!activeKitchenIds.length) {
+        return showError("Select at least one kitchen to continue.");
+      }
       if (!isAuthenticated) {
         showError("You're checking out as a guest. Create an account to track your order history.");
       }
@@ -241,23 +254,35 @@ export default function CheckoutScreen() {
       }
 
       setPlacing(true);
+      const createdOrderIds: string[] = [];
 
-      const payload = {
-        kitchen_id: kitchenId,
-        payment_method:
-          paymentMethod === "PAY_FOR_ME" || paymentMethod === "WALLET"
-            ? "WALLET"
-            : "ONLINE",
-        delivery_address: address.trim(),
-        dispatch_rider_note: (riderNote ?? "").trim(),
-        delivery_date: undefined,
-        rider_id: selectedRider?.id || undefined,
-      } as const;
+      for (const selectedKitchenId of activeKitchenIds) {
+        const payload = {
+          kitchen_id: selectedKitchenId,
+          payment_method:
+            paymentMethod === "PAY_FOR_ME" || paymentMethod === "WALLET"
+              ? "WALLET"
+              : "ONLINE",
+          delivery_address: address.trim(),
+          dispatch_rider_note: (riderNote ?? "").trim(),
+          delivery_date: undefined,
+          rider_id: selectedRider?.id || undefined,
+        } as const;
 
-      const checkoutRes = await dispatch(checkoutActiveCart(payload)).unwrap();
-      const createdId = checkoutRes.result.id as string;
-      setOrderId(createdId);
-      showSuccess("Order created successfully!");
+        const checkoutRes = await dispatch(checkoutActiveCart(payload)).unwrap();
+        createdOrderIds.push(checkoutRes.result.id as string);
+      }
+
+      if (!createdOrderIds.length) {
+        throw new Error("No order was created");
+      }
+
+      setOrderId(createdOrderIds[0]);
+      showSuccess(
+        createdOrderIds.length > 1
+          ? `${createdOrderIds.length} orders created successfully!`
+          : "Order created successfully!"
+      );
 
       // Navigate to ongoing tab to see the pending order
       setTimeout(() => {
@@ -267,13 +292,18 @@ export default function CheckoutScreen() {
       // Handle Pay for Me (async, don't block on this)
       if (paymentMethod === "PAY_FOR_ME") {
         try {
-          const payRes = await dispatch(
-            payForOrder({ id: createdId, with: "ONLINE" })
-          ).unwrap();
-          const url =
-            payRes && payRes.with === "ONLINE" ? (payRes as any).url : "";
-          if (url && typeof url === "string") {
-            const shareText = `Help me complete my food order! Tap to complete payment: ${url}`;
+          const payLinks: string[] = [];
+          for (const createdId of createdOrderIds) {
+            const payRes = await dispatch(
+              payForOrder({ id: createdId, with: "ONLINE" })
+            ).unwrap();
+            if (payRes.with === "ONLINE" && typeof payRes.url === "string") {
+              payLinks.push(payRes.url);
+            }
+          }
+
+          if (payLinks.length > 0) {
+            const shareText = `Help me complete my food order payment:\n${payLinks.join("\n")}`;
             Alert.alert(
               "Share link",
               "Copy the link or share it with a friend.",
@@ -281,14 +311,14 @@ export default function CheckoutScreen() {
                 {
                   text: "Copy Link",
                   onPress: async () => {
-                    await Clipboard.setStringAsync(url);
+                    await Clipboard.setStringAsync(payLinks.join("\n"));
                     showSuccess("Link copied to clipboard.");
                   },
                 },
                 {
                   text: "Share",
                   onPress: async () => {
-                    await Share.share({ message: shareText, url });
+                    await Share.share({ message: shareText });
                   },
                 },
                 { text: "Cancel", style: "cancel" },
@@ -306,12 +336,15 @@ export default function CheckoutScreen() {
       // Handle Online Payment (async, don't block on this)
       if (paymentMethod === "ONLINE") {
         try {
+          if (createdOrderIds.length > 1) {
+            showSuccess("Orders created. Complete payment for each order from your Ongoing tab.");
+            return;
+          }
           const payRes = await dispatch(
-            payForOrder({ id: createdId, with: "ONLINE" })
+            payForOrder({ id: createdOrderIds[0], with: "ONLINE" })
           ).unwrap();
-          // @ts-ignore
-          const url: string = payRes.url;
-          if (url) {
+          if (payRes.with === "ONLINE" && payRes.url) {
+            const url = payRes.url;
             await WebBrowser.openBrowserAsync(url);
             showSuccess("Complete payment in the browser");
           }
@@ -324,11 +357,14 @@ export default function CheckoutScreen() {
       // Handle Wallet Payment
       if (paymentMethod === "WALLET") {
         try {
-          const payRes = await dispatch(
-            payForOrder({ id: createdId, with: "WALLET" })
-          ).unwrap();
-          // @ts-ignore
-          showSuccess(payRes.message || "Payment successful!");
+          for (const createdId of createdOrderIds) {
+            await dispatch(payForOrder({ id: createdId, with: "WALLET" })).unwrap();
+          }
+          showSuccess(
+            createdOrderIds.length > 1
+              ? "Group wallet payment successful!"
+              : "Payment successful!"
+          );
         } catch (err: any) {
           showError(err?.message || "Wallet payment failed. You can retry from Ongoing orders.");
         }
@@ -415,10 +451,27 @@ export default function CheckoutScreen() {
             ListHeaderComponent={
               <View>
                 <SectionHeader title="Order Summary" isDark={isDark} />
+                {isGroupCheckout && (
+                  <View
+                    className={`mb-3 rounded-xl px-3 py-2 border ${
+                      isDark
+                        ? "bg-neutral-900 border-neutral-800"
+                        : "bg-white border-neutral-200"
+                    }`}
+                  >
+                    <Text
+                      className={`text-[12px] font-satoshiMedium ${
+                        isDark ? "text-neutral-300" : "text-neutral-700"
+                      }`}
+                    >
+                      Group checkout across {activeKitchenIds.length} kitchens
+                    </Text>
+                  </View>
+                )}
               </View>
             }
             renderItem={({ item }) => {
-              const mealId = item.id;
+              const mealId = item.mealId;
               const quantity = item.qty;
               const adjust = (delta: number) => {
                 const nextQty = quantity + delta;
@@ -456,6 +509,16 @@ export default function CheckoutScreen() {
                     >
                       {capitalizeFirst(item.title)}
                     </Text>
+                    {isGroupCheckout && (
+                      <Text
+                        numberOfLines={1}
+                        className={`text-[11px] mt-0.5 ${
+                          isDark ? "text-neutral-500" : "text-neutral-500"
+                        }`}
+                      >
+                        {item.kitchenName}
+                      </Text>
+                    )}
                     <Text className={`font-satoshi mt-1 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                       {formatNGN(item.price)}{" "}
                       <Text className={isDark ? "text-neutral-600" : "text-neutral-400"}>× {item.qty}</Text>
@@ -557,7 +620,9 @@ export default function CheckoutScreen() {
               onPress={() => setTab("DELIVERY")}
               className="bg-primary rounded-2xl py-4 items-center justify-center"
             >
-              <Text className="text-white font-satoshiBold">Make Payment</Text>
+              <Text className="text-white font-satoshiBold">
+                {isGroupCheckout ? "Make Group Payment" : "Make Payment"}
+              </Text>
             </Pressable>
           </View>
         </View>

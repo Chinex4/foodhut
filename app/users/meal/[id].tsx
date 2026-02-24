@@ -26,6 +26,8 @@ import {
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
+import { selectKitchenById } from "@/redux/kitchen/kitchen.selectors";
+import { fetchKitchenById } from "@/redux/kitchen/kitchen.thunks";
 import { capitalizeFirst } from "@/utils/capitalize";
 import { formatNGN, toNum } from "@/utils/money";
 import FloatingCartButton from "@/components/cart/FloatingCartButton";
@@ -53,6 +55,9 @@ export default function MealDetailsScreen() {
   const byIdStatus = useAppSelector(byIdStatusSel);
 
   const kitchenId = meal?.kitchen_id ?? "";
+  const kitchen = useAppSelector(
+    selectKitchenById(kitchenId || "__missing-kitchen__")
+  );
   const qty = useAppSelector(selectCartItemQuantity(kitchenId, mealId));
   const cartFetch = useAppSelector(selectCartFetchStatus);
 
@@ -62,6 +67,11 @@ export default function MealDetailsScreen() {
     if (!meal) dispatch(fetchMealById(mealId));
     if (cartFetch === "idle") dispatch(fetchActiveCart());
   }, [mealId, meal, cartFetch, dispatch]);
+
+  useEffect(() => {
+    if (!kitchenId || kitchen) return;
+    dispatch(fetchKitchenById(kitchenId));
+  }, [dispatch, kitchen, kitchenId]);
 
   const stillFetching = !meal || byIdStatus === "loading";
 
@@ -232,6 +242,62 @@ export default function MealDetailsScreen() {
               </View>
             </View>
           )}
+
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: "/users/kitchen/[id]",
+                params: { id: meal!.kitchen_id },
+              })
+            }
+            className={`mt-4 rounded-2xl px-4 py-3 flex-row items-center justify-between ${
+              isDark ? "bg-neutral-800" : "bg-white"
+            }`}
+          >
+            <View className="flex-row items-center flex-1">
+              <View
+                className={`w-10 h-10 rounded-full overflow-hidden items-center justify-center ${
+                  isDark ? "bg-neutral-700" : "bg-neutral-100"
+                }`}
+              >
+                {kitchen?.cover_image?.url ? (
+                  <Image
+                    source={{ uri: kitchen.cover_image.url }}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Ionicons
+                    name="storefront-outline"
+                    size={18}
+                    color={isDark ? "#E5E7EB" : "#374151"}
+                  />
+                )}
+              </View>
+              <View className="ml-3 flex-1">
+                <Text
+                  className={`text-[12px] ${
+                    isDark ? "text-neutral-500" : "text-neutral-500"
+                  }`}
+                >
+                  Kitchen
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  className={`font-satoshiMedium ${
+                    isDark ? "text-neutral-100" : "text-neutral-900"
+                  }`}
+                >
+                  {kitchen?.name ?? "View kitchen"}
+                </Text>
+              </View>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={isDark ? "#9CA3AF" : "#6B7280"}
+            />
+          </Pressable>
 
           {/* meta row */}
           <View

@@ -15,7 +15,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import type { Order } from "@/redux/orders/orders.types";
 import {
   ActivityIndicator,
@@ -43,9 +43,13 @@ type ListSection = CartSection | AwaitingSection;
 function KitchenCartCard({
   kitchenId,
   isDark,
+  selected,
+  onToggleSelect,
 }: {
   kitchenId: string;
   isDark: boolean;
+  selected: boolean;
+  onToggleSelect: (kitchenId: string) => void;
 }) {
   const dispatch = useAppDispatch();
 
@@ -124,11 +128,18 @@ function KitchenCartCard({
             </Text>
           </View>
         </View>
-        <Ionicons
-          name="chevron-up"
-          size={18}
-          color={isDark ? "#6B7280" : "#9CA3AF"}
-        />
+        <Pressable
+          onPress={() => onToggleSelect(kitchenId)}
+          className={`ml-2 w-8 h-8 rounded-full items-center justify-center ${
+            isDark ? "bg-neutral-800" : "bg-neutral-100"
+          }`}
+        >
+          <Ionicons
+            name={selected ? "checkbox" : "square-outline"}
+            size={20}
+            color={selected ? "#ffa800" : isDark ? "#9CA3AF" : "#6B7280"}
+          />
+        </Pressable>
       </View>
 
       {/* CTA row */}
@@ -166,6 +177,49 @@ export default function MyCartsTab() {
   const awaitingPaymentOrders = useAppSelector(selectAwaitingPaymentOrders);
   const ordersStatus = useAppSelector(selectOrdersListStatus);
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const [selectedKitchenIds, setSelectedKitchenIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!kitchenIds.length) {
+      setSelectedKitchenIds([]);
+      return;
+    }
+    setSelectedKitchenIds((prev) => {
+      const kept = prev.filter((id) => kitchenIds.includes(id));
+      return kept.length ? kept : [...kitchenIds];
+    });
+  }, [kitchenIds]);
+
+  const toggleKitchenSelection = (kitchenId: string) => {
+    setSelectedKitchenIds((prev) =>
+      prev.includes(kitchenId)
+        ? prev.filter((id) => id !== kitchenId)
+        : [...prev, kitchenId]
+    );
+  };
+
+  const groupSelection = useAppSelector((s) =>
+    selectedKitchenIds.reduce(
+      (acc, kitchenId) => {
+        const group = s.cart.byKitchenId[kitchenId];
+        if (!group) return acc;
+        for (const mealId of group.itemOrder) {
+          const item = group.items[mealId];
+          if (!item) continue;
+          const quantity = item.quantity ?? 0;
+          const price = Number(item.meal.price);
+          acc.items += quantity;
+          acc.subtotal += (isNaN(price) ? 0 : price) * quantity;
+        }
+        return acc;
+      },
+      { items: 0, subtotal: 0 }
+    )
+  );
+
+  const canGroupCheckout =
+    selectedKitchenIds.length > 1 && groupSelection.items > 0;
+  const showGroupCheckout = kitchenIds.length > 1;
 
   const cartItems: CartListItem[] = kitchenIds.map((kitchenId) => ({
     type: "cart",
@@ -239,21 +293,68 @@ export default function MyCartsTab() {
     );
   };
 
+  const listBottomPadding = showGroupCheckout ? 210 : 120;
+
   return (
-    <SectionList<ListItem, ListSection>
-      sections={sections}
-      keyExtractor={(item) =>
-        item.type === "cart" ? item.kitchenId : item.order.id
-      }
-      renderSectionHeader={renderSectionHeader}
-      renderItem={({ item }) =>
-        item.type === "cart" ? (
-          <KitchenCartCard kitchenId={item.kitchenId} isDark={isDark} />
-        ) : (
-          <OrderCard order={item.order} isDark={isDark} />
-        )
-      }
-      contentContainerStyle={{ paddingBottom: 120 }}
-    />
+    <View className="flex-1">
+      <SectionList<ListItem, ListSection>
+        sections={sections}
+        keyExtractor={(item) =>
+          item.type === "cart" ? item.kitchenId : item.order.id
+        }
+        renderSectionHeader={renderSectionHeader}
+        renderItem={({ item }) =>
+          item.type === "cart" ? (
+            <KitchenCartCard
+              kitchenId={item.kitchenId}
+              isDark={isDark}
+              selected={selectedKitchenIds.includes(item.kitchenId)}
+              onToggleSelect={toggleKitchenSelection}
+            />
+          ) : (
+            <OrderCard order={item.order} isDark={isDark} />
+          )
+        }
+        contentContainerStyle={{ paddingBottom: listBottomPadding }}
+      />
+
+      {showGroupCheckout && (
+        <View
+          className={`absolute left-4 right-4 bottom-4 rounded-2xl p-4 border ${
+            isDark
+              ? "bg-neutral-900 border-neutral-800"
+              : "bg-white border-neutral-200"
+          }`}
+        >
+          <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
+            Group checkout
+          </Text>
+          <Text className={`text-[12px] mt-1 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+            {selectedKitchenIds.length} kitchens selected • {groupSelection.items} items •{" "}
+            {formatNGN(groupSelection.subtotal)}
+          </Text>
+          <Pressable
+            disabled={!canGroupCheckout}
+            onPress={() =>
+              router.push({
+                pathname: "/users/checkout",
+                params: { kitchen_ids: selectedKitchenIds.join(",") },
+              })
+            }
+            className={`mt-3 rounded-xl py-3 items-center justify-center ${
+              canGroupCheckout
+                ? "bg-primary"
+                : isDark
+                  ? "bg-neutral-800"
+                  : "bg-neutral-300"
+            }`}
+          >
+            <Text className={`font-satoshiBold ${canGroupCheckout ? "text-white" : "text-neutral-600"}`}>
+              Checkout Selected
+            </Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
   );
 }

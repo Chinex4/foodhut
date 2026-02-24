@@ -1,7 +1,7 @@
 // cart.selectors.ts
 import type { RootState } from "@/store";
 import { createSelector } from "@reduxjs/toolkit";
-import type { KitchenId, MealId } from "./cart.types";
+import type { CartMeal, KitchenId, MealId } from "./cart.types";
 
 export const selectCartState = (s: RootState) => s.cart;
 
@@ -10,7 +10,7 @@ export const selectCartKitchenIds = (s: RootState) => s.cart.kitchenIds;
 export const selectCartGroupByKitchen = (kitchenId: KitchenId) =>
   createSelector([selectCartState], (cart) => cart.byKitchenId[kitchenId] ?? null);
 
-const EMPTY_ITEMS: any[] = []; // or a proper CartItem[] type
+const EMPTY_ITEMS: CartMeal[] = [];
 
 export const selectCartItemsForKitchen = (kitchenId: KitchenId) =>
   createSelector([selectCartGroupByKitchen(kitchenId)], (g) => {
@@ -87,7 +87,71 @@ export const selectCartTotalItemsForKitchen = (kitchenId?: string | null) =>
     return group.itemOrder.reduce((total, id) => total + (group.items[id]?.quantity ?? 0), 0);
   });
 
-const EMPTY_ORDER_ROWS: any[] = [];
+export const selectCartSubtotalForKitchens = (kitchenIds: string[]) =>
+  createSelector([(s: RootState) => s.cart.byKitchenId], (byKitchenId) =>
+    kitchenIds.reduce((sum, kid) => {
+      const group = byKitchenId[kid];
+      if (!group) return sum;
+      return (
+        sum +
+        group.itemOrder.reduce((groupSum, id) => {
+          const item = group.items[id];
+          if (!item) return groupSum;
+          const price = Number(item.meal.price);
+          return groupSum + (isNaN(price) ? 0 : price) * (item.quantity ?? 0);
+        }, 0)
+      );
+    }, 0)
+  );
+
+export const selectCartTotalItemsForKitchens = (kitchenIds: string[]) =>
+  createSelector([(s: RootState) => s.cart.byKitchenId], (byKitchenId) =>
+    kitchenIds.reduce((total, kid) => {
+      const group = byKitchenId[kid];
+      if (!group) return total;
+      return (
+        total +
+        group.itemOrder.reduce(
+          (groupTotal, id) => groupTotal + (group.items[id]?.quantity ?? 0),
+          0
+        )
+      );
+    }, 0)
+  );
+
+export type CartOrderRow = {
+  id: string;
+  mealId: string;
+  kitchenId: string;
+  kitchenName: string;
+  title: string;
+  qty: number;
+  price: number;
+  cover: string | null;
+};
+
+const EMPTY_ORDER_ROWS: CartOrderRow[] = [];
+
+const buildOrderRows = (
+  kitchenId: string,
+  group: RootState["cart"]["byKitchenId"][string]
+): CartOrderRow[] =>
+  group.itemOrder
+    .map((id) => {
+      const item = group.items[id];
+      if (!item) return null;
+      return {
+        id: `${kitchenId}:${item.meal.id}`,
+        mealId: String(item.meal.id),
+        kitchenId,
+        kitchenName: group.kitchen.name ?? "Kitchen",
+        title: item.meal.name,
+        qty: item.quantity,
+        price: Number(item.meal.price),
+        cover: item.meal.cover_image?.url ?? null,
+      };
+    })
+    .filter((row): row is CartOrderRow => Boolean(row));
 
 export const selectOrderRowsForKitchen = (kitchenId?: string | null) =>
   createSelector(
@@ -97,18 +161,15 @@ export const selectOrderRowsForKitchen = (kitchenId?: string | null) =>
     ],
     (group) => {
       if (!group) return EMPTY_ORDER_ROWS;
-      return group.itemOrder
-        .map((id) => {
-          const item = group.items[id];
-          if (!item) return null;
-          return {
-            id: String(item.meal.id),
-            title: item.meal.name,
-            qty: item.quantity,
-            price: Number(item.meal.price),
-            cover: item.meal.cover_image?.url ?? null,
-          };
-        })
-        .filter(Boolean);
+      return buildOrderRows(kitchenId!, group);
     }
+  );
+
+export const selectOrderRowsForKitchens = (kitchenIds: string[]) =>
+  createSelector([(state: RootState) => state.cart.byKitchenId], (byKitchenId) =>
+    kitchenIds.flatMap((kitchenId) => {
+      const group = byKitchenId[kitchenId];
+      if (!group) return EMPTY_ORDER_ROWS;
+      return buildOrderRows(kitchenId, group);
+    })
   );
