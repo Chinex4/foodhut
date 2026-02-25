@@ -29,11 +29,13 @@ import {
 } from "@/redux/transactions/transactions.selectors";
 import { fetchTransactions } from "@/redux/transactions/transactions.thunks";
 import type { Transaction } from "@/redux/transactions/transactions.types";
+import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 
 export default function KitchenWalletScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const palette = getKitchenPalette(isDark);
 
   const balance = useAppSelector(selectWalletBalanceNumber);
   const profileStatus = useAppSelector(selectWalletProfileStatus);
@@ -46,8 +48,9 @@ export default function KitchenWalletScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (profileStatus === "idle")
+    if (profileStatus === "idle") {
       dispatch(fetchWalletProfile({ as_kitchen: true }));
+    }
   }, [profileStatus, dispatch]);
 
   useEffect(() => {
@@ -71,53 +74,41 @@ export default function KitchenWalletScreen() {
     }
   }, [dispatch, meta?.per_page]);
 
-  const preview = useMemo(() => items.slice(0, 5), [items]);
+  const preview = useMemo(() => items.slice(0, 4), [items]);
 
   const renderTx = ({ item }: { item: Transaction }) => {
     const isCredit = item.direction === "INCOMING";
-    const label = item.note ?? (isCredit ? "Wallet Top-up" : "Order Payment");
+    const label = item.note ?? (isCredit ? "Wallet Top-up" : "Wallet Transfer");
     const amountNum = Number(item.amount);
 
     return (
       <View
-        className={`rounded-2xl border px-3 py-4 mb-3 flex-row items-center justify-between ${
-          isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
-        }`}
-        style={{
-          shadowOpacity: 0.03,
-          shadowRadius: 8,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 3 },
-        }}
+        className="rounded-2xl px-4 py-4 mb-3 flex-row items-center justify-between"
+        style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
       >
-        <View className="flex-row items-center">
-          <Ionicons
-            name={
-              isCredit ? "arrow-down-circle-outline" : "arrow-up-circle-outline"
-            }
-            size={18}
-            color={isCredit ? "#16a34a" : "#ef4444"}
-          />
-          <View className="ml-3">
-            <Text
-              className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
-            >
+        <View className="flex-row items-center flex-1 pr-3">
+          <View
+            className="w-10 h-10 rounded-full items-center justify-center"
+            style={{ backgroundColor: isCredit ? "#EAFBEF" : isDark ? palette.dangerSoft : "#FFF1F2" }}
+          >
+            <Ionicons
+              name={isCredit ? "arrow-down" : "arrow-up"}
+              size={16}
+              color={isCredit ? palette.success : palette.danger}
+            />
+          </View>
+
+          <View className="ml-3 flex-1">
+            <Text className="font-satoshiBold text-[15px]" style={{ color: palette.textPrimary }} numberOfLines={1}>
               {label}
             </Text>
-            <Text
-              className={`text-[12px] font-satoshi ${
-                isDark ? "text-neutral-400" : "text-neutral-500"
-              }`}
-            >
+            <Text className="text-[12px]" style={{ color: palette.textSecondary }}>
               {new Date(item.created_at).toLocaleString()}
             </Text>
           </View>
         </View>
-        <Text
-          className={`font-satoshiMedium ${
-            isCredit ? "text-green-600" : isDark ? "text-neutral-100" : "text-neutral-900"
-          }`}
-        >
+
+        <Text className="font-satoshiBold text-[15px]" style={{ color: isCredit ? palette.success : palette.textPrimary }}>
           {isCredit ? "+" : "-"}
           {formatNGN(amountNum)}
         </Text>
@@ -126,122 +117,95 @@ export default function KitchenWalletScreen() {
   };
 
   return (
-    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View className="px-5 pt-4 pb-3">
-        <View className="flex-row items-center justify-between gap-2">
+      <View className="px-5 pt-2 pb-3 flex-row items-center justify-between">
+        <View className="flex-row items-center">
           <Pressable
-            onPress={() => router.push("/kitchen/(tabs)/index")}
-            className="mr-2"
+            onPress={() => router.push("/kitchen/(tabs)")}
+            className="w-10 h-10 rounded-full items-center justify-center mr-2"
+            style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
           >
-            <Ionicons
-              name="chevron-back"
-              size={22}
-              color={isDark ? "#E5E7EB" : "#0F172A"}
-            />
+            <Ionicons name="chevron-back" size={20} color={palette.textPrimary} />
           </Pressable>
-          <Text
-            className={`text-2xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}
-          >
+          <Text className="text-[22px] font-satoshiBold" style={{ color: palette.textPrimary }}>
             Wallet
           </Text>
-          <View className="w-10" />
         </View>
+
+        <Pressable onPress={() => router.push("/kitchen/wallet/transactions")}>
+          <Text className="font-satoshiBold" style={{ color: palette.accentStrong }}>
+            See all
+          </Text>
+        </Pressable>
       </View>
 
-      <View className="px-5 mt-2">
-        <View className={`rounded-2xl p-5 ${isDark ? "bg-neutral-900" : "bg-neutral-900"}`}>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-white/80 font-satoshi">Available Balance</Text>
-
-            <Pressable
-              onPress={() => router.push("/kitchen/wallet/transactions")}
-            >
-              <Text className="text-white/80 font-satoshiMedium">
-                Transactions ›
-              </Text>
-            </Pressable>
-          </View>
-
-          <Text className="text-white text-[28px] font-satoshiBold mt-2">
+      <View className="px-5 mt-1">
+        <View className="rounded-[28px] p-5" style={{ backgroundColor: palette.accent }}>
+          <Text className="text-white/85 font-satoshi">Available Balance</Text>
+          <Text className="text-[32px] leading-[38px] text-white font-satoshiBold mt-2">
             {formatNGN(balance)}
           </Text>
 
-          <Pressable
-            onPress={() => router.push("/kitchen/wallet/topup")}
-            className="mt-4 bg-primary rounded-xl py-3 items-center justify-center border border-primary-500"
-          >
-            <View className="flex-row items-center">
-              <Ionicons name="add-circle-outline" size={18} color="#fff" />
-              <Text className="ml-2 text-white font-satoshiBold">Add Money</Text>
-            </View>
-          </Pressable>
+          <View className="flex-row mt-4">
+            <Pressable
+              onPress={() => router.push("/kitchen/wallet/topup")}
+              className="flex-1 rounded-2xl py-3 items-center justify-center mr-2"
+              style={{ backgroundColor: "rgba(255,255,255,0.24)" }}
+            >
+              <View className="flex-row items-center">
+                <Ionicons name="add-circle" size={18} color="#fff" />
+                <Text className="ml-2 text-white font-satoshiBold">Add Money</Text>
+              </View>
+            </Pressable>
 
-          <Pressable
-            onPress={() => router.push("/kitchen/wallet/withdraw")}
-            className={`mt-3 rounded-xl py-3 items-center justify-center border ${
-              isDark ? "bg-neutral-800 border-neutral-700" : "bg-white border-neutral-200"
-            }`}
-          >
-            <View className="flex-row items-center">
-              <Ionicons
-                name="cash-outline"
-                size={18}
-                color={isDark ? "#E5E7EB" : "#0F172A"}
-              />
-              <Text className={`ml-2 font-satoshiBold ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
-                Withdraw
-              </Text>
-            </View>
-          </Pressable>
+            <Pressable
+              onPress={() => router.push("/kitchen/wallet/withdraw")}
+              className="flex-1 rounded-2xl py-3 items-center justify-center ml-2"
+              style={{ backgroundColor: palette.surface }}
+            >
+              <View className="flex-row items-center">
+                <Ionicons name="cash" size={18} color={palette.accentStrong} />
+                <Text className="ml-2 font-satoshiBold" style={{ color: palette.accentStrong }}>
+                  Withdraw
+                </Text>
+              </View>
+            </Pressable>
+          </View>
         </View>
       </View>
 
       <View className="px-5 mt-6">
-        <View className="flex-row items-center justify-between mb-2">
-          <Text className={`font-satoshiBold ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
-            Transaction History
-          </Text>
-          <Pressable onPress={() => router.push("/kitchen/wallet/transactions")}>
-            <Text className="text-primary font-satoshiMedium">See all</Text>
-          </Pressable>
-        </View>
+        <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
+          Recent Transactions
+        </Text>
 
         <FlatList
           data={preview}
-          keyExtractor={(x) => x.id}
+          keyExtractor={(item) => item.id}
           renderItem={renderTx}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          className="mt-3"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             listStatus === "loading" ? (
               <View className="mt-6 items-center">
-                <ActivityIndicator color="#0F172A" />
-                <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
-                  Loading transactions…
+                <ActivityIndicator color={palette.accent} />
+                <Text className="mt-2" style={{ color: palette.textSecondary }}>
+                  Loading transactions...
                 </Text>
               </View>
             ) : error ? (
               <View className="mt-6 items-center">
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={36}
-                  color="#ef4444"
-                />
-                <Text className={`mt-2 text-red-500 font-satoshi`}>
+                <Ionicons name="alert-circle-outline" size={34} color={palette.danger} />
+                <Text className="mt-2 text-center" style={{ color: palette.danger }}>
                   {error}
                 </Text>
               </View>
             ) : (
               <View className="mt-6 items-center">
-                <Ionicons
-                  name="wallet-outline"
-                  size={36}
-                  color={isDark ? "#9CA3AF" : "#E5E7EB"}
-                />
-                <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
+                <Ionicons name="wallet-outline" size={34} color={palette.textMuted} />
+                <Text className="mt-2" style={{ color: palette.textSecondary }}>
                   No transactions yet
                 </Text>
               </View>

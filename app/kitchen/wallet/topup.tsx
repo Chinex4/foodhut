@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -16,17 +16,18 @@ import { useRouter } from "expo-router";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createTopupLink } from "@/redux/wallet/wallet.thunks";
-import {
-  selectTopupStatus,
-  selectTopupUrl,
-} from "@/redux/wallet/wallet.selectors";
+import { selectTopupStatus, selectTopupUrl } from "@/redux/wallet/wallet.selectors";
 import { showError } from "@/components/ui/toast";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+
+const QUICK_AMOUNTS = [1000, 2000, 5000, 10000];
 
 export default function KitchenTopupScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const palette = getKitchenPalette(isDark);
 
   const [amount, setAmount] = useState<string>("");
 
@@ -34,7 +35,7 @@ export default function KitchenTopupScreen() {
   const url = useAppSelector(selectTopupUrl);
 
   const busy = status === "loading";
-  const numeric = Number(amount.replace(/[^0-9.]/g, ""));
+  const numeric = useMemo(() => Number(amount.replace(/[^0-9.]/g, "")), [amount]);
   const canTopup = !busy && numeric > 0;
 
   const handleTopup = async () => {
@@ -61,35 +62,70 @@ export default function KitchenTopupScreen() {
   }, [status, url, router]);
 
   return (
-    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
+
       <KeyboardAvoidingView
         behavior={Platform.select({ ios: "padding", android: undefined })}
         className="flex-1"
       >
-        <View className="px-5 pt-3 pb-2 flex-row items-center">
-          <Pressable onPress={() => router.push("/kitchen/wallet")} className="mr-2">
-            <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
+        <View className="px-5 pt-2 pb-3 flex-row items-center">
+          <Pressable
+            onPress={() => router.push("/kitchen/wallet")}
+            className="w-10 h-10 rounded-full items-center justify-center mr-2"
+            style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
+          >
+            <Ionicons name="chevron-back" size={20} color={palette.textPrimary} />
           </Pressable>
-          <Text className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
+          <Text className="text-[22px] font-satoshiBold" style={{ color: palette.textPrimary }}>
             Top Up Wallet
           </Text>
         </View>
 
-        <View className="flex-1 px-5 mt-4">
+        <View className="flex-1 px-5 mt-2">
           <View
-            className={`rounded-2xl border px-3 py-4 ${
-              isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
-            }`}
+            className="rounded-3xl p-5"
+            style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
           >
+            <Text className="text-[13px]" style={{ color: palette.textSecondary }}>
+              Enter amount
+            </Text>
             <TextInput
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
-              placeholder="Input Amount"
-              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-              className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
+              placeholder="5000"
+              placeholderTextColor={palette.textMuted}
+              className="mt-2 rounded-2xl px-4 py-3 text-[18px] font-satoshiBold"
+              style={{ backgroundColor: palette.surfaceAlt, color: palette.textPrimary }}
             />
+
+            <Text className="mt-4 text-[13px]" style={{ color: palette.textSecondary }}>
+              Quick amounts
+            </Text>
+            <View className="flex-row flex-wrap mt-2">
+              {QUICK_AMOUNTS.map((item) => (
+                <Pressable
+                  key={item}
+                  onPress={() => setAmount(String(item))}
+                  className="rounded-full px-4 py-2 mr-2 mb-2"
+                  style={{
+                    backgroundColor:
+                      numeric === item ? palette.accentSoft : palette.surfaceAlt,
+                    borderWidth: 1,
+                    borderColor:
+                      numeric === item ? palette.accentStrong : palette.border,
+                  }}
+                >
+                  <Text
+                    className="font-satoshiBold text-[12px]"
+                    style={{ color: numeric === item ? palette.accentStrong : palette.textSecondary }}
+                  >
+                    ₦{item.toLocaleString()}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -97,14 +133,13 @@ export default function KitchenTopupScreen() {
           <Pressable
             disabled={!canTopup}
             onPress={handleTopup}
-            className={`rounded-2xl py-4 items-center justify-center ${
-              canTopup ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-300"
-            }`}
+            className="rounded-2xl py-4 items-center justify-center"
+            style={{ backgroundColor: canTopup ? palette.accent : palette.textMuted }}
           >
             {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-white font-satoshiBold">Top Up</Text>
+              <Text className="text-white font-satoshiBold text-[16px]">Continue</Text>
             )}
           </Pressable>
         </View>

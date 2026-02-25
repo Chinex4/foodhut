@@ -11,10 +11,12 @@ import {
   uploadKitchenCoverByProfile,
 } from "@/redux/kitchen/kitchen.thunks";
 import { showError, showSuccess } from "@/components/ui/toast";
+import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 
 export default function KitchenSettingsScreen() {
   const dispatch = useAppDispatch();
   const { isDark, kitchen, kitchenStatus } = useKitchenData();
+  const palette = getKitchenPalette(isDark);
 
   const [kitchenName, setKitchenName] = useState("");
   const [kitchenPhone, setKitchenPhone] = useState("");
@@ -73,15 +75,15 @@ export default function KitchenSettingsScreen() {
 
   if (kitchenStatus === "loading" && !kitchen) {
     return (
-      <View className={`flex-1 items-center justify-center ${isDark ? "bg-neutral-950" : "bg-white"}`}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: palette.background }}>
         <StatusBar style={isDark ? "light" : "dark"} />
-        <ActivityIndicator color="#F59E0B" />
+        <ActivityIndicator color={palette.accent} />
       </View>
     );
   }
 
   return (
-    <View className={`flex-1 pt-16 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <SettingsTab
         kitchen={kitchen}

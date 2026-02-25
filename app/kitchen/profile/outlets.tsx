@@ -6,53 +6,87 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { mockVendorOutlets } from "@/utils/mock/mockVendor";
+import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+import { showSuccess } from "@/components/ui/toast";
 
 export default function KitchenOutletsScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const palette = getKitchenPalette(isDark);
   const [outlets, setOutlets] = useState(mockVendorOutlets);
 
   const setActive = (id: string) => {
-    setOutlets((prev) => prev.map((o) => ({ ...o, active: o.id === id })));
+    setOutlets((prev) => prev.map((outlet) => ({ ...outlet, active: outlet.id === id })));
+    showSuccess("Outlet switched");
   };
 
   return (
-    <View className={`pt-16 flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <View className="px-5 pt-5 pb-3 flex-row items-center">
-        <Pressable onPress={() => router.back()} className="mr-2">
-          <Ionicons name="chevron-back" size={22} color={isDark ? "#fff" : "#111827"} />
+
+      <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
+        <View className="flex-row items-center">
+          <Pressable
+            onPress={() => router.back()}
+            className="w-10 h-10 rounded-full items-center justify-center mr-2"
+            style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
+          >
+            <Ionicons name="chevron-back" size={20} color={palette.textPrimary} />
+          </Pressable>
+          <Text className="text-[22px] font-satoshiBold" style={{ color: palette.textPrimary }}>
+            Manage Outlets
+          </Text>
+        </View>
+
+        <Pressable
+          onPress={() => router.push("/kitchen/profile/outlets-create")}
+          className="w-10 h-10 rounded-full items-center justify-center"
+          style={{ backgroundColor: palette.accent }}
+        >
+          <Ionicons name="add" size={22} color="#fff" />
         </Pressable>
-        <Text className={`text-2xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
-          Outlets
-        </Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {outlets.map((outlet) => (
           <View
             key={outlet.id}
-            className={`rounded-2xl p-4 mb-3 border ${
-              isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
-            }`}
+            className="rounded-3xl p-4 mb-3"
+            style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
           >
-            <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
-              {outlet.name}
-            </Text>
-            <Text className={`text-[12px] mt-1 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+            <View className="flex-row items-center justify-between">
+              <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
+                {outlet.name}
+              </Text>
+              {outlet.active ? (
+                <View className="rounded-full px-3 py-1" style={{ backgroundColor: isDark ? "#1F3D2F" : "#E9FBEF" }}>
+                  <Text className="text-[11px] font-satoshiBold" style={{ color: palette.success }}>
+                    ACTIVE
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            <Text className="text-[14px] mt-1" style={{ color: palette.textSecondary }}>
               {outlet.address}
             </Text>
-            <View className="flex-row mt-3">
+
+            <View className="flex-row mt-4">
               <Pressable
                 onPress={() => setActive(outlet.id)}
-                className={`px-3 py-2 rounded-xl ${outlet.active ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
+                className="rounded-2xl px-4 py-3 mr-2"
+                style={{ backgroundColor: outlet.active ? palette.accentSoft : palette.surfaceAlt }}
               >
-                <Text className={`${outlet.active ? "text-white" : isDark ? "text-neutral-200" : "text-neutral-700"} text-[12px] font-satoshiMedium`}>
-                  {outlet.active ? "Active" : "Make Active"}
+                <Text className="font-satoshiBold" style={{ color: outlet.active ? palette.accentStrong : palette.textSecondary }}>
+                  {outlet.active ? "Current Outlet" : "Make Active"}
                 </Text>
               </Pressable>
-              <Pressable className="ml-2 px-3 py-2 rounded-xl border border-dashed">
-                <Text className={`text-[12px] ${isDark ? "text-neutral-300" : "text-neutral-600"}`}>
-                  Access control
+
+              <Pressable
+                className="rounded-2xl px-4 py-3"
+                style={{ borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surfaceAlt }}
+              >
+                <Text className="font-satoshiBold" style={{ color: palette.textSecondary }}>
+                  Access Control
                 </Text>
               </Pressable>
             </View>
@@ -61,7 +95,8 @@ export default function KitchenOutletsScreen() {
 
         <Pressable
           onPress={() => router.push("/kitchen/profile/outlets-create")}
-          className="mt-2 bg-primary rounded-2xl py-4 items-center"
+          className="mt-2 rounded-2xl py-4 items-center"
+          style={{ backgroundColor: palette.accent }}
         >
           <Text className="text-white font-satoshiBold">Create Outlet</Text>
         </Pressable>

@@ -21,10 +21,19 @@ import {
   selectOrdersState,
 } from "@/redux/orders/orders.selectors";
 import { fetchOrders } from "@/redux/orders/orders.thunks";
+import type { OrderStatus } from "@/redux/orders/orders.types";
 
-export function useKitchenData() {
+type UseKitchenDataOptions = {
+  ordersStatus?: OrderStatus | null;
+};
+
+export function useKitchenData(options?: UseKitchenDataOptions) {
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const desiredOrderStatus =
+    options?.ordersStatus === undefined
+      ? "AWAITING_ACKNOWLEDGEMENT"
+      : options.ordersStatus;
 
   const kitchen = useAppSelector(selectKitchenProfile);
   const kitchenStatus = useAppSelector(selectKitchenProfileStatus);
@@ -61,7 +70,9 @@ export function useKitchenData() {
     const needsOrders =
       !ordersQuery ||
       ordersQuery.kitchen_id !== kitchen.id ||
-      ordersQuery.status !== "AWAITING_ACKNOWLEDGEMENT" ||
+      (desiredOrderStatus === null
+        ? typeof ordersQuery.status !== "undefined"
+        : ordersQuery.status !== desiredOrderStatus) ||
       ordersQuery.per_page !== 50 ||
       ordersQuery.page !== 1 ||
       ordersQuery.as_kitchen !== true;
@@ -71,12 +82,12 @@ export function useKitchenData() {
           kitchen_id: kitchen.id,
           per_page: 50,
           page: 1,
-          status: "AWAITING_ACKNOWLEDGEMENT",
           as_kitchen: true,
+          ...(desiredOrderStatus ? { status: desiredOrderStatus } : {}),
         })
       );
     }
-  }, [dispatch, kitchen?.id, ordersQuery, ordersStatus]);
+  }, [dispatch, kitchen?.id, ordersQuery, ordersStatus, desiredOrderStatus]);
 
   const refreshMeals = useCallback(async () => {
     if (!kitchen?.id) return;
@@ -90,11 +101,11 @@ export function useKitchenData() {
         kitchen_id: kitchen.id,
         per_page: 50,
         page: 1,
-        status: "AWAITING_ACKNOWLEDGEMENT",
         as_kitchen: true,
+        ...(desiredOrderStatus ? { status: desiredOrderStatus } : {}),
       })
     );
-  }, [dispatch, kitchen?.id]);
+  }, [dispatch, kitchen?.id, desiredOrderStatus]);
 
   const updatingMap = useMemo(() => {
     const raw = ordersState.updateItemStatus || {};
@@ -103,6 +114,14 @@ export function useKitchenData() {
       return acc;
     }, {});
   }, [ordersState.updateItemStatus]);
+
+  const updatingOrderMap = useMemo(() => {
+    const raw = ordersState.updateStatus || {};
+    return Object.keys(raw).reduce<Record<string, boolean>>((acc, key) => {
+      acc[key] = raw[key] === "loading";
+      return acc;
+    }, {});
+  }, [ordersState.updateStatus]);
 
   return {
     isDark,
@@ -115,5 +134,6 @@ export function useKitchenData() {
     refreshMeals,
     refreshOrders,
     updatingMap,
+    updatingOrderMap,
   };
 }

@@ -144,7 +144,7 @@ export default function RiderHomeScreen() {
           </View>
         </View>
 
-        <View
+        {/* <View
           className={`rounded-3xl px-4 py-4 mb-5 ${
             isDark ? "bg-neutral-900" : "bg-white"
           } border ${isDark ? "border-neutral-800" : "border-neutral-100"}`}
@@ -176,7 +176,7 @@ export default function RiderHomeScreen() {
               Map preview placeholder
             </Text>
           </View>
-        </View>
+        </View> */}
 
         <View className="flex-row gap-3 mb-4">
           {[

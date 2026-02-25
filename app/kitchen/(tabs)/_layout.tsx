@@ -3,11 +3,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Platform } from "react-native";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 
 export default function KitchenTabLayout() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
-  const tint = isDark ? "#fbbf24" : "#ffa800";
-  const inactive = isDark ? "#9CA3AF" : "#8E8E93";
+  const palette = getKitchenPalette(isDark);
+  const tint = palette.accent;
+  const inactive = palette.textMuted;
 
   return (
     <Tabs
@@ -16,17 +18,17 @@ export default function KitchenTabLayout() {
         tabBarActiveTintColor: tint,
         tabBarInactiveTintColor: inactive,
         tabBarStyle: {
-          height: 78,
+          height: 84,
           paddingTop: 8,
-          paddingBottom: Platform.select({ ios: 18, default: 14 }),
-          backgroundColor: isDark ? "#0a0a0a" : "#FFF8EC",
+          paddingBottom: Platform.select({ ios: 20, default: 14 }),
+          backgroundColor: palette.surface,
           borderTopWidth: 1,
-          borderTopColor: isDark ? "#1f2937" : "#f3f4f6",
+          borderTopColor: palette.border,
           elevation: 0,
         },
         tabBarLabelStyle: {
           fontFamily: "Satoshi-Medium",
-          fontSize: 13,
+          fontSize: 12,
         },
       }}
     >
@@ -34,8 +36,8 @@ export default function KitchenTabLayout() {
         name="index"
         options={{
           title: "Dashboard",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={26} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -43,8 +45,12 @@ export default function KitchenTabLayout() {
         name="menu/index"
         options={{
           title: "Menu",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="restaurant-outline" size={26} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "restaurant" : "restaurant-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
@@ -52,8 +58,12 @@ export default function KitchenTabLayout() {
         name="orders/index"
         options={{
           title: "Orders",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="bag-handle-outline" size={26} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "bag-handle" : "bag-handle-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
@@ -61,8 +71,12 @@ export default function KitchenTabLayout() {
         name="profile/index"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="person-circle-outline" size={28} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "person-circle" : "person-circle-outline"}
+              size={26}
+              color={color}
+            />
           ),
         }}
       />

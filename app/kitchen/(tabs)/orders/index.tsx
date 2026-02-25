@@ -1,12 +1,18 @@
 import React, { useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import OrdersTab from "@/app/kitchen/components/OrdersTab";
 import { useKitchenData } from "@/app/kitchen/hooks/useKitchenData";
 import { useAppDispatch } from "@/store/hooks";
-import { updateOrderItemStatus } from "@/redux/orders/orders.thunks";
+import {
+  updateOrderItemStatus,
+  updateOrderStatus,
+} from "@/redux/orders/orders.thunks";
 import { showError, showSuccess } from "@/components/ui/toast";
+import type { OrderStatus } from "@/redux/orders/orders.types";
+import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 
 export default function KitchenOrdersScreen() {
   const dispatch = useAppDispatch();
@@ -18,7 +24,10 @@ export default function KitchenOrdersScreen() {
     ordersStatus,
     refreshOrders,
     updatingMap,
-  } = useKitchenData();
+    updatingOrderMap,
+  } = useKitchenData({ ordersStatus: null });
+
+  const palette = getKitchenPalette(isDark);
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -27,17 +36,17 @@ export default function KitchenOrdersScreen() {
     setRefreshing(false);
   };
 
-  const handleAdvance = async (
+  const handleAdvanceItem = async (
     orderId: string,
     itemId: string,
-    nextStatus: string
+    nextStatus: "PREPARING" | "IN_TRANSIT" | "DELIVERED"
   ) => {
     try {
       await dispatch(
         updateOrderItemStatus({
           orderId,
           itemId,
-          status: nextStatus as any,
+          status: nextStatus,
           as_kitchen: true,
         })
       ).unwrap();
@@ -47,17 +56,32 @@ export default function KitchenOrdersScreen() {
     }
   };
 
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      await dispatch(
+        updateOrderStatus({
+          orderId,
+          status: "CANCELLED" as OrderStatus,
+          as_kitchen: true,
+        })
+      ).unwrap();
+      showSuccess("Order declined");
+    } catch (err: any) {
+      showError(err?.message || "Failed to decline order");
+    }
+  };
+
   if (kitchenStatus === "loading" && !kitchen) {
     return (
-      <View className={`flex-1 items-center justify-center ${isDark ? "bg-neutral-950" : "bg-white"}`}>
+      <SafeAreaView style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: palette.background }}>
         <StatusBar style={isDark ? "light" : "dark"} />
-        <ActivityIndicator color="#F59E0B" />
-      </View>
+        <ActivityIndicator color={palette.accent} />
+      </SafeAreaView>
     );
   }
 
   return (
-    <View className={`flex-1 pt-16 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <OrdersTab
         orders={orders}
@@ -65,10 +89,12 @@ export default function KitchenOrdersScreen() {
         isDark={isDark}
         refreshing={refreshing}
         onRefresh={handleRefresh}
-        onAdvance={handleAdvance}
+        onAdvanceItem={handleAdvanceItem}
+        onCancelOrder={handleCancelOrder}
         updatingMap={updatingMap}
+        updatingOrderMap={updatingOrderMap}
         loading={ordersStatus === "loading"}
       />
-    </View>
+    </SafeAreaView>
   );
 }

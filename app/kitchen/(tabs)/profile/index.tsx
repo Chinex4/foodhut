@@ -1,56 +1,87 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import React, { useEffect } from "react";
+import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { mockVendorSummary } from "@/utils/mock/mockVendor";
 import { persistThemePreference, setThemeMode } from "@/redux/theme/theme.slice";
+import {
+  selectKitchenProfile,
+  selectKitchenProfileStatus,
+} from "@/redux/kitchen/kitchen.selectors";
+import { fetchKitchenProfile } from "@/redux/kitchen/kitchen.thunks";
+import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+import { logout } from "@/redux/auth/auth.thunks";
 
-function Row({
-  icon,
-  label,
-  onPress,
-  rightIcon,
-  isDark,
-}: {
-  icon: React.ReactNode;
-  label: string;
+type SettingsRow = {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle: string;
+  route?: string;
+  badge?: string;
   onPress?: () => void;
-  rightIcon?: React.ReactNode;
-  isDark: boolean;
-}) {
+};
+
+function Row({ item, isDark }: { item: SettingsRow; isDark: boolean }) {
+  const palette = getKitchenPalette(isDark);
+
+  const onPress = () => {
+    if (item.onPress) {
+      item.onPress();
+      return;
+    }
+
+    if (item.route) router.push(item.route as any);
+  };
+
   return (
     <Pressable
       onPress={onPress}
-      className={`flex-row items-center justify-between px-4 py-4 rounded-2xl mb-3 border ${
-        isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
-      }`}
+      className="flex-row items-center px-4 py-4"
+      style={{ borderTopWidth: 1, borderTopColor: palette.border }}
     >
-      <View className="flex-row items-center">
-        {icon}
-        <Text className={`ml-3 text-[14px] font-satoshi ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
-          {label}
+      <View
+        className="w-12 h-12 rounded-2xl items-center justify-center"
+        style={{ backgroundColor: isDark ? palette.elevated : "#FFF3DF" }}
+      >
+        <Ionicons name={item.icon} size={20} color={palette.accentStrong} />
+      </View>
+
+      <View className="ml-4 flex-1">
+        <Text className="text-[16px] font-satoshiBold" style={{ color: palette.textPrimary }}>
+          {item.title}
+        </Text>
+        <Text className="text-[14px] mt-0.5" style={{ color: palette.textSecondary }}>
+          {item.subtitle}
         </Text>
       </View>
-      {rightIcon ?? (
-        <Ionicons name="chevron-forward" size={18} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
-      )}
+
+      {item.badge ? (
+        <View className="rounded-full px-2 py-1 mr-2" style={{ backgroundColor: palette.accent }}>
+          <Text className="text-[10px] text-white font-satoshiBold">{item.badge}</Text>
+        </View>
+      ) : null}
+
+      <Ionicons name="chevron-forward" size={18} color={palette.textMuted} />
     </Pressable>
   );
 }
 
 export default function KitchenProfileScreen() {
-  const isDark = useAppSelector(selectThemeMode) === "dark";
   const dispatch = useAppDispatch();
-  const [kitchenName, setKitchenName] = useState("Mama Ada Kitchen");
-  const [address, setAddress] = useState("12 Market Street, Lagos");
-  const [contact, setContact] = useState("+234 701 234 5678");
-  const [prepTime, setPrepTime] = useState("25-35 mins");
-  const [openTime, setOpenTime] = useState("08:00");
-  const [closeTime, setCloseTime] = useState("20:00");
-  const [serviceAreas, setServiceAreas] = useState("Ikoyi, VI, Lekki");
+  const isDark = useAppSelector(selectThemeMode) === "dark";
+  const palette = getKitchenPalette(isDark);
+
+  const kitchen = useAppSelector(selectKitchenProfile);
+  const kitchenStatus = useAppSelector(selectKitchenProfileStatus);
+
+  useEffect(() => {
+    if (!kitchen && kitchenStatus !== "loading") {
+      dispatch(fetchKitchenProfile());
+    }
+  }, [dispatch, kitchen, kitchenStatus]);
 
   const toggleTheme = () => {
     const next = isDark ? "light" : "dark";
@@ -58,95 +89,234 @@ export default function KitchenProfileScreen() {
     dispatch(persistThemePreference(next));
   };
 
-  return (
-    <View className={`pt-16 flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
-      <StatusBar style={isDark ? "light" : "dark"} />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        <Text className={`text-2xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
-          Profile & Settings
-        </Text>
-        <Text className={`text-[12px] mt-1 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-          Manage your kitchen profile.
-        </Text>
+  const doLogout = async () => {
+    await dispatch(logout()).unwrap();
+    router.replace("/(auth)/login");
+  };
 
-        <View className={`rounded-2xl p-4 mt-4 border ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}>
-          <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-            Wallet Balance
+  const profileName = kitchen?.name || "Gourmet Kitchen Central";
+  const profileId = kitchen?.id ? `vendor_id: #${kitchen.id.slice(0, 6)}` : "vendor_id: #882910";
+
+  const storeRows: SettingsRow[] = [
+    {
+      icon: "time",
+      title: "Business Hours",
+      subtitle: `${kitchen?.opening_time || "08:00 AM"} - ${kitchen?.closing_time || "10:00 PM"}`,
+      route: "/kitchen/(tabs)/settings",
+    },
+    {
+      icon: "timer",
+      title: "Avg. Preparation Time",
+      subtitle: kitchen?.preparation_time || "15 - 25 minutes",
+      route: "/kitchen/(tabs)/settings",
+    },
+    {
+      icon: "car",
+      title: "Location & Fares",
+      subtitle: "Manage delivery radius & pricing",
+      route: "/kitchen/(tabs)/settings",
+    },
+  ];
+
+  const financeRows: SettingsRow[] = [
+    {
+      icon: "wallet",
+      title: "Wallet Security",
+      subtitle: "Change finance password",
+      route: "/kitchen/profile/wallet-password",
+    },
+    {
+      icon: "storefront",
+      title: "Manage Outlets",
+      subtitle: "Add or switch between outlets",
+      route: "/kitchen/profile/outlets",
+      badge: "NEW",
+    },
+  ];
+
+  const insightRows: SettingsRow[] = [
+    {
+      icon: "star",
+      title: "Reviews",
+      subtitle: "4.8 Average Rating",
+      route: "/kitchen/profile/reviews",
+    },
+    {
+      icon: "bar-chart",
+      title: "Business Metrics",
+      subtitle: "Growth and performance reports",
+      route: "/kitchen/profile/metrics",
+    },
+  ];
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
+        <View className="flex-row items-center justify-between">
+          <Text
+            className="text-[22px] leading-[30px] font-satoshiBold"
+            style={{ color: palette.textPrimary }}
+          >
+            Profile & Settings
           </Text>
-          <Text className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
-            {mockVendorSummary.wallet}
-          </Text>
+
+          <View className="flex-row items-center">
+            <Pressable
+              onPress={toggleTheme}
+              className="w-12 h-12 rounded-full items-center justify-center mr-2"
+              style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
+            >
+              <Ionicons name={isDark ? "sunny" : "moon"} size={22} color={palette.textSecondary} />
+            </Pressable>
+
+            <Pressable
+              className="w-12 h-12 rounded-full items-center justify-center"
+              style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
+            >
+              <Ionicons name="notifications" size={20} color={palette.textSecondary} />
+            </Pressable>
+          </View>
         </View>
 
-        {[{ label: "Kitchen name", value: kitchenName, onChange: setKitchenName },
-          { label: "Address", value: address, onChange: setAddress },
-          { label: "Contact", value: contact, onChange: setContact },
-          { label: "Average prep time", value: prepTime, onChange: setPrepTime },
-          { label: "Opening time", value: openTime, onChange: setOpenTime },
-          { label: "Closing time", value: closeTime, onChange: setCloseTime },
-          { label: "Service areas", value: serviceAreas, onChange: setServiceAreas }].map((field) => (
-          <View key={field.label} className="mt-4">
-            <Text className={`text-[12px] mb-1 ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-              {field.label}
-            </Text>
-            <TextInput
-              value={field.value}
-              onChangeText={field.onChange}
-              placeholder={field.label}
-              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-              className={`rounded-2xl px-3 py-3 border ${isDark ? "bg-neutral-900 border-neutral-800 text-white" : "bg-white border-neutral-200 text-neutral-900"}`}
+        <View
+          className="rounded-[30px] p-6 mt-6"
+          style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
+        >
+          {kitchenStatus === "loading" && !kitchen ? (
+            <View className="items-center py-5">
+              <ActivityIndicator color={palette.accent} />
+            </View>
+          ) : (
+            <>
+              <View className="items-center">
+                <View
+                  className="w-28 h-28 rounded-full items-center justify-center"
+                  style={{ backgroundColor: isDark ? palette.elevated : "#FFDDBB" }}
+                >
+                  <Ionicons name="person" size={56} color={palette.accentStrong} />
+
+                  <Pressable
+                    className="absolute bottom-0 right-0 w-10 h-10 rounded-full items-center justify-center"
+                    style={{ backgroundColor: palette.accent }}
+                  >
+                    <Ionicons name="camera" size={18} color="#fff" />
+                  </Pressable>
+                </View>
+
+                <Text
+                  className="mt-4 text-[16px] leading-[22px] font-satoshiBold text-center"
+                  style={{ color: palette.textPrimary }}
+                >
+                  {profileName}
+                </Text>
+                <Text className="text-[17px] mt-1" style={{ color: palette.textSecondary }}>
+                  {profileId}
+                </Text>
+              </View>
+
+              <View className="mt-6 flex-row">
+                <Pressable
+                  onPress={() => router.push("/kitchen/profile/qr")}
+                  className="flex-1 mr-2 rounded-2xl py-4 items-center justify-center"
+                  style={{ backgroundColor: palette.accent }}
+                >
+                  <View className="flex-row items-center">
+                    <Ionicons name="qr-code" size={18} color="#fff" />
+                    <Text className="ml-2 text-white font-satoshiBold text-[15px]">Share QR</Text>
+                  </View>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => router.push("/kitchen/(tabs)/settings")}
+                  className="flex-1 ml-2 rounded-2xl py-4 items-center justify-center"
+                  style={{ borderWidth: 1, borderColor: palette.border, backgroundColor: palette.elevated }}
+                >
+                  <View className="flex-row items-center">
+                    <Ionicons name="create" size={18} color={palette.accentStrong} />
+                    <Text
+                      className="ml-2 font-satoshiBold text-[15px]"
+                      style={{ color: palette.accentStrong }}
+                    >
+                      Edit Profile
+                    </Text>
+                  </View>
+                </Pressable>
+              </View>
+            </>
+          )}
+        </View>
+
+        <Text className="mt-8 mb-2 text-[13px] tracking-[2px] font-satoshiBold" style={{ color: palette.textMuted }}>
+          STORE MANAGEMENT
+        </Text>
+        <View className="rounded-3xl overflow-hidden" style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
+          {storeRows.map((item) => (
+            <Row key={item.title} item={item} isDark={isDark} />
+          ))}
+        </View>
+
+        <Text className="mt-8 mb-2 text-[13px] tracking-[2px] font-satoshiBold" style={{ color: palette.textMuted }}>
+          FINANCE & SECURITY
+        </Text>
+        <View className="rounded-3xl overflow-hidden" style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
+          {financeRows.map((item) => (
+            <Row key={item.title} item={item} isDark={isDark} />
+          ))}
+
+          <View className="flex-row items-center justify-between px-4 py-4" style={{ borderTopWidth: 1, borderTopColor: palette.border }}>
+            <View className="flex-row items-center">
+              <View
+                className="w-12 h-12 rounded-2xl items-center justify-center"
+                style={{ backgroundColor: isDark ? palette.elevated : "#FFF3DF" }}
+              >
+                <Ionicons name="moon" size={20} color={palette.accentStrong} />
+              </View>
+
+              <View className="ml-4">
+                <Text className="text-[16px] font-satoshiBold" style={{ color: palette.textPrimary }}>
+                  Dark Mode
+                </Text>
+                <Text className="text-[14px] mt-0.5" style={{ color: palette.textSecondary }}>
+                  Use low-light kitchen theme
+                </Text>
+              </View>
+            </View>
+
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              thumbColor={isDark ? palette.accent : "#F9FAFB"}
+              trackColor={{ false: "#D4D9E1", true: isDark ? "#5F4A12" : "#FBD38D" }}
+              ios_backgroundColor="#D4D9E1"
             />
           </View>
-        ))}
-
-        <View className="mt-5">
-          <Row
-            icon={<Ionicons name="star-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />}
-            label="Reviews"
-            onPress={() => router.push("/kitchen/profile/reviews")}
-            isDark={isDark}
-          />
-          <Row
-            icon={<Ionicons name="stats-chart-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />}
-            label="Metrics"
-            onPress={() => router.push("/kitchen/profile/metrics")}
-            isDark={isDark}
-          />
-          <Row
-            icon={<Ionicons name="qr-code-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />}
-            label="QR Code"
-            onPress={() => router.push("/kitchen/profile/qr")}
-            isDark={isDark}
-          />
-          <Row
-            icon={<Ionicons name="storefront-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />}
-            label="Outlets"
-            onPress={() => router.push("/kitchen/profile/outlets")}
-            isDark={isDark}
-          />
-          <Row
-            icon={<Ionicons name="moon-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />}
-            label="Dark Mode"
-            onPress={toggleTheme}
-            rightIcon={
-              <Switch
-                value={isDark}
-                onValueChange={toggleTheme}
-                thumbColor={isDark ? "#F59E0B" : "#9CA3AF"}
-                trackColor={{ false: "#E5E7EB", true: "#92400e" }}
-                ios_backgroundColor={isDark ? "#1F2937" : "#E5E7EB"}
-              />
-            }
-            isDark={isDark}
-          />
-          <Row
-            icon={<Ionicons name="lock-closed-outline" size={18} color={isDark ? "#E5E7EB" : "#111827"} />}
-            label="Wallet/Finance Password"
-            onPress={() => router.push("/kitchen/profile/wallet-password")}
-            isDark={isDark}
-          />
         </View>
+
+        <Text className="mt-8 mb-2 text-[13px] tracking-[2px] font-satoshiBold" style={{ color: palette.textMuted }}>
+          FEEDBACK & INSIGHTS
+        </Text>
+        <View className="rounded-3xl overflow-hidden" style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
+          {insightRows.map((item) => (
+            <Row key={item.title} item={item} isDark={isDark} />
+          ))}
+        </View>
+
+        <Pressable
+          onPress={doLogout}
+          className="mt-8 rounded-3xl py-4 items-center justify-center"
+          style={{
+            borderWidth: 2,
+            borderColor: isDark ? "#713146" : "#F9CDD8",
+            backgroundColor: isDark ? "#2D1320" : "transparent",
+          }}
+        >
+          <Text className="text-[15px] font-satoshiBold" style={{ color: "#F43F5E" }}>
+            Logout Account
+          </Text>
+        </Pressable>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

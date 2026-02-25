@@ -4,6 +4,8 @@ export type VendorMeal = {
   description: string;
   price: string;
   portion: string;
+  deliveryEnabled: boolean;
+  sitInEnabled: boolean;
   available: boolean;
   stock: number;
   discountPercent?: number;
@@ -48,6 +50,8 @@ export const mockVendorMeals: VendorMeal[] = [
     description: "Smoky party jollof with chicken",
     price: "₦ 2,500",
     portion: "Regular",
+    deliveryEnabled: true,
+    sitInEnabled: true,
     available: true,
     stock: 18,
     discountPercent: 10,
@@ -58,6 +62,8 @@ export const mockVendorMeals: VendorMeal[] = [
     description: "Spicy beef skewers",
     price: "₦ 3,200",
     portion: "Large",
+    deliveryEnabled: true,
+    sitInEnabled: false,
     available: true,
     stock: 9,
   },
@@ -67,6 +73,8 @@ export const mockVendorMeals: VendorMeal[] = [
     description: "Flaky and warm",
     price: "₦ 1,200",
     portion: "Single",
+    deliveryEnabled: false,
+    sitInEnabled: true,
     available: false,
     stock: 0,
   },

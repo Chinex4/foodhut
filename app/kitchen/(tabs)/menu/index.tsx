@@ -10,241 +10,374 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { mockVendorMeals, type VendorMeal } from "@/utils/mock/mockVendor";
+import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+
+type MenuFilter = "ALL" | "PACKAGES" | "PER_PORTION";
 
 export default function KitchenMenuScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const palette = getKitchenPalette(isDark);
+
   const [query, setQuery] = useState("");
-  const [mode, setMode] = useState<"SITIN" | "DELIVERY">("DELIVERY");
+  const [mode, setMode] = useState<"DELIVERY" | "SITIN">("DELIVERY");
+  const [filter, setFilter] = useState<MenuFilter>("ALL");
   const [meals, setMeals] = useState<VendorMeal[]>(mockVendorMeals);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return meals;
-    const q = query.toLowerCase();
-    return meals.filter((m) => m.name.toLowerCase().includes(q));
-  }, [meals, query]);
+    const q = query.toLowerCase().trim();
+
+    return meals.filter((meal) => {
+      const supportsMode =
+        mode === "DELIVERY" ? meal.deliveryEnabled : meal.sitInEnabled;
+      const inSearch =
+        !q ||
+        meal.name.toLowerCase().includes(q) ||
+        meal.description.toLowerCase().includes(q);
+
+      if (!inSearch || !supportsMode) return false;
+
+      if (filter === "PACKAGES") {
+        return meal.portion.toLowerCase().includes("large");
+      }
+
+      if (filter === "PER_PORTION") {
+        return !meal.portion.toLowerCase().includes("large");
+      }
+
+      return true;
+    });
+  }, [meals, query, filter, mode]);
 
   const toggleAvailable = (id: string) => {
     setMeals((prev) =>
-      prev.map((m) =>
-        m.id === id ? { ...m, available: !m.available } : m
+      prev.map((meal) =>
+        meal.id === id ? { ...meal, available: !meal.available } : meal
       )
     );
   };
 
-  const updateStock = (id: string, delta: number) => {
+  const updateDiscount = (id: string, delta: number) => {
     setMeals((prev) =>
-      prev.map((m) =>
-        m.id === id ? { ...m, stock: Math.max(0, m.stock + delta) } : m
-      )
+      prev.map((meal) => {
+        if (meal.id !== id) return meal;
+        const current = meal.discountPercent ?? 0;
+        return { ...meal, discountPercent: Math.max(0, Math.min(80, current + delta)) };
+      })
     );
   };
 
-  const updateDiscount = (id: string, next: number) => {
-    setMeals((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, discountPercent: next } : m))
-    );
+  const removeMeal = () => {
+    if (!deleteId) return;
+    setMeals((prev) => prev.filter((meal) => meal.id !== deleteId));
+    setDeleteId(null);
   };
 
   return (
-    <View className={`pt-16 flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 130 }}>
         <View className="flex-row items-center justify-between">
           <Text
-            className={`text-2xl font-satoshiBold ${
-              isDark ? "text-white" : "text-neutral-900"
-            }`}
+            className="text-[22px] leading-[28px] font-satoshiBold"
+            style={{ color: palette.textPrimary }}
           >
-            Menu
+            Manage Menu
           </Text>
+
           <Pressable
             onPress={() => router.push("/kitchen/(tabs)/menu/create")}
-            className="bg-primary rounded-2xl px-4 py-2"
+            className="w-16 h-16 rounded-full items-center justify-center"
+            style={{ backgroundColor: palette.accent }}
           >
-            <Text className="text-white font-satoshiBold">Add Meal</Text>
+            <Ionicons name="add" size={30} color="#fff" />
           </Pressable>
         </View>
 
-        <View className="mt-4 flex-row">
-          <View
-            className={`flex-1 rounded-2xl px-3 py-2 border ${
-              isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
-            }`}
-          >
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search meals"
-              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-              className={`${isDark ? "text-white" : "text-neutral-900"} font-satoshi`}
-            />
-          </View>
-          <View className="ml-3 flex-row">
-            {["DELIVERY", "SITIN"].map((opt) => (
-              <Pressable
-                key={opt}
-                onPress={() => setMode(opt as any)}
-                className={`px-3 py-2 rounded-2xl ml-2 ${
-                  mode === opt
-                    ? "bg-primary"
-                    : isDark
-                      ? "bg-neutral-900"
-                      : "bg-white"
-                }`}
-              >
-                <Text
-                  className={`text-[12px] font-satoshiMedium ${
-                    mode === opt
-                      ? "text-white"
-                      : isDark
-                        ? "text-neutral-300"
-                        : "text-neutral-700"
-                  }`}
-                >
-                  {opt === "DELIVERY" ? "Delivery" : "Sit-in"}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+        <View
+          className="mt-6 rounded-3xl px-5 py-4 flex-row items-center"
+          style={{
+            backgroundColor: palette.surfaceAlt,
+            borderWidth: 1,
+            borderColor: palette.border,
+          }}
+        >
+          <Ionicons name="search" size={24} color={palette.textMuted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search meals..."
+            placeholderTextColor={palette.textMuted}
+            className="ml-3 text-[16px] flex-1 font-satoshi"
+            style={{ color: palette.textPrimary }}
+          />
         </View>
 
-        <View className="mt-4">
-          {filtered.map((meal) => (
-            <View
-              key={meal.id}
-              className={`rounded-3xl p-4 mb-3 border ${
-                isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
-              }`}
-            >
-              <View className="flex-row items-center justify-between">
-                <View>
-                  <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
-                    {meal.name}
-                  </Text>
-                  <Text className={`text-[12px] mt-1 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                    {meal.description}
-                  </Text>
-                </View>
-                <Pressable onPress={() => router.push(`/kitchen/(tabs)/menu/${meal.id}`)}>
-                  <Ionicons name="create-outline" size={20} color={isDark ? "#E5E7EB" : "#111827"} />
-                </Pressable>
-              </View>
-
-              <View className="flex-row items-center justify-between mt-3">
-                <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
-                  {meal.price} • {meal.portion}
-                </Text>
-                <Pressable
-                  onPress={() => toggleAvailable(meal.id)}
-                  className={`px-3 py-1 rounded-full ${meal.available ? "bg-emerald-100" : "bg-neutral-200"}`}
+        <View className="mt-5 flex-row items-center">
+          {([
+            { key: "ALL", label: "All Items" },
+            { key: "PACKAGES", label: "Packages" },
+            { key: "PER_PORTION", label: "Per Portion" },
+          ] as const).map((item) => {
+            const active = filter === item.key;
+            return (
+              <Pressable
+                key={item.key}
+                onPress={() => setFilter(item.key)}
+                className="rounded-full px-4 py-3 mr-3"
+                style={{
+                  backgroundColor: active ? (isDark ? "#0B0F16" : "#16181D") : palette.surfaceAlt,
+                  borderWidth: active ? 0 : 1,
+                  borderColor: palette.border,
+                }}
+              >
+                <Text
+                  className="font-satoshiBold text-[13px]"
+                  style={{ color: active ? "#fff" : palette.textSecondary }}
                 >
-                  <Text className={`text-[10px] font-satoshiBold ${meal.available ? "text-emerald-700" : "text-neutral-600"}`}>
-                    {meal.available ? "Available" : "Out"}
-                  </Text>
-                </Pressable>
-              </View>
-
-              <View className="flex-row items-center justify-between mt-3">
-                <View className="flex-row items-center">
-                  <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                    Stock
-                  </Text>
-                  <View className="flex-row items-center ml-3">
-                    <Pressable
-                      onPress={() => updateStock(meal.id, -1)}
-                      className={`w-7 h-7 rounded-full items-center justify-center ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
-                    >
-                      <Ionicons name="remove" size={14} color={isDark ? "#E5E7EB" : "#111827"} />
-                    </Pressable>
-                    <Text className={`mx-2 text-[12px] ${isDark ? "text-white" : "text-neutral-900"}`}>
-                      {meal.stock}
-                    </Text>
-                    <Pressable
-                      onPress={() => updateStock(meal.id, 1)}
-                      className={`w-7 h-7 rounded-full items-center justify-center ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
-                    >
-                      <Ionicons name="add" size={14} color={isDark ? "#E5E7EB" : "#111827"} />
-                    </Pressable>
-                  </View>
-                </View>
-                <Pressable onPress={() => setDeleteId(meal.id)}>
-                  <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                </Pressable>
-              </View>
-
-              <View className="mt-3">
-                <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                  Discount (%)
+                  {item.label}
                 </Text>
-                <View className="flex-row items-center mt-2">
-                  <Pressable
-                    onPress={() => updateDiscount(meal.id, Math.max(0, (meal.discountPercent ?? 0) - 5))}
-                    className={`w-7 h-7 rounded-full items-center justify-center ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
-                  >
-                    <Ionicons name="remove" size={14} color={isDark ? "#E5E7EB" : "#111827"} />
-                  </Pressable>
-                  <Text className={`mx-2 text-[12px] ${isDark ? "text-white" : "text-neutral-900"}`}>
-                    {meal.discountPercent ?? 0}%
-                  </Text>
-                  <Pressable
-                    onPress={() => updateDiscount(meal.id, Math.min(90, (meal.discountPercent ?? 0) + 5))}
-                    className={`w-7 h-7 rounded-full items-center justify-center ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
-                  >
-                    <Ionicons name="add" size={14} color={isDark ? "#E5E7EB" : "#111827"} />
-                  </Pressable>
-                </View>
-              </View>
+              </Pressable>
+            );
+          })}
+        </View>
 
-              <View className="mt-3">
-                <Text className={`text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                  Discount Code
+        <View className="mt-3 flex-row">
+          {(["DELIVERY", "SITIN"] as const).map((item) => {
+            const active = mode === item;
+            return (
+              <Pressable
+                key={item}
+                onPress={() => setMode(item)}
+                className="rounded-full px-4 py-2 mr-2"
+                style={{
+                  backgroundColor: active ? palette.accentSoft : "transparent",
+                  borderWidth: 1,
+                  borderColor: active ? palette.accentStrong : palette.border,
+                }}
+              >
+                <Text
+                  className="font-satoshiBold text-[12px]"
+                  style={{ color: active ? palette.accentStrong : palette.textSecondary }}
+                >
+                  {item === "DELIVERY" ? "Delivery" : "Sit-in"}
                 </Text>
-                <View className="flex-row items-center mt-2">
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <View className="mt-5">
+          {filtered.map((meal) => {
+            const hasDiscount = (meal.discountPercent ?? 0) > 0;
+
+            return (
+              <View
+                key={meal.id}
+                className="rounded-[28px] p-4 mb-4"
+                style={{
+                  backgroundColor: palette.surface,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                }}
+              >
+                <View className="flex-row">
                   <View
-                    className={`flex-1 rounded-xl px-3 py-2 border ${
-                      isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200"
-                    }`}
+                    className="w-[88px] h-[88px] rounded-2xl items-center justify-center"
+                    style={{
+                      backgroundColor: isDark ? palette.elevated : "#EEF2F7",
+                    }}
                   >
-                    <Text className={`${isDark ? "text-neutral-300" : "text-neutral-600"} text-[12px]`}>
-                      FOODHUT10
+                    <View
+                      className="absolute top-2 left-2 rounded-full px-2 py-1"
+                      style={{
+                        backgroundColor: meal.portion.toLowerCase().includes("large")
+                          ? "#A78BFA"
+                          : "#22C55E",
+                      }}
+                    >
+                      <Text className="text-white text-[8px] font-satoshiBold">
+                        {meal.portion.toLowerCase().includes("large")
+                          ? "FULL PACKAGE"
+                          : "PER PORTION"}
+                      </Text>
+                    </View>
+
+                    <Ionicons
+                      name="restaurant"
+                      size={30}
+                      color={isDark ? palette.accentStrong : "#6B7280"}
+                    />
+                  </View>
+
+                  <View className="ml-3 flex-1">
+                    <View className="flex-row items-start justify-between">
+                      <Text
+                        className="font-satoshiBold text-[14px] leading-[22px] flex-1"
+                        style={{ color: palette.textPrimary }}
+                        numberOfLines={1}
+                      >
+                        {meal.name}
+                      </Text>
+
+                      <View className="flex-row items-center ml-2">
+                        <Pressable
+                          onPress={() => router.push(`/kitchen/(tabs)/menu/${meal.id}`)}
+                          className="mr-2"
+                        >
+                          <Ionicons name="create-outline" size={18} color={palette.textMuted} />
+                        </Pressable>
+                        <Pressable onPress={() => setDeleteId(meal.id)}>
+                          <Ionicons name="trash-outline" size={18} color={palette.textMuted} />
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    <Text
+                      className="mt-1 text-[12px]"
+                      style={{ color: palette.textSecondary }}
+                      numberOfLines={1}
+                    >
+                      {meal.description}
+                    </Text>
+
+                    <View className="mt-2 flex-row items-center justify-between">
+                      <View className="flex-row items-center">
+                        <Text
+                          className="font-satoshiBold text-[14px] leading-[22px]"
+                          style={{ color: palette.accentStrong }}
+                        >
+                          {meal.price}
+                        </Text>
+                        {hasDiscount ? (
+                          <Text
+                            className="text-[12px] line-through ml-2"
+                            style={{ color: palette.textMuted }}
+                          >
+                            {`₦${Math.round(
+                              Number(meal.price.replace(/[^0-9]/g, "")) /
+                                (1 - (meal.discountPercent ?? 0) / 100)
+                            ).toLocaleString()}`}
+                          </Text>
+                        ) : null}
+                      </View>
+
+                      <Pressable
+                        onPress={() => toggleAvailable(meal.id)}
+                        className="rounded-full px-2 py-1"
+                        style={{
+                          backgroundColor: meal.available
+                            ? isDark
+                              ? "#1F3D2F"
+                              : "#E9FBEF"
+                            : isDark
+                            ? "#2A313F"
+                            : "#ECEFF4",
+                        }}
+                      >
+                        <View className="flex-row items-center">
+                          <Text
+                            className="text-[10px] font-satoshiBold"
+                            style={{
+                              color: meal.available ? palette.success : palette.textMuted,
+                            }}
+                          >
+                            {meal.available ? "IN STOCK" : "OUT OF STOCK"}
+                          </Text>
+                          <View
+                            className="size-4 rounded-full ml-2"
+                            style={{
+                              backgroundColor: meal.available ? palette.accent : palette.textMuted,
+                            }}
+                          />
+                        </View>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+
+                <View
+                  className="mt-4 pt-3 flex-row items-center justify-between"
+                  style={{ borderTopWidth: 1, borderTopColor: palette.border }}
+                >
+                  <View className="flex-row items-center">
+                    <Ionicons name="pricetag" size={16} color={palette.accentStrong} />
+                    <Pressable onPress={() => updateDiscount(meal.id, 5)}>
+                      <Text
+                        className="ml-2 font-satoshiBold text-[11px]"
+                        style={{ color: palette.accentStrong }}
+                      >
+                        {hasDiscount
+                          ? `${meal.discountPercent}% OFF VOUCHER`
+                          : "ADD DISCOUNT"}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  <View className="flex-row items-center">
+                    <Ionicons name="link" size={15} color={palette.textMuted} />
+                    <Text
+                      className="ml-2 text-[11px] font-satoshiBold"
+                      style={{ color: palette.textMuted }}
+                    >
+                      RELATED MEALS
                     </Text>
                   </View>
-                  <Pressable className="ml-2 px-3 py-2 rounded-xl bg-primary">
-                    <Text className="text-white text-[12px] font-satoshiBold">Create</Text>
-                  </Pressable>
                 </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </ScrollView>
 
+      <Pressable
+        onPress={() => router.push("/kitchen/profile/qr")}
+        className="absolute right-5 bottom-8 w-16 h-16 rounded-full items-center justify-center"
+        style={{
+          backgroundColor: palette.surface,
+          borderWidth: 1,
+          borderColor: palette.border,
+        }}
+      >
+        <Ionicons name="qr-code" size={26} color={palette.textSecondary} />
+      </Pressable>
+
       <Modal visible={!!deleteId} transparent animationType="fade">
-        <View className="flex-1 items-center justify-center bg-black/40 px-6">
-          <View className={`w-full rounded-3xl p-5 ${isDark ? "bg-neutral-900" : "bg-white"}`}>
-            <Text className={`text-[16px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
-              Delete meal?
+        <View
+          className="flex-1 items-center justify-center px-6"
+          style={{ backgroundColor: palette.overlay }}
+        >
+          <View
+            className="w-full rounded-[26px] p-5"
+            style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
+          >
+            <Text className="text-[18px] font-satoshiBold" style={{ color: palette.textPrimary }}>
+              Delete this meal?
             </Text>
-            <Text className={`text-[12px] mt-2 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-              This action is temporary in demo mode.
+            <Text className="text-[14px] mt-2" style={{ color: palette.textSecondary }}>
+              This removes the item from your current local menu list.
             </Text>
-            <View className="flex-row mt-4">
+
+            <View className="flex-row mt-5">
               <Pressable
                 onPress={() => setDeleteId(null)}
-                className={`flex-1 rounded-2xl py-3 items-center ${isDark ? "bg-neutral-800" : "bg-neutral-200"}`}
+                className="flex-1 rounded-2xl py-3 items-center mr-2"
+                style={{ backgroundColor: palette.surfaceAlt }}
               >
-                <Text className={`${isDark ? "text-neutral-200" : "text-neutral-700"}`}>Cancel</Text>
+                <Text className="font-satoshiBold" style={{ color: palette.textSecondary }}>
+                  Cancel
+                </Text>
               </Pressable>
+
               <Pressable
-                onPress={() => {
-                  setMeals((prev) => prev.filter((m) => m.id !== deleteId));
-                  setDeleteId(null);
-                }}
-                className="flex-1 rounded-2xl py-3 items-center bg-primary ml-3"
+                onPress={removeMeal}
+                className="flex-1 rounded-2xl py-3 items-center ml-2"
+                style={{ backgroundColor: palette.accent }}
               >
                 <Text className="text-white font-satoshiBold">Delete</Text>
               </Pressable>
@@ -252,6 +385,6 @@ export default function KitchenMenuScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
