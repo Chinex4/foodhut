@@ -6,6 +6,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Switch,
   Text,
   TextInput,
   View,
@@ -256,7 +257,7 @@ export default function KitchenMenuScreen() {
                         </Text>
                         {hasDiscount ? (
                           <Text
-                            className="text-[12px] line-through ml-2"
+                            className="text-[12px] line-through ml-1"
                             style={{ color: palette.textMuted }}
                           >
                             {`₦${Math.round(
@@ -267,36 +268,21 @@ export default function KitchenMenuScreen() {
                         ) : null}
                       </View>
 
-                      <Pressable
-                        onPress={() => toggleAvailable(meal.id)}
-                        className="rounded-full px-2 py-1"
-                        style={{
-                          backgroundColor: meal.available
-                            ? isDark
-                              ? "#1F3D2F"
-                              : "#E9FBEF"
-                            : isDark
-                            ? "#2A313F"
-                            : "#ECEFF4",
-                        }}
-                      >
-                        <View className="flex-row items-center">
-                          <Text
-                            className="text-[10px] font-satoshiBold"
-                            style={{
-                              color: meal.available ? palette.success : palette.textMuted,
-                            }}
-                          >
-                            {meal.available ? "IN STOCK" : "OUT OF STOCK"}
-                          </Text>
-                          <View
-                            className="size-4 rounded-full ml-2"
-                            style={{
-                              backgroundColor: meal.available ? palette.accent : palette.textMuted,
-                            }}
-                          />
-                        </View>
-                      </Pressable>
+                      <View className="flex-row items-center">
+                        <Text
+                          className="text-[10px] font-satoshiBold"
+                          style={{ color: meal.available ? palette.success : palette.textMuted }}
+                        >
+                          {meal.available ? "IN STOCK" : "OUT OF STOCK"}
+                        </Text>
+                        <Switch
+                          value={meal.available}
+                          onValueChange={() => toggleAvailable(meal.id)}
+                          thumbColor={meal.available ? palette.accent : "#F8FAFC"}
+                          trackColor={{ false: "#CBD5E1", true: isDark ? "#5A4512" : "#F6C56B" }}
+                          ios_backgroundColor="#CBD5E1"
+                        />
+                      </View>
                     </View>
                   </View>
                 </View>

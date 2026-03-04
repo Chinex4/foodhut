@@ -17,8 +17,9 @@ export default function KitchenCreateOutletScreen() {
   const [phone, setPhone] = useState("");
   const [manager, setManager] = useState("");
   const [hours, setHours] = useState("");
+  const [passcode, setPasscode] = useState("");
 
-  const canSave = name.trim() && address.trim() && phone.trim();
+  const canSave = name.trim() && address.trim() && phone.trim() && passcode.trim();
 
   const handleSave = () => {
     if (!canSave) return;
@@ -30,7 +31,7 @@ export default function KitchenCreateOutletScreen() {
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View className="px-5 pt-4 pb-2 flex-row items-center">
+      <View className="px-5 pt-20 pb-2 flex-row items-center">
         <Pressable
           onPress={() => router.back()}
           className="w-10 h-10 rounded-full items-center justify-center mr-2"
@@ -66,6 +67,21 @@ export default function KitchenCreateOutletScreen() {
               />
             </View>
           ))}
+
+          <View className="mb-1">
+            <Text className="text-[13px] mb-1" style={{ color: palette.textSecondary }}>
+              Outlet passcode
+            </Text>
+            <TextInput
+              value={passcode}
+              onChangeText={setPasscode}
+              placeholder="Enter outlet passcode"
+              placeholderTextColor={palette.textMuted}
+              secureTextEntry
+              className="rounded-2xl px-3 py-3 text-[15px] font-satoshi"
+              style={{ backgroundColor: palette.surfaceAlt, color: palette.textPrimary }}
+            />
+          </View>
         </View>
 
         <Pressable

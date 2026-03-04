@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -13,6 +13,7 @@ import {
   mockVendorSummary,
 } from "@/utils/mock/mockVendor";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+import { showSuccess } from "@/components/ui/toast";
 
 const performanceItems = [
   { label: "TODAY'S ORDERS", value: "24", trend: "up" as const },
@@ -25,15 +26,30 @@ export default function KitchenDashboardScreen() {
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const palette = getKitchenPalette(isDark);
+  const [orders, setOrders] = useState(mockVendorOrders);
 
   const topMeals = mockVendorMeals.slice(0, 3);
-  const incoming = mockVendorOrders.filter((o) => o.status === "INCOMING").slice(0, 2);
+  const incoming = orders.filter((o) => o.status === "INCOMING").slice(0, 2);
   const outOfStockCount = mockVendorMeals.filter((meal) => !meal.available || meal.stock <= 2).length;
 
   const toggleTheme = () => {
     const next = isDark ? "light" : "dark";
     dispatch(setThemeMode(next));
     dispatch(persistThemePreference(next));
+  };
+
+  const handleAcceptOrder = (orderId: string) => {
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId ? { ...order, status: "ONGOING" } : order
+      )
+    );
+    showSuccess("Order accepted");
+  };
+
+  const handleDeclineOrder = (orderId: string) => {
+    setOrders((prev) => prev.filter((order) => order.id !== orderId));
+    showSuccess("Order declined");
   };
 
   return (
@@ -230,9 +246,8 @@ export default function KitchenDashboardScreen() {
         </View>
 
         {incoming.map((order) => (
-          <Pressable
+          <View
             key={order.id}
-            onPress={() => router.push(`/kitchen/orders/${order.id}`)}
             className="rounded-3xl mt-3 p-4"
             style={{
               backgroundColor: palette.surface,
@@ -240,41 +255,73 @@ export default function KitchenDashboardScreen() {
               borderColor: palette.border,
             }}
           >
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                <View
-                  className="w-14 h-14 rounded-2xl items-center justify-center"
-                  style={{ backgroundColor: isDark ? palette.accentSoft : "#FFF1D3" }}
-                >
-                  <Ionicons name="bag-handle" size={22} color={palette.accentStrong} />
+            <Pressable onPress={() => router.push(`/kitchen/orders/${order.id}`)}>
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center flex-1">
+                  <View
+                    className="w-14 h-14 rounded-2xl items-center justify-center"
+                    style={{ backgroundColor: isDark ? palette.accentSoft : "#FFF1D3" }}
+                  >
+                    <Ionicons name="bag-handle" size={22} color={palette.accentStrong} />
+                  </View>
+
+                  <View className="ml-3 flex-1">
+                    <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
+                      Order {order.id}
+                    </Text>
+                    <Text className="text-[13px]" style={{ color: palette.textSecondary }}>
+                      {order.items.length} Items • {order.time}
+                    </Text>
+                  </View>
                 </View>
 
-                <View className="ml-3 flex-1">
-                  <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
-                    Order {order.id}
+                <View className="items-end">
+                  <Text className="font-satoshiBold text-[18px]" style={{ color: palette.textPrimary }}>
+                    {order.total}
                   </Text>
-                  <Text className="text-[13px]" style={{ color: palette.textSecondary }}>
-                    {order.items.length} Items • {order.time}
-                  </Text>
+                  <View
+                    className="rounded-full px-3 py-1 mt-1"
+                    style={{ backgroundColor: isDark ? palette.accentSoft : "#FFF3DB" }}
+                  >
+                    <Text className="font-satoshiBold text-[12px]" style={{ color: palette.accentStrong }}>
+                      NEW
+                    </Text>
+                  </View>
                 </View>
               </View>
+            </Pressable>
 
-              <View className="items-end">
-                <Text className="font-satoshiBold text-[18px]" style={{ color: palette.textPrimary }}>
-                  {order.total}
+            <View className="mt-4 flex-row">
+              <Pressable
+                onPress={() => handleDeclineOrder(order.id)}
+                className="flex-1 rounded-2xl py-3 items-center mr-2"
+                style={{ backgroundColor: palette.surfaceAlt }}
+              >
+                <Text className="font-satoshiBold" style={{ color: palette.textSecondary }}>
+                  Decline
                 </Text>
-                <View
-                  className="rounded-full px-3 py-1 mt-1"
-                  style={{ backgroundColor: isDark ? palette.accentSoft : "#FFF3DB" }}
-                >
-                  <Text className="font-satoshiBold text-[12px]" style={{ color: palette.accentStrong }}>
-                    NEW
-                  </Text>
-                </View>
-              </View>
+              </Pressable>
+              <Pressable
+                onPress={() => handleAcceptOrder(order.id)}
+                className="flex-1 rounded-2xl py-3 items-center ml-2"
+                style={{ backgroundColor: palette.accent }}
+              >
+                <Text className="text-white font-satoshiBold">Accept</Text>
+              </Pressable>
             </View>
-          </Pressable>
+          </View>
         ))}
+
+        {!incoming.length ? (
+          <View
+            className="rounded-3xl mt-3 p-4 items-center"
+            style={{ backgroundColor: palette.surfaceAlt, borderWidth: 1, borderColor: palette.border }}
+          >
+            <Text className="font-satoshiMedium" style={{ color: palette.textSecondary }}>
+              No incoming orders right now.
+            </Text>
+          </View>
+        ) : null}
 
         <Text
           className="mt-8 text-[20px] leading-[26px] font-satoshiBold"

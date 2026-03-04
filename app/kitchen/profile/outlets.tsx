@@ -23,7 +23,7 @@ export default function KitchenOutletsScreen() {
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
+      <View className="px-5 pt-20 pb-2 flex-row items-center justify-between">
         <View className="flex-row items-center">
           <Pressable
             onPress={() => router.back()}
