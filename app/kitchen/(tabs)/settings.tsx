@@ -56,13 +56,26 @@ export default function KitchenSettingsScreen() {
 
   const handleSave = async () => {
     if (!kitchen) return;
+    const hasIdentityChanges =
+      kitchenName.trim() !== (kitchen.name ?? "") ||
+      kitchenPhone.trim() !== (kitchen.phone_number ?? "") ||
+      kitchenAddress.trim() !== (kitchen.address ?? "");
+
+    if (hasIdentityChanges) {
+      showError(
+        "This backend only allows availability, closing time, and images to be updated right now."
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       await dispatch(
         updateKitchenByProfile({
-          name: kitchenName.trim(),
-          phone_number: kitchenPhone.trim(),
-          address: kitchenAddress.trim(),
+          closing_time: kitchen.closing_time,
+          is_available: kitchen.is_available,
+          profile_picture_id: kitchen.profile_picture_id ?? undefined,
+          cover_image_id: kitchen.cover_image_id ?? undefined,
         })
       ).unwrap();
       showSuccess("Kitchen updated");

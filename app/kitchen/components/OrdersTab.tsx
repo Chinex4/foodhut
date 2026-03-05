@@ -262,7 +262,7 @@ export default function OrdersTab({
                     #{order.id.slice(0, 8).toUpperCase()}
                   </Text>
                   <Text className="text-[14px]" style={{ color: palette.textSecondary }}>
-                    {order.items.length} items • {toRelativeTime(order.created_at)}
+                    {order.items.length} items • {toRelativeTime(String(order.created_at))}
                   </Text>
                 </View>
               </View>

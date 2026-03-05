@@ -3,62 +3,43 @@ import { ActivityIndicator, Text, View } from "react-native";
 import Section from "./Section";
 import KitchenCard from "./KitchenCard";
 import { router } from "expo-router";
-import { mockKitchens } from "@/utils/mockData";
-
-type KitchenResponseItem = {
-  id: string;
-  name: string;
-  cover_image: string | null;
-  type: string | null;
-  delivery_time: string | null;
-  preparation_time: string | null;
-  rating: string | null;
-  is_available: boolean;
-  city?: {
-    name: string;
-    state: string;
-  } | null;
-};
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchKitchens } from "@/redux/kitchen/kitchen.thunks";
+import {
+  selectKitchensError,
+  selectKitchensList,
+  selectListStatus,
+} from "@/redux/kitchen/kitchen.selectors";
 
 export default function KitchenVendorsSection() {
-  const [loading, setLoading] = useState(true);
-  const [kitchens, setKitchens] = useState<KitchenResponseItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const status = useAppSelector(selectListStatus);
+  const kitchens = useAppSelector(selectKitchensList);
+  const error = useAppSelector(selectKitchensError);
+  const [loading, setLoading] = useState(false);
 
-  const fetchKitchens = async () => {
+  const loadKitchens = async () => {
     try {
-      setError(null);
       setLoading(true);
-
-      const items = mockKitchens
-        .filter((k) => k.is_available)
-        .slice(0, 10)
-        .map((k) => ({
-          id: k.id,
-          name: k.name,
-          cover_image: k.cover_image?.url ?? null,
-          type: k.type ?? null,
-          delivery_time: k.delivery_time ?? null,
-          preparation_time: k.preparation_time ?? null,
-          rating: String(k.rating ?? "0"),
-          is_available: k.is_available,
-          city: k.city
-            ? { name: k.city.name, state: k.city.state }
-            : null,
-        }));
-
-      setKitchens(items || []);
-    } catch (e: any) {
-      console.log("Error loading kitchens", e);
-      setError("Unable to load kitchens right now.");
+      await dispatch(
+        fetchKitchens({
+          page: 1,
+          per_page: 10,
+          is_available: true,
+        })
+      ).unwrap();
+    } catch {
+      // handled by store error
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchKitchens();
-  }, []);
+    if (status === "idle") {
+      loadKitchens();
+    }
+  }, [status]);
 
   if (loading) {
     return (
@@ -87,7 +68,7 @@ export default function KitchenVendorsSection() {
       horizontal
       data={kitchens}
       onSeeAll={() => router.push("/users/kitchen")}
-      renderItem={({ item }: { item: KitchenResponseItem }) => (
+      renderItem={({ item }: { item: any }) => (
         <KitchenCard kitchen={item} />
       )}
     />

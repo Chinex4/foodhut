@@ -1,32 +1,73 @@
+import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
+import {
+  selectOrdersError,
+  selectOrdersList,
+  selectOrdersListStatus,
+} from "@/redux/orders/orders.selectors";
+import { fetchOrders } from "@/redux/orders/orders.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { useAppSelector } from "@/store/hooks";
-import { mockReviews } from "@/utils/mockData";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useMemo } from "react";
-import { FlatList, Pressable, Text, TextInput, View } from "react-native";
+import React, { useEffect, useMemo } from "react";
+import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 
-type Review = (typeof mockReviews)[number];
+type ReviewRow = {
+  id: string;
+  user_name: string;
+  rating: number;
+  comment: string;
+};
 
 export default function ReviewsScreen() {
+  const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const { id, type } = useLocalSearchParams<{ id: string; type?: string }>();
+  const targetType = type ?? "meal";
 
-  const items = useMemo(
-    () =>
-      mockReviews.filter(
-        (r) => r.target_id === id && r.target_type === (type ?? "meal")
-      ),
-    [id, type]
-  );
-  const [name, setName] = React.useState("");
-  const [rating, setRating] = React.useState(5);
-  const [comment, setComment] = React.useState("");
+  const orders = useAppSelector(selectOrdersList);
+  const ordersStatus = useAppSelector(selectOrdersListStatus);
+  const ordersError = useAppSelector(selectOrdersError);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (ordersStatus === "idle") {
+      dispatch(fetchOrders({ page: 1, per_page: 100 }));
+    }
+  }, [dispatch, isAuthenticated, ordersStatus]);
+
+  const items = useMemo<ReviewRow[]>(() => {
+    const deliveredOrders = orders.filter((order) => order.status === "DELIVERED");
+
+    if (targetType === "kitchen") {
+      return deliveredOrders
+        .filter((order) => order.kitchen_id === id)
+        .map((order) => ({
+          id: order.id,
+          user_name: `${order.owner.first_name} ${order.owner.last_name}`.trim() || "Customer",
+          rating: Number(order.kitchen.rating) || 0,
+          comment: order.dispatch_rider_note || "Order delivered successfully.",
+        }));
+    }
+
+    return deliveredOrders
+      .filter((order) => order.items.some((item) => item.meal_id === id))
+      .map((order) => {
+        const matchedItem = order.items.find((item) => item.meal_id === id);
+        return {
+          id: `${order.id}:${matchedItem?.meal_id || "meal"}`,
+          user_name: `${order.owner.first_name} ${order.owner.last_name}`.trim() || "Customer",
+          rating: Number(matchedItem?.meal.rating || 0),
+          comment: order.dispatch_rider_note || "Delivered successfully.",
+        };
+      });
+  }, [id, orders, targetType]);
 
   const avg = useMemo(() => {
     if (!items.length) return "0.0";
-    const sum = items.reduce((t, r) => t + r.rating, 0);
+    const sum = items.reduce((total, item) => total + item.rating, 0);
     return (sum / items.length).toFixed(1);
   }, [items]);
 
@@ -70,7 +111,7 @@ export default function ReviewsScreen() {
         </View>
       </View>
 
-      <FlatList<Review>
+      <FlatList<ReviewRow>
         data={items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}
@@ -81,69 +122,28 @@ export default function ReviewsScreen() {
             }`}
           >
             <Text className={`font-satoshiBold text-[16px] ${isDark ? "text-white" : "text-neutral-900"}`}>
-              Add a review
+              Customer feedback
             </Text>
             <Text className={`text-[12px] mt-1 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-              Share your experience (demo only).
+              Ratings are derived from completed orders.
             </Text>
-            <View className="mt-3">
-              <Text className={`text-[12px] mb-1 ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-                Your name
-              </Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Enter your name"
-                placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-                className={`rounded-xl px-3 py-3 border ${isDark ? "bg-neutral-950 border-neutral-800 text-white" : "bg-white border-neutral-200 text-neutral-900"}`}
-              />
-            </View>
-            <View className="mt-3">
-              <Text className={`text-[12px] mb-2 ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-                Rating
-              </Text>
-              <View className="flex-row items-center">
-                {[1, 2, 3, 4, 5].map((r) => (
-                  <Pressable
-                    key={r}
-                    onPress={() => setRating(r)}
-                    className="mr-2"
-                  >
-                    <Ionicons
-                      name={rating >= r ? "star" : "star-outline"}
-                      size={18}
-                      color={rating >= r ? "#FFA800" : isDark ? "#6B7280" : "#9CA3AF"}
-                    />
-                  </Pressable>
-                ))}
-                <Text className={`ml-2 text-[12px] ${isDark ? "text-neutral-300" : "text-neutral-600"}`}>
-                  {rating.toFixed(1)}
-                </Text>
-              </View>
-            </View>
-            <View className="mt-3">
-              <Text className={`text-[12px] mb-1 ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-                Comment
-              </Text>
-              <TextInput
-                value={comment}
-                onChangeText={setComment}
-                placeholder="Write your review..."
-                placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-                multiline
-                className={`rounded-xl px-3 py-3 border min-h-[90px] ${isDark ? "bg-neutral-950 border-neutral-800 text-white" : "bg-white border-neutral-200 text-neutral-900"}`}
-              />
-            </View>
-            <Pressable className="mt-4 bg-primary rounded-2xl py-3 items-center">
-              <Text className="text-white font-satoshiBold">Submit Review</Text>
-            </Pressable>
           </View>
         }
         ListEmptyComponent={
           <View className="mt-10 items-center">
-            <Text className={isDark ? "text-neutral-400" : "text-neutral-500"}>
-              No reviews yet.
-            </Text>
+            {!isAuthenticated ? (
+              <Text className={isDark ? "text-neutral-400" : "text-neutral-500"}>
+                Sign in to view reviews.
+              </Text>
+            ) : ordersStatus === "loading" ? (
+              <ActivityIndicator color="#FFA800" />
+            ) : ordersError ? (
+              <Text className="text-red-500">{ordersError}</Text>
+            ) : (
+              <Text className={isDark ? "text-neutral-400" : "text-neutral-500"}>
+                No reviews yet.
+              </Text>
+            )}
           </View>
         }
         renderItem={({ item }) => (

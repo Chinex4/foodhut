@@ -7,7 +7,7 @@ import { Image, Pressable, Text, View } from "react-native";
 type Kitchen = {
   id: string;
   name: string;
-  cover_image: { url: string | null } | string | null;
+  cover_image: { url: string | null };
   type: string | null;
   delivery_time: string | null;
   preparation_time: string | null;
@@ -33,10 +33,7 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
     ? `${kitchen.city.name}, ${kitchen.city.state}`
     : "Unknown location";
 
-  const coverUrl =
-    typeof kitchen.cover_image === "string"
-      ? kitchen.cover_image
-      : kitchen.cover_image?.url || null;
+  const coverUrl = kitchen.cover_image?.url || null;
 
   const handlePress = () => {
     // Adjust route to your kitchen details screen

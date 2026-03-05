@@ -1,71 +1,244 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { addMockOrder } from "@/redux/orders/orders.thunks";
-import { mockKitchens, mockMeals, mockUser } from "@/utils/mockData";
+import { api } from "@/api/axios";
+import { getApiErrorMessage } from "@/api/http";
+import { getStorageFileUrl } from "@/api/storage";
 import type {
   ActiveCartResponse,
   CheckoutPayload,
   CheckoutResult,
-  SetCartItemPayload,
   KitchenId,
+  KitchenSummary,
   MealId,
+  MealSummary,
+  SetCartItemPayload,
 } from "./cart.types";
 
-import type { Order } from "@/redux/orders/orders.types";
+type BackendCartItem = {
+  meal_id: string;
+  quantity: number;
+};
 
-let activeCart: ActiveCartResponse = [];
+type BackendCart = {
+  id: string;
+  items: BackendCartItem[];
+  status: "CHECKED_OUT" | "NOT_CHECKED_OUT";
+  owner_id: string;
+  created_at: number;
+  updated_at: number | null;
+};
 
-const toKitchenSummary = (k: any) => ({
-  id: k.id,
-  name: k.name,
-  address: k.address,
-  phone_number: k.phone_number,
-  type: k.type ?? "Cuisine",
-  opening_time: k.opening_time ?? "08:00",
-  closing_time: k.closing_time ?? "20:00",
-  delivery_time: k.delivery_time ?? "25-35 mins",
-  preparation_time: k.preparation_time ?? "20-30 mins",
-  rating: k.rating ?? 0,
-  likes: k.likes ?? 0,
-  is_available: k.is_available,
-  owner_id: k.owner_id,
-  cover_image: k.cover_image?.url ?? null,
-  city_id: k.city_id ?? null,
-  city: k.city
-    ? {
-        id: k.city.id,
-        name: k.city.name,
-        state: k.city.state,
-        created_at: new Date().toISOString(),
+type BackendMeal = {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  original_price: string;
+  kitchen_id: string;
+  is_available: boolean;
+  likes: number;
+  rating: number;
+  cover_image_id: string;
+  created_at: number;
+  updated_at: number | null;
+};
+
+type BackendKitchen = {
+  id: string;
+  name: string;
+  address: string;
+  phone_number: string;
+  type: string;
+  opening_time: string;
+  closing_time: string;
+  delivery_time: string;
+  preparation_time: string;
+  city_id: string;
+  city?: {
+    id: string;
+    name: string;
+    state: string;
+    created_at: number;
+    updated_at: number | null;
+  };
+  owner_id: string;
+  is_available: boolean;
+  likes: number;
+  rating: number;
+  cover_image_id: string | null;
+  created_at: number;
+  updated_at: number | null;
+};
+
+type CheckoutMealsFromKitchenSuccessResponse = {
+  id: string;
+  _tag: "CheckoutMealsFromKitchenSuccessResponse";
+};
+
+const mealCache = new Map<string, Promise<MealSummary>>();
+const kitchenCache = new Map<string, Promise<KitchenSummary>>();
+
+const fetchMealSummary = (mealId: string): Promise<MealSummary> => {
+  const cached = mealCache.get(mealId);
+  if (cached) return cached;
+
+  const promise = api
+    .get<BackendMeal>(`/meals/${mealId}`)
+    .then(({ data }) => ({
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      price: data.price,
+      original_price: data.original_price,
+      is_available: data.is_available,
+      likes: data.likes,
+      rating: data.rating,
+      kitchen_id: data.kitchen_id,
+      cover_image: data.cover_image_id
+        ? {
+            id: data.cover_image_id,
+            url: getStorageFileUrl(data.cover_image_id) ?? "",
+          }
+        : null,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    }))
+    .catch(() => ({
+      id: mealId,
+      name: "Meal",
+      description: "",
+      price: "0",
+      original_price: "0",
+      is_available: true,
+      likes: 0,
+      rating: 0,
+      kitchen_id: "",
+      cover_image: null,
+      created_at: Date.now(),
+      updated_at: null,
+    }));
+
+  mealCache.set(mealId, promise);
+  return promise;
+};
+
+const fetchKitchenSummary = (kitchenId: string): Promise<KitchenSummary> => {
+  const cached = kitchenCache.get(kitchenId);
+  if (cached) return cached;
+
+  const promise = api
+    .get<BackendKitchen>(`/kitchens/${kitchenId}`)
+    .then(({ data }) => ({
+      id: data.id,
+      name: data.name,
+      address: data.address,
+      phone_number: data.phone_number,
+      type: data.type,
+      opening_time: data.opening_time,
+      closing_time: data.closing_time,
+      delivery_time: data.delivery_time,
+      preparation_time: data.preparation_time,
+      rating: data.rating,
+      likes: data.likes,
+      is_available: data.is_available,
+      owner_id: data.owner_id,
+      cover_image: data.cover_image_id
+        ? {
+            id: data.cover_image_id,
+            url: getStorageFileUrl(data.cover_image_id) ?? "",
+          }
+        : null,
+      city_id: data.city_id,
+      city: data.city,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    }))
+    .catch(() => ({
+      id: kitchenId,
+      name: "Kitchen",
+      address: "",
+      phone_number: "",
+      type: "",
+      opening_time: "",
+      closing_time: "",
+      delivery_time: "",
+      preparation_time: "",
+      rating: 0,
+      likes: 0,
+      is_available: true,
+      owner_id: "",
+      cover_image: null,
+      city_id: null,
+      created_at: Date.now(),
+      updated_at: null,
+    }));
+
+  kitchenCache.set(kitchenId, promise);
+  return promise;
+};
+
+const fetchHydratedCart = async (): Promise<ActiveCartResponse> => {
+  const { data } = await api.get<BackendCart>("/carts");
+  const items = data?.items ?? [];
+
+  if (!items.length) return [];
+
+  const mealEntries = await Promise.all(
+    items.map(async (item) => ({
+      quantity: item.quantity,
+      meal: await fetchMealSummary(item.meal_id),
+    }))
+  );
+
+  const grouped = new Map<
+    string,
+    {
+      meals: { meal: MealSummary; quantity: number }[];
+    }
+  >();
+
+  for (const entry of mealEntries) {
+    const kitchenId = entry.meal.kitchen_id;
+    if (!grouped.has(kitchenId)) grouped.set(kitchenId, { meals: [] });
+    grouped.get(kitchenId)!.meals.push({
+      meal: entry.meal,
+      quantity: entry.quantity,
+    });
+  }
+
+  const kitchens = await Promise.all(
+    Array.from(grouped.keys()).map(async (kitchenId) => [
+      kitchenId,
+      await fetchKitchenSummary(kitchenId),
+    ] as const)
+  );
+
+  const kitchenMap = new Map(kitchens);
+
+  return Array.from(grouped.entries()).map(([kitchenId, group]) => ({
+    kitchen:
+      kitchenMap.get(kitchenId) ??
+      ({
+        id: kitchenId,
+        name: "Kitchen",
+        address: "",
+        phone_number: "",
+        type: "",
+        opening_time: "",
+        closing_time: "",
+        delivery_time: "",
+        preparation_time: "",
+        rating: 0,
+        likes: 0,
+        is_available: true,
+        owner_id: "",
+        cover_image: null,
+        city_id: null,
+        created_at: Date.now(),
         updated_at: null,
-      }
-    : undefined,
-  created_at: new Date().toISOString(),
-  updated_at: null,
-});
-
-const toMealSummary = (m: any) => ({
-  id: m.id,
-  name: m.name,
-  description: m.description,
-  price: m.price,
-  original_price: m.original_price,
-  is_available: m.is_available,
-  likes: m.likes ?? 0,
-  rating: m.rating ?? 0,
-  kitchen_id: m.kitchen_id,
-  cover_image: m.cover_image
-    ? { public_id: "mock", timestamp: Date.now(), url: m.cover_image.url }
-    : null,
-  created_at: new Date().toISOString(),
-  updated_at: null,
-});
-
-const findMeal = (mealId: MealId) => mockMeals.find((m) => m.id === mealId);
-const findKitchen = (kitchenId: KitchenId) =>
-  mockKitchens.find((k) => k.id === kitchenId);
-
-const findGroupIndex = (kitchenId: KitchenId) =>
-  activeCart.findIndex((g) => g.kitchen.id === kitchenId);
+      } as KitchenSummary),
+    meals: group.meals,
+  }));
+};
 
 export const fetchActiveCart = createAsyncThunk<
   ActiveCartResponse,
@@ -73,11 +246,9 @@ export const fetchActiveCart = createAsyncThunk<
   { rejectValue: string }
 >("cart/fetchActiveCart", async (_, { rejectWithValue }) => {
   try {
-    return activeCart;
-  } catch (err: any) {
-    return rejectWithValue(
-      "Failed to load cart"
-    );
+    return await fetchHydratedCart();
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to load cart"));
   }
 });
 
@@ -92,75 +263,39 @@ export const setCartItem = createAsyncThunk<
   { rejectValue: string }
 >("cart/setCartItem", async ({ mealId, quantity }, { rejectWithValue }) => {
   try {
-    const meal = findMeal(mealId);
-    if (!meal) return rejectWithValue("Meal not found");
-    const kitchen = findKitchen(meal.kitchen_id);
-    if (!kitchen) return rejectWithValue("Kitchen not found");
+    const { data } = await api.put<{ message?: string }>(`/carts/items/${mealId}`, {
+      quantity,
+    });
 
-    const groupIndex = findGroupIndex(kitchen.id);
-    if (quantity <= 0) {
-      if (groupIndex >= 0) {
-        activeCart[groupIndex].meals = activeCart[groupIndex].meals.filter(
-          (m) => m.meal.id !== mealId
-        );
-        if (activeCart[groupIndex].meals.length === 0) {
-          activeCart.splice(groupIndex, 1);
-        }
-      }
-    } else if (groupIndex >= 0) {
-      const entry = activeCart[groupIndex].meals.find(
-        (m) => m.meal.id === mealId
-      );
-      if (entry) {
-        entry.quantity = quantity;
-      } else {
-        activeCart[groupIndex].meals.push({
-          meal: toMealSummary(meal),
-          quantity,
-        });
-      }
-    } else {
-      activeCart.push({
-        kitchen: toKitchenSummary(kitchen),
-        meals: [{ meal: toMealSummary(meal), quantity }],
-      });
-    }
+    const cart = await fetchHydratedCart();
 
     return {
-      message: "Cart updated successfully",
-      cart: activeCart,
+      message: data?.message ?? "Cart updated successfully",
+      cart,
       mealId,
       quantity,
     };
-  } catch (err: any) {
-    return rejectWithValue(
-      "Failed to update cart"
-    );
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to update cart"));
   }
 });
 
-// Remove meal from active cart
 export const removeCartItem = createAsyncThunk<
   { message: string; cart: ActiveCartResponse; mealId: MealId },
   MealId,
   { rejectValue: string }
 >("cart/removeCartItem", async (mealId, { rejectWithValue }) => {
   try {
-    activeCart = activeCart
-      .map((g) => ({
-        ...g,
-        meals: g.meals.filter((m) => m.meal.id !== mealId),
-      }))
-      .filter((g) => g.meals.length > 0);
+    const { data } = await api.delete<{ message?: string }>(`/carts/items/${mealId}`);
+    const cart = await fetchHydratedCart();
+
     return {
-      message: "Meal removed from cart successfully",
-      cart: activeCart,
+      message: data?.message ?? "Meal removed from cart successfully",
+      cart,
       mealId,
     };
-  } catch (err: any) {
-    return rejectWithValue(
-      "Failed to remove item"
-    );
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to remove item"));
   }
 });
 
@@ -170,16 +305,16 @@ export const clearKitchenCart = createAsyncThunk<
   { rejectValue: string }
 >("cart/clearKitchenCart", async (kitchenId, { rejectWithValue }) => {
   try {
-    activeCart = activeCart.filter((g) => g.kitchen.id !== kitchenId);
+    const { data } = await api.delete<{ message?: string }>(`/carts/kitchens/${kitchenId}`);
+    const cart = await fetchHydratedCart();
+
     return {
-      message: "Items removed from cart",
-      cart: activeCart,
+      message: data?.message ?? "Items removed from cart",
+      cart,
       kitchenId,
     };
-  } catch (err: any) {
-    return rejectWithValue(
-      "Failed to clear kitchen cart"
-    );
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to clear kitchen cart"));
   }
 });
 
@@ -189,55 +324,28 @@ export const checkoutActiveCart = createAsyncThunk<
   { rejectValue: string }
 >("cart/checkoutActiveCart", async (body, { rejectWithValue }) => {
   try {
-    const { kitchen_id, ...rest } = body;
-    const group = activeCart.find((g) => g.kitchen.id === kitchen_id);
-    if (!group) return rejectWithValue("No active cart for this kitchen");
+    const { kitchen_id, rider_id, ...rest } = body;
 
-    const order: Order = {
-      id: `order-${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: null,
-      delivery_address: rest.delivery_address,
-      delivery_date: rest.delivery_date ? String(rest.delivery_date) : null,
-      dispatch_rider_note: rest.dispatch_rider_note,
-      kitchen_id: group.kitchen.id,
-      kitchen: group.kitchen,
-      owner_id: mockUser.id,
-      owner: {
-        id: mockUser.id,
-        email: mockUser.email,
-        first_name: mockUser.first_name,
-        last_name: mockUser.last_name,
-        phone_number: mockUser.phone_number,
-      },
-      payment_method: "ONLINE",
-      status: "AWAITING_PAYMENT",
-      items: group.meals.map((m, idx) => ({
-        id: `order-item-${idx}`,
-        meal_id: m.meal.id,
-        meal: m.meal,
-        price: m.meal.price,
-        quantity: m.quantity,
-      })),
-      sub_total: group.meals.reduce(
-        (sum, it) => sum + Number(it.meal.price) * it.quantity,
-        0
-      ),
-      total: group.meals.reduce(
-        (sum, it) => sum + Number(it.meal.price) * it.quantity,
-        0
-      ),
-    };
-    addMockOrder(order);
-    activeCart = activeCart.filter((g) => g.kitchen.id !== kitchen_id);
+    const { data } = await api.post<CheckoutMealsFromKitchenSuccessResponse>(
+      `/carts/kitchens/${kitchen_id}/checkout`,
+      {
+        payment_method: rest.payment_method,
+        dispatch_rider_note: rest.dispatch_rider_note,
+        delivery_address: rest.delivery_address,
+        delivery_date: rest.delivery_date ?? Date.now(),
+      }
+    );
+
+    const cart = await fetchHydratedCart();
+
     return {
       result: {
-        id: order.id,
+        id: data.id,
         message: "Cart checked out successfully",
       },
-      cart: activeCart,
+      cart,
     };
-  } catch (err: any) {
-    return rejectWithValue("Failed to checkout");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to checkout"));
   }
 });

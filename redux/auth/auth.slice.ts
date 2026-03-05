@@ -105,7 +105,7 @@ const authSlice = createSlice({
       .addCase(verifyOtp.fulfilled, (state, action: PayloadAction<Tokens>) => {
         state.status = "succeeded";
         state.accessToken = action.payload.access_token;
-        state.refreshToken = action.payload.refresh_token;
+        state.refreshToken = action.payload.refresh_token ?? null;
         state.isAuthenticated = true;
       })
       .addCase(verifyOtp.rejected, (state, action: any) => {
@@ -123,8 +123,8 @@ const authSlice = createSlice({
       .addCase(refreshTokens.fulfilled, (state, action: PayloadAction<Tokens>) => {
         state.status = "succeeded";
         state.accessToken = action.payload.access_token;
-        state.refreshToken = action.payload.refresh_token;
-        state.isAuthenticated = true;
+        state.refreshToken = action.payload.refresh_token ?? null;
+        state.isAuthenticated = Boolean(action.payload.access_token);
       })
       .addCase(refreshTokens.rejected, (state, action: any) => {
         state.status = "failed";

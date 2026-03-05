@@ -1,40 +1,96 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
-import { useAppSelector } from "@/store/hooks";
+import * as ImagePicker from "expo-image-picker";
+import React, { useEffect, useMemo, useState } from "react";
+import { Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { createMeal, fetchMeals } from "@/redux/meals/meals.thunks";
+import { selectMealCreateStatus } from "@/redux/meals/meals.selectors";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { selectKitchenProfile } from "@/redux/kitchen/kitchen.selectors";
+import { fetchKitchenProfile } from "@/redux/kitchen/kitchen.thunks";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
-import { showSuccess } from "@/components/ui/toast";
+import { showError, showSuccess } from "@/components/ui/toast";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 export default function KitchenCreateMealScreen() {
+  const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const palette = getKitchenPalette(isDark);
+  const createStatus = useAppSelector(selectMealCreateStatus);
+  const kitchen = useAppSelector(selectKitchenProfile);
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
-  const [portion, setPortion] = useState("Regular");
   const [desc, setDesc] = useState("");
-  const [available, setAvailable] = useState(true);
-  const [deliveryEnabled, setDeliveryEnabled] = useState(true);
-  const [sitInEnabled, setSitInEnabled] = useState(false);
+  const [mealImageUri, setMealImageUri] = useState<string | null>(null);
 
-  const canSave =
-    name.trim().length > 0 &&
-    price.trim().length > 0 &&
-    (deliveryEnabled || sitInEnabled);
+  useEffect(() => {
+    if (!kitchen) {
+      dispatch(fetchKitchenProfile());
+    }
+  }, [dispatch, kitchen]);
 
-  const onSave = () => {
-    if (!canSave) return;
-    const channels = [
-      deliveryEnabled ? "Delivery" : null,
-      sitInEnabled ? "Sit-in" : null,
-    ]
-      .filter(Boolean)
-      .join(" & ");
-    showSuccess(`Meal created (${channels})`);
-    router.back();
+  const canSave = useMemo(() => {
+    const amount = Number(price);
+    return (
+      name.trim().length > 0 &&
+      desc.trim().length > 0 &&
+      Number.isFinite(amount) &&
+      amount > 0 &&
+      !!mealImageUri &&
+      createStatus !== "loading"
+    );
+  }, [createStatus, desc, mealImageUri, name, price]);
+
+  const pickMealImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+      setMealImageUri(result.assets[0]?.uri ?? null);
+      showSuccess("Meal image selected");
+    } catch (error: any) {
+      showError(error?.message || "Failed to select image");
+    }
+  };
+
+  const onSave = async () => {
+    if (!canSave || !mealImageUri) return;
+    try {
+      const fileName = mealImageUri.split("/").pop() || "meal.jpg";
+      await dispatch(
+        createMeal({
+          name: name.trim(),
+          description: desc.trim(),
+          price: Number(price),
+          cover: {
+            uri: mealImageUri,
+            name: fileName,
+            type: "image/jpeg",
+          },
+        })
+      ).unwrap();
+
+      if (kitchen?.id) {
+        await dispatch(
+          fetchMeals({
+            page: 1,
+            per_page: 200,
+            kitchen_id: kitchen.id,
+          })
+        );
+      }
+
+      showSuccess("Meal created");
+      router.back();
+    } catch (error: any) {
+      showError(error?.message || "Failed to create meal");
+    }
   };
 
   return (
@@ -77,40 +133,12 @@ export default function KitchenCreateMealScreen() {
           <TextInput
             value={price}
             onChangeText={setPrice}
-            placeholder="14.50"
+            placeholder="1000"
             placeholderTextColor={palette.textMuted}
             keyboardType="numeric"
             className="rounded-2xl px-3 py-3 text-[16px] font-satoshi"
             style={{ backgroundColor: palette.surfaceAlt, color: palette.textPrimary }}
           />
-
-          <Text className="text-[13px] mb-1 mt-4" style={{ color: palette.textSecondary }}>
-            Portion type
-          </Text>
-          <View className="flex-row items-center">
-            {(["Regular", "Large", "Family"] as const).map((item) => {
-              const active = portion === item;
-              return (
-                <Pressable
-                  key={item}
-                  onPress={() => setPortion(item)}
-                  className="rounded-full px-4 py-2 mr-2"
-                  style={{
-                    backgroundColor: active ? palette.accentSoft : palette.surfaceAlt,
-                    borderWidth: 1,
-                    borderColor: active ? palette.accentStrong : palette.border,
-                  }}
-                >
-                  <Text
-                    className="font-satoshiBold text-[12px]"
-                    style={{ color: active ? palette.accentStrong : palette.textSecondary }}
-                  >
-                    {item}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
 
           <Text className="text-[13px] mb-1 mt-4" style={{ color: palette.textSecondary }}>
             Description
@@ -137,72 +165,35 @@ export default function KitchenCreateMealScreen() {
                   Upload meal image
                 </Text>
               </View>
-              <Pressable>
+              <Pressable onPress={pickMealImage}>
                 <Text className="font-satoshiBold" style={{ color: palette.textSecondary }}>
-                  Browse
+                  {mealImageUri ? "Change" : "Browse"}
                 </Text>
               </Pressable>
             </View>
-          </View>
 
-          <View className="mt-4 flex-row items-center justify-between">
-            <View>
-              <Text className="text-[15px] font-satoshiBold" style={{ color: palette.textPrimary }}>
-                Meal is available
-              </Text>
-              <Text className="text-[12px]" style={{ color: palette.textSecondary }}>
-                Show this meal in active menu listings
-              </Text>
-            </View>
-
-            <Switch
-              value={available}
-              onValueChange={setAvailable}
-              thumbColor={available ? palette.accent : "#F8FAFC"}
-              trackColor={{ false: "#CBD5E1", true: isDark ? "#5A4512" : "#F6C56B" }}
-              ios_backgroundColor="#CBD5E1"
-            />
-          </View>
-
-          <View className="mt-4">
-            <Text className="text-[15px] font-satoshiBold" style={{ color: palette.textPrimary }}>
-              Service channels
-            </Text>
-            <Text className="text-[12px] mt-0.5" style={{ color: palette.textSecondary }}>
-              Choose where customers can order this meal
-            </Text>
-
-            <View className="mt-3 flex-row items-center justify-between">
-              <Text className="text-[14px] font-satoshiMedium" style={{ color: palette.textPrimary }}>
-                Delivery
-              </Text>
-              <Switch
-                value={deliveryEnabled}
-                onValueChange={setDeliveryEnabled}
-                thumbColor={deliveryEnabled ? palette.accent : "#F8FAFC"}
-                trackColor={{ false: "#CBD5E1", true: isDark ? "#5A4512" : "#F6C56B" }}
-                ios_backgroundColor="#CBD5E1"
-              />
-            </View>
-
-            <View className="mt-3 flex-row items-center justify-between">
-              <Text className="text-[14px] font-satoshiMedium" style={{ color: palette.textPrimary }}>
-                Sit-in
-              </Text>
-              <Switch
-                value={sitInEnabled}
-                onValueChange={setSitInEnabled}
-                thumbColor={sitInEnabled ? palette.accent : "#F8FAFC"}
-                trackColor={{ false: "#CBD5E1", true: isDark ? "#5A4512" : "#F6C56B" }}
-                ios_backgroundColor="#CBD5E1"
-              />
-            </View>
-
-            {!deliveryEnabled && !sitInEnabled ? (
-              <Text className="text-[12px] mt-3" style={{ color: palette.danger }}>
-                Enable at least one service channel to save.
-              </Text>
-            ) : null}
+            <Pressable
+              onPress={pickMealImage}
+              className="mt-3 rounded-2xl overflow-hidden items-center justify-center"
+              style={{
+                backgroundColor: palette.surfaceAlt,
+                borderWidth: mealImageUri ? 0 : 1,
+                borderStyle: "dashed",
+                borderColor: palette.border,
+                minHeight: 120,
+              }}
+            >
+              {mealImageUri ? (
+                <Image source={{ uri: mealImageUri }} className="w-full h-[140px]" resizeMode="cover" />
+              ) : (
+                <View className="items-center py-6">
+                  <Ionicons name="image-outline" size={24} color={palette.textMuted} />
+                  <Text className="mt-2 text-[13px] font-satoshiMedium" style={{ color: palette.textSecondary }}>
+                    Tap to select an image
+                  </Text>
+                </View>
+              )}
+            </Pressable>
           </View>
         </View>
 
@@ -212,7 +203,9 @@ export default function KitchenCreateMealScreen() {
           className="mt-5 rounded-2xl py-4 items-center"
           style={{ backgroundColor: canSave ? palette.accent : palette.textMuted }}
         >
-          <Text className="text-white font-satoshiBold text-[16px]">Save Meal</Text>
+          <Text className="text-white font-satoshiBold text-[16px]">
+            {createStatus === "loading" ? "Creating..." : "Save Meal"}
+          </Text>
         </Pressable>
       </ScrollView>
     </View>

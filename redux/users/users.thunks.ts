@@ -1,99 +1,157 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
+import { api } from "@/api/axios";
+import { getApiErrorMessage } from "@/api/http";
+import { getStorageFileUrl, uploadSingleMedia } from "@/api/storage";
 import type { UpdateUserPayload, User } from "./users.types";
-import type { RootState } from "@/store";
 import { setUser as setAuthUser } from "@/redux/auth/auth.slice";
-import { mockUser } from "@/utils/mockData";
+import type { RootState } from "@/store";
+import { clearRefreshToken, clearToken, clearUser } from "@/storage/auth";
 
-let currentUser: User = { ...mockUser };
+type BackendMediaDescription = {
+  id: string;
+  url: string;
+};
 
-export const fetchMyProfile = createAsyncThunk<
-  User,
-  void,
-  { rejectValue: string }
->("users/fetchMyProfile", async (_, { dispatch, rejectWithValue }) => {
-  try {
-    const user: User = currentUser;
-    dispatch(
-      setAuthUser({
-        email: user.email,
-        phone_number: user.phone_number,
-        first_name: user.first_name,
-        last_name: user.last_name,
-      })
-    );
-    return user;
-  } catch (err: any) {
-    return rejectWithValue("Failed to load profile");
+type BackendProfileUser = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  is_verified: boolean;
+  role: string;
+  has_kitchen: boolean;
+  profile_picture_id: string | null;
+  created_at: number;
+  updated_at: number | null;
+  deleted_at: number | null;
+  referral?: {
+    code?: string;
+    url?: string;
+  };
+  profile_picture: BackendMediaDescription | null;
+};
+
+type GetProfileResponse = {
+  data: BackendProfileUser;
+  _tag: "GetProfileResponse";
+};
+
+type BackendUserById = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  is_verified: boolean;
+  role: string;
+  has_kitchen: boolean;
+  profile_picture_id: string | null;
+  created_at: number;
+  updated_at: number | null;
+  deleted_at: number | null;
+};
+
+const toUser = (data: BackendProfileUser | BackendUserById): User => {
+  const media = "profile_picture" in data ? data.profile_picture : null;
+
+  return {
+    id: data.id,
+    email: data.email,
+    phone_number: data.phone_number,
+    is_verified: data.is_verified,
+    first_name: data.first_name,
+    last_name: data.last_name,
+    has_kitchen: data.has_kitchen,
+    role: data.role,
+    birthday: null,
+    referral_code: "referral" in data ? data.referral?.code ?? null : null,
+    profile_picture_id: data.profile_picture_id,
+    profile_picture: data.profile_picture_id || media?.url
+      ? {
+          id: data.profile_picture_id,
+          url: media?.url ?? getStorageFileUrl(data.profile_picture_id) ?? "",
+        }
+      : null,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    deleted_at: data.deleted_at,
+  };
+};
+
+export const fetchMyProfile = createAsyncThunk<User, void, { rejectValue: string }>(
+  "users/fetchMyProfile",
+  async (_, { dispatch, rejectWithValue }) => {
+    try {
+      const { data } = await api.get<GetProfileResponse>("/users/profile");
+      const user = toUser(data.data);
+
+      dispatch(
+        setAuthUser({
+          id: user.id,
+          email: user.email,
+          phone_number: user.phone_number,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: user.role,
+          has_kitchen: user.has_kitchen,
+        })
+      );
+
+      return user;
+    } catch (error) {
+      return rejectWithValue(getApiErrorMessage(error, "Failed to load profile"));
+    }
   }
-});
+);
 
 export const updateMyProfile = createAsyncThunk<
   User,
   UpdateUserPayload,
   { rejectValue: string }
->(
-  "users/updateMyProfile",
-  async (body, { dispatch, rejectWithValue }) => {
-    try {
-      currentUser = {
-        ...currentUser,
-        ...body,
-        updated_at: new Date().toISOString(),
-      };
-      const user: User = currentUser;
-
-      dispatch(
-        setAuthUser({
-          email: user.email,
-          phone_number: user.phone_number,
-          first_name: user.first_name,
-          last_name: user.last_name,
-        })
-      );
-      return user;
-    } catch (err: any) {
-      return rejectWithValue("Failed to update profile");
-    }
+>("users/updateMyProfile", async (body, { dispatch, rejectWithValue }) => {
+  try {
+    await api.patch("/users/profile", body);
+    const refreshed = await dispatch(fetchMyProfile()).unwrap();
+    return refreshed;
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to update profile"));
   }
-);
+});
 
 export const uploadProfilePicture = createAsyncThunk<
   User,
   { uri: string; name?: string; type?: string },
   { rejectValue: string }
->(
-  "users/uploadProfilePicture",
-  async ({ uri, name, type }, { rejectWithValue }) => {
+>("users/uploadProfilePicture", async ({ uri, name, type }, { dispatch, rejectWithValue }) => {
+  try {
+    const uploaded = await uploadSingleMedia({ uri, name, type });
+    if (!uploaded?.id) {
+      return rejectWithValue("Image upload failed");
+    }
+
+    await api.patch("/users/profile", {
+      profile_picture_id: uploaded.id,
+    });
+
+    const refreshed = await dispatch(fetchMyProfile()).unwrap();
+    return refreshed;
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to upload picture"));
+  }
+});
+
+export const fetchUserById = createAsyncThunk<User, string, { rejectValue: string }>(
+  "users/fetchUserById",
+  async (id, { rejectWithValue }) => {
     try {
-      currentUser = {
-        ...currentUser,
-        profile_picture: { url: uri },
-        updated_at: new Date().toISOString(),
-      };
-      return currentUser as User;
-    } catch (err: any) {
-      return rejectWithValue("Failed to upload picture");
+      const { data } = await api.get<BackendUserById>(`/users/${id}`);
+      return toUser(data);
+    } catch (error) {
+      return rejectWithValue(getApiErrorMessage(error, "Failed to load user"));
     }
   }
 );
-
-export const fetchUserById = createAsyncThunk<
-  User,
-  string,
-  { rejectValue: string }
->("users/fetchUserById", async (id, { rejectWithValue }) => {
-  try {
-    if (id === currentUser.id) return currentUser;
-    return {
-      ...currentUser,
-      id,
-      first_name: "Foodhut",
-      last_name: "User",
-    };
-  } catch (err: any) {
-    return rejectWithValue("Failed to load user");
-  }
-});
 
 export const deleteMyProfile = createAsyncThunk<
   { message: string },
@@ -101,8 +159,12 @@ export const deleteMyProfile = createAsyncThunk<
   { state: RootState; rejectValue: string }
 >("users/deleteMyProfile", async (_, { rejectWithValue }) => {
   try {
+    await api.delete("/users/profile");
+    await clearToken();
+    await clearRefreshToken();
+    await clearUser();
     return { message: "Account deleted" };
-  } catch (err: any) {
-    return rejectWithValue("Failed to delete account");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to delete account"));
   }
 });

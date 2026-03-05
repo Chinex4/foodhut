@@ -193,7 +193,7 @@ export default function KitchenDashboardScreen() {
           </View>
           {kitchen.cover_image && (
             <CachedImageView
-              uri={kitchen.cover_image}
+              uri={kitchen.cover_image.url ?? undefined}
               className="w-20 h-20 rounded-2xl"
             />
           )}

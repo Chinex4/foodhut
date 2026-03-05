@@ -1,10 +1,22 @@
 export type MealId = string;
 
 export type Media = {
-  public_id: string;
-  timestamp: number;
+  id?: string;
   url: string;
 };
+
+export type MealDiscount =
+  | {
+      start_date: number;
+      end_date: number;
+      percentage: number;
+    }
+  | {
+      start_date: number;
+      end_date: number;
+      price: number;
+    }
+  | null;
 
 export type Meal = {
   id: MealId;
@@ -17,9 +29,11 @@ export type Meal = {
   likes: number;
   rating: string | number;
   kitchen_id: string;
+  cover_image_id?: string;
   cover_image: Media | null;
-  created_at: string;
-  updated_at: string | null;
+  discount?: MealDiscount;
+  created_at: number | string;
+  updated_at: number | string | null;
   is_liked?: boolean;
 };
 
@@ -27,6 +41,8 @@ export type MealsQuery = {
   page?: number;
   per_page?: number;
   kitchen_id?: string;
+  search?: string;
+  is_liked?: boolean;
 };
 
 export type MealsListResponse = {
@@ -46,6 +62,7 @@ export type UpdateMealPayload = Partial<{
   description: string;
   price: string | number;
   is_available: boolean;
+  cover_image_id: string;
   cover: { uri: string; name?: string; type?: string } | null;
 }>;
 

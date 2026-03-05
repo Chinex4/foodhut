@@ -1,36 +1,75 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useMemo } from "react";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { persistThemePreference, setThemeMode } from "@/redux/theme/theme.slice";
-import {
-  mockVendorMeals,
-  mockVendorOrders,
-  mockVendorSummary,
-} from "@/utils/mock/mockVendor";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
-import { showSuccess } from "@/components/ui/toast";
-
-const performanceItems = [
-  { label: "TODAY'S ORDERS", value: "24", trend: "up" as const },
-  { label: "YESTERDAY", value: "18", trend: "flat" as const },
-  { label: "LAST 14 DAYS", value: "342", trend: "up" as const },
-  { label: "LAST 30 DAYS", value: "718", trend: "up" as const },
-];
+import { useKitchenData } from "@/app/kitchen/hooks/useKitchenData";
+import { showSuccess, showError } from "@/components/ui/toast";
+import { updateOrderStatus } from "@/redux/orders/orders.thunks";
+import { formatNGN } from "@/utils/money";
+import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
+import { selectWalletBalanceNumber, selectWalletProfileStatus } from "@/redux/wallet/wallet.selectors";
 
 export default function KitchenDashboardScreen() {
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const palette = getKitchenPalette(isDark);
-  const [orders, setOrders] = useState(mockVendorOrders);
 
-  const topMeals = mockVendorMeals.slice(0, 3);
-  const incoming = orders.filter((o) => o.status === "INCOMING").slice(0, 2);
-  const outOfStockCount = mockVendorMeals.filter((meal) => !meal.available || meal.stock <= 2).length;
+  const { kitchen, kitchenStatus, meals, orders, refreshOrders } = useKitchenData({ ordersStatus: null });
+
+  const walletBalance = useAppSelector(selectWalletBalanceNumber);
+  const walletStatus = useAppSelector(selectWalletProfileStatus);
+
+  React.useEffect(() => {
+    if (walletStatus === "idle") {
+      dispatch(fetchWalletProfile({ as_kitchen: true }));
+    }
+  }, [dispatch, walletStatus]);
+
+  const incoming = useMemo(
+    () => orders.filter((o) => o.status === "AWAITING_ACKNOWLEDGEMENT").slice(0, 2),
+    [orders]
+  );
+
+  const topMeals = useMemo(
+    () =>
+      [...meals]
+        .sort((a, b) => Number(b.likes || 0) - Number(a.likes || 0))
+        .slice(0, 3),
+    [meals]
+  );
+
+  const outOfStockCount = useMemo(
+    () => meals.filter((meal) => meal.is_available === false).length,
+    [meals]
+  );
+
+  const performanceItems = useMemo(
+    () => [
+      {
+        label: "INCOMING",
+        value: String(orders.filter((o) => o.status === "AWAITING_ACKNOWLEDGEMENT").length),
+      },
+      {
+        label: "ONGOING",
+        value: String(orders.filter((o) => ["PREPARING", "IN_TRANSIT"].includes(o.status)).length),
+      },
+      {
+        label: "DELIVERED",
+        value: String(orders.filter((o) => o.status === "DELIVERED").length),
+      },
+      {
+        label: "MEALS",
+        value: String(meals.length),
+      },
+    ],
+    [orders, meals.length]
+  );
 
   const toggleTheme = () => {
     const next = isDark ? "light" : "dark";
@@ -38,22 +77,49 @@ export default function KitchenDashboardScreen() {
     dispatch(persistThemePreference(next));
   };
 
-  const handleAcceptOrder = (orderId: string) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === orderId ? { ...order, status: "ONGOING" } : order
-      )
-    );
-    showSuccess("Order accepted");
+  const handleAcceptOrder = async (orderId: string) => {
+    try {
+      await dispatch(
+        updateOrderStatus({
+          orderId,
+          status: "PREPARING",
+          as_kitchen: true,
+        })
+      ).unwrap();
+      showSuccess("Order accepted");
+      await refreshOrders();
+    } catch (error: any) {
+      showError(error?.message || "Failed to accept order");
+    }
   };
 
-  const handleDeclineOrder = (orderId: string) => {
-    setOrders((prev) => prev.filter((order) => order.id !== orderId));
-    showSuccess("Order declined");
+  const handleDeclineOrder = async (orderId: string) => {
+    try {
+      await dispatch(
+        updateOrderStatus({
+          orderId,
+          status: "CANCELLED",
+          as_kitchen: true,
+        })
+      ).unwrap();
+      showSuccess("Order declined");
+      await refreshOrders();
+    } catch (error: any) {
+      showError(error?.message || "Failed to decline order");
+    }
   };
+
+  if (kitchenStatus === "loading" && !kitchen) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: palette.background }}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <ActivityIndicator color={palette.accent} />
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
@@ -67,64 +133,29 @@ export default function KitchenDashboardScreen() {
             </View>
 
             <View className="ml-3">
-              <Text
-                className="text-[22px] leading-[28px] font-satoshiBold"
-                style={{ color: palette.textPrimary }}
-              >
-                Gourmet Hub
+              <Text className="text-[22px] leading-[28px] font-satoshiBold" style={{ color: palette.textPrimary }}>
+                {kitchen?.name || "Vendor"}
               </Text>
-              <Text
-                className="text-[14px] tracking-[2px] font-satoshiMedium"
-                style={{ color: palette.textSecondary }}
-              >
+              <Text className="text-[14px] tracking-[2px] font-satoshiMedium" style={{ color: palette.textSecondary }}>
                 VENDOR DASHBOARD
               </Text>
             </View>
           </View>
 
-          <View className="flex-row items-center">
-            <Pressable
-              onPress={toggleTheme}
-              className="w-11 h-11 rounded-full items-center justify-center mr-2"
-              style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
-            >
-              <Ionicons
-                name={isDark ? "sunny" : "moon"}
-                size={20}
-                color={palette.textPrimary}
-              />
-            </Pressable>
-
-            <Pressable
-              className="w-11 h-11 rounded-full items-center justify-center"
-              style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
-            >
-              <Ionicons name="notifications" size={19} color={palette.textPrimary} />
-              <View
-                className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                style={{ backgroundColor: "#FB7185" }}
-              />
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={toggleTheme}
+            className="w-11 h-11 rounded-full items-center justify-center"
+            style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
+          >
+            <Ionicons name={isDark ? "sunny" : "moon"} size={20} color={palette.textPrimary} />
+          </Pressable>
         </View>
 
-        <View
-          className="rounded-[30px] mt-7 p-6"
-          style={{ backgroundColor: palette.accent }}
-        >
+        <View className="rounded-[30px] mt-7 p-6" style={{ backgroundColor: palette.accent }}>
           <Text className="text-[17px] font-satoshiMedium text-white/85">Total Wallet Balance</Text>
-
-          <View className="flex-row items-center mt-2">
-            <Text className="text-[32px] leading-[38px] font-satoshiBold text-white">
-              {mockVendorSummary.wallet}
-            </Text>
-            <View
-              className="ml-3 rounded-full px-3 py-1"
-              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-            >
-              <Text className="text-white font-satoshiBold text-[14px]">+12.5%</Text>
-            </View>
-          </View>
+          <Text className="text-[32px] leading-[38px] font-satoshiBold text-white mt-2">
+            {formatNGN(walletBalance)}
+          </Text>
 
           <View className="flex-row mt-6">
             <Pressable
@@ -148,20 +179,9 @@ export default function KitchenDashboardScreen() {
         </View>
 
         <View className="mt-7 flex-row items-center justify-between">
-          <Text
-            className="text-[20px] leading-[26px] font-satoshiBold"
-            style={{ color: palette.textPrimary }}
-          >
+          <Text className="text-[20px] leading-[26px] font-satoshiBold" style={{ color: palette.textPrimary }}>
             Performance Stats
           </Text>
-          <View
-            className="rounded-xl px-3 py-1"
-            style={{ backgroundColor: palette.accentSoft }}
-          >
-            <Text className="font-satoshiBold text-[12px]" style={{ color: palette.accentStrong }}>
-              REAL-TIME
-            </Text>
-          </View>
         </View>
 
         <View className="flex-row flex-wrap justify-between mt-3">
@@ -169,48 +189,21 @@ export default function KitchenDashboardScreen() {
             <View
               key={item.label}
               className="w-[48.5%] rounded-3xl p-4 mb-3"
-              style={{
-                backgroundColor: palette.surfaceAlt,
-                borderWidth: 1,
-                borderColor: palette.border,
-              }}
+              style={{ backgroundColor: palette.surfaceAlt, borderWidth: 1, borderColor: palette.border }}
             >
               <Text className="text-[12px] font-satoshiBold" style={{ color: palette.textSecondary }}>
                 {item.label}
               </Text>
-              <View className="flex-row items-center mt-2">
-                <Text
-                  className="text-[20px] leading-[24px] font-satoshiBold"
-                  style={{ color: palette.textPrimary }}
-                >
-                  {item.value}
-                </Text>
-                <Ionicons
-                  name={item.trend === "up" ? "arrow-up" : "remove"}
-                  size={18}
-                  color={item.trend === "up" ? palette.success : palette.textMuted}
-                  style={{ marginLeft: 6 }}
-                />
-              </View>
+              <Text className="text-[20px] leading-[24px] font-satoshiBold mt-2" style={{ color: palette.textPrimary }}>
+                {item.value}
+              </Text>
             </View>
           ))}
         </View>
 
-        <View
-          className="rounded-3xl mt-2 p-5"
-          style={{
-            backgroundColor: isDark ? palette.surfaceAlt : "#FFF4DE",
-            borderWidth: 1,
-            borderColor: isDark ? palette.border : "#FFD293",
-          }}
-        >
+        <View className="rounded-3xl mt-2 p-5" style={{ backgroundColor: isDark ? palette.surfaceAlt : "#FFF4DE", borderWidth: 1, borderColor: isDark ? palette.border : "#FFD293" }}>
           <View className="flex-row items-center">
-            <View
-              className="w-9 h-9 rounded-full items-center justify-center"
-              style={{ backgroundColor: isDark ? palette.accentSoft : "#FFE8B8" }}
-            >
-              <Ionicons name="alert" size={16} color={palette.accentStrong} />
-            </View>
+            <Ionicons name="alert" size={16} color={palette.accentStrong} />
             <Text className="ml-3 text-[16px] font-satoshiBold" style={{ color: palette.accentStrong }}>
               Action Required
             </Text>
@@ -221,10 +214,10 @@ export default function KitchenDashboardScreen() {
             <Text className="font-satoshiBold" style={{ color: palette.textPrimary }}>
               {` ${outOfStockCount} menus `}
             </Text>
-            out of stock. Update your inventory to continue receiving orders.
+            out of stock.
           </Text>
 
-          <Pressable onPress={() => router.push("/kitchen/(tabs)/menu")}> 
+          <Pressable onPress={() => router.push("/kitchen/(tabs)/menu")}>
             <Text className="mt-4 text-[17px] font-satoshiBold" style={{ color: palette.accentStrong }}>
               View Inventory
             </Text>
@@ -232,10 +225,7 @@ export default function KitchenDashboardScreen() {
         </View>
 
         <View className="mt-7 flex-row items-center justify-between">
-          <Text
-            className="text-[20px] leading-[26px] font-satoshiBold"
-            style={{ color: palette.textPrimary }}
-          >
+          <Text className="text-[20px] leading-[26px] font-satoshiBold" style={{ color: palette.textPrimary }}>
             Incoming Orders
           </Text>
           <Pressable onPress={() => router.push("/kitchen/(tabs)/orders")}> 
@@ -249,45 +239,22 @@ export default function KitchenDashboardScreen() {
           <View
             key={order.id}
             className="rounded-3xl mt-3 p-4"
-            style={{
-              backgroundColor: palette.surface,
-              borderWidth: 1,
-              borderColor: palette.border,
-            }}
+            style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
           >
             <Pressable onPress={() => router.push(`/kitchen/orders/${order.id}`)}>
               <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center flex-1">
-                  <View
-                    className="w-14 h-14 rounded-2xl items-center justify-center"
-                    style={{ backgroundColor: isDark ? palette.accentSoft : "#FFF1D3" }}
-                  >
-                    <Ionicons name="bag-handle" size={22} color={palette.accentStrong} />
-                  </View>
-
-                  <View className="ml-3 flex-1">
-                    <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
-                      Order {order.id}
-                    </Text>
-                    <Text className="text-[13px]" style={{ color: palette.textSecondary }}>
-                      {order.items.length} Items • {order.time}
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="items-end">
-                  <Text className="font-satoshiBold text-[18px]" style={{ color: palette.textPrimary }}>
-                    {order.total}
+                <View className="flex-1">
+                  <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
+                    Order #{order.id.slice(0, 8).toUpperCase()}
                   </Text>
-                  <View
-                    className="rounded-full px-3 py-1 mt-1"
-                    style={{ backgroundColor: isDark ? palette.accentSoft : "#FFF3DB" }}
-                  >
-                    <Text className="font-satoshiBold text-[12px]" style={{ color: palette.accentStrong }}>
-                      NEW
-                    </Text>
-                  </View>
+                  <Text className="text-[13px] mt-1" style={{ color: palette.textSecondary }}>
+                    {order.items.length} Items
+                  </Text>
                 </View>
+
+                <Text className="font-satoshiBold text-[18px]" style={{ color: palette.textPrimary }}>
+                  {formatNGN(Number(order.total))}
+                </Text>
               </View>
             </Pressable>
 
@@ -313,20 +280,14 @@ export default function KitchenDashboardScreen() {
         ))}
 
         {!incoming.length ? (
-          <View
-            className="rounded-3xl mt-3 p-4 items-center"
-            style={{ backgroundColor: palette.surfaceAlt, borderWidth: 1, borderColor: palette.border }}
-          >
+          <View className="rounded-3xl mt-3 p-4 items-center" style={{ backgroundColor: palette.surfaceAlt, borderWidth: 1, borderColor: palette.border }}>
             <Text className="font-satoshiMedium" style={{ color: palette.textSecondary }}>
               No incoming orders right now.
             </Text>
           </View>
         ) : null}
 
-        <Text
-          className="mt-8 text-[20px] leading-[26px] font-satoshiBold"
-          style={{ color: palette.textPrimary }}
-        >
+        <Text className="mt-8 text-[20px] leading-[26px] font-satoshiBold" style={{ color: palette.textPrimary }}>
           Most Ordered Food
         </Text>
 
@@ -334,57 +295,26 @@ export default function KitchenDashboardScreen() {
           {topMeals.map((meal, idx) => (
             <Pressable
               key={meal.id}
-              onPress={() => router.push("/kitchen/(tabs)/menu")}
+              onPress={() => router.push(`/kitchen/(tabs)/menu/${meal.id}` as any)}
               className="mr-3 rounded-3xl overflow-hidden"
-              style={{
-                width: 235,
-                backgroundColor: palette.surface,
-                borderWidth: 1,
-                borderColor: palette.border,
-              }}
+              style={{ width: 235, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
             >
-              <View
-                className="h-36 items-center justify-center"
-                style={{
-                  backgroundColor:
-                    idx === 0
-                      ? "#4C8B65"
-                      : idx === 1
-                      ? "#EBEEF2"
-                      : isDark
-                      ? palette.elevated
-                      : "#ECF7F8",
-                }}
-              >
-                <Ionicons
-                  name={idx === 0 ? "leaf" : idx === 1 ? "nutrition" : "fast-food"}
-                  size={40}
-                  color={idx === 0 ? "#E0F2E7" : idx === 1 ? "#6B7280" : palette.accentStrong}
-                />
-                <View
-                  className="absolute top-3 right-3 rounded-full px-3 py-1"
-                  style={{ backgroundColor: palette.accent }}
-                >
-                  <Text className="text-white text-[11px] font-satoshiBold">TOP {idx + 1}</Text>
-                </View>
+              <View className="h-36 items-center justify-center" style={{ backgroundColor: idx % 2 === 0 ? palette.elevated : palette.surfaceAlt }}>
+                <Ionicons name="fast-food" size={36} color={palette.accentStrong} />
               </View>
 
               <View className="p-4">
-                <Text
-                  className="text-[16px] font-satoshiBold"
-                  style={{ color: palette.textPrimary }}
-                  numberOfLines={1}
-                >
+                <Text className="text-[16px] font-satoshiBold" style={{ color: palette.textPrimary }} numberOfLines={1}>
                   {meal.name}
                 </Text>
                 <Text className="text-[14px] mt-1" style={{ color: palette.textSecondary }}>
-                  {142 - idx * 24} orders this month
+                  {formatNGN(Number(meal.price))}
                 </Text>
               </View>
             </Pressable>
           ))}
         </ScrollView>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

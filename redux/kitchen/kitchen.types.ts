@@ -1,12 +1,14 @@
 export type KitchenId = string;
 export type CityId = string;
 
+export type KitchenType = "Chinese" | "Cuisine" | "Fast Food" | "Local" | string;
+
 export type KitchenCity = {
   id: CityId;
   name: string;
   state: string;
-  created_at: string;
-  updated_at: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type Kitchen = {
@@ -14,53 +16,59 @@ export type Kitchen = {
   name: string;
   address: string;
   phone_number: string;
-  type: string;
+  type: KitchenType;
   opening_time: string;
   closing_time: string;
   delivery_time: string;
   preparation_time: string;
   is_available: boolean;
+  is_blocked?: boolean;
+  is_verified?: boolean;
   likes: number;
   rating: string | number;
   owner_id: string;
-  cover_image: {
-    url: string | null;
-  };
+
+  profile_picture_id?: string | null;
+  cover_image_id?: string | null;
+  profile_picture?: { url: string | null } | null;
+  cover_image: { url: string | null };
 
   city_id: CityId | null;
   city?: KitchenCity;
 
-  created_at: string;
-  updated_at: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type CreateKitchenPayload = {
   name: string;
   address: string;
   phone_number: string;
-  type: string;
+  type: KitchenType;
   opening_time: string;
   closing_time: string;
   delivery_time: string;
   preparation_time: string;
   city_id?: CityId;
+  city?: KitchenCity;
+  profile_picture_id?: string | null;
+  cover_image_id?: string | null;
 };
 
-export type UpdateKitchenPayload = Partial<
-  Pick<
-    Kitchen,
-    | "name"
-    | "address"
-    | "phone_number"
-    | "type"
-    | "opening_time"
-    | "closing_time"
-    | "delivery_time"
-    | "preparation_time"
-    | "is_available"
-    | "city_id"
-  >
->;
+export type UpdateKitchenPayload = Partial<{
+  name: string;
+  address: string;
+  phone_number: string;
+  type: KitchenType;
+  opening_time: string;
+  closing_time: string;
+  delivery_time: string;
+  preparation_time: string;
+  is_available: boolean;
+  city_id: CityId | null;
+  profile_picture_id: string;
+  cover_image_id: string;
+}>;
 
 export type CreateCityPayload = {
   name: string;
@@ -70,7 +78,9 @@ export type CreateCityPayload = {
 export type KitchensQuery = {
   page?: number;
   per_page?: number;
+  type?: KitchenType;
   is_available?: boolean;
+  search?: string;
 };
 
 export type KitchensListResponse = {

@@ -42,7 +42,8 @@ import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
 import { listenRiderPicked } from "@/utils/riderBus.native";
-import { mockMeals } from "@/utils/mockData";
+import { fetchMeals } from "@/redux/meals/meals.thunks";
+import { selectMealsArray } from "@/redux/meals/meals.selectors";
 
 type PaymentUI = "ONLINE" | "WALLET" | "PAY_FOR_ME";
 
@@ -209,12 +210,19 @@ export default function CheckoutScreen() {
   // ============ Wallet Integration ============
   const walletBalance = useAppSelector(selectWalletBalanceNumber);
   const walletProfileStatus = useAppSelector(selectWalletProfileStatus);
+  const meals = useAppSelector(selectMealsArray);
 
   useEffect(() => {
     if (walletProfileStatus === "idle" && isAuthenticated) {
       dispatch(fetchWalletProfile());
     }
   }, [walletProfileStatus, dispatch, isAuthenticated]);
+
+  useEffect(() => {
+    if (!meals.length) {
+      dispatch(fetchMeals({ page: 1, per_page: 20 }));
+    }
+  }, [dispatch, meals.length]);
 
   // ============ Fees (REMOVED) ============
   // Removed delivery_fee and service_fee as per requirements
@@ -562,7 +570,7 @@ export default function CheckoutScreen() {
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View className="flex-row gap-3">
-                    {mockMeals.slice(0, 6).map((meal) => (
+                    {meals.slice(0, 6).map((meal) => (
                       <Pressable
                         key={meal.id}
                         onPress={() => router.push(`/users/meal/${meal.id}`)}

@@ -5,8 +5,7 @@ export type KitchenId = string;
 export type UserId = string;
 
 export type Media = {
-  public_id: string;
-  timestamp: number;
+  id?: string;
   url: string;
 };
 
@@ -21,9 +20,9 @@ export type MealSummary = {
   likes: number;
   kitchen_id: KitchenId;
   cover_image: Media | null;
-  created_at: string;
-  updated_at: string | null;
-  deleted_at?: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
+  deleted_at?: number | string | null;
 };
 
 export type OrderItem = {
@@ -38,8 +37,8 @@ export type CitySummary = {
   id: string;
   name: string;
   state: string;
-  created_at: string;
-  updated_at: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type KitchenSummary = {
@@ -56,11 +55,11 @@ export type KitchenSummary = {
   likes: number;
   is_available: boolean;
   owner_id: UserId;
-  cover_image: string | null;
+  cover_image: string | Media | null;
   city_id: string | null;
   city?: CitySummary;
-  created_at: string;
-  updated_at: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type OwnerSummary = {
@@ -83,11 +82,11 @@ export type OrderStatus =
 
 export type Order = {
   id: OrderId;
-  created_at: string;
-  updated_at: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 
   delivery_address: string;
-  delivery_date: string | null;
+  delivery_date: number | string | null;
   dispatch_rider_note: string | null;
 
   kitchen_id: KitchenId;
@@ -110,7 +109,7 @@ export type Order = {
 export type OrdersQuery = {
   page?: number;
   per_page?: number;
-  status?: OrderStatus;
+  status?: OrderStatus | OrderStatus[];
   kitchen_id?: KitchenId;
   as_kitchen?: boolean;
 };

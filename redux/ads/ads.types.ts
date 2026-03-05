@@ -1,8 +1,7 @@
 export type AdId = string;
 
 export type Media = {
-  public_id: string;
-  timestamp: number;
+  id?: string;
   url: string;
 };
 
@@ -10,9 +9,10 @@ export type Ad = {
   id: AdId;
   link: string;
   duration: number;
+  banner_image_id?: string;
   banner_image: Media | null;
-  created_at: string;
-  updated_at: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type AdsQuery = {
@@ -35,6 +35,7 @@ export type CreateAdPayload = {
 export type UpdateAdPayload = Partial<{
   duration: number | string;
   link: string;
+  banner_image_id: string;
   banner: { uri: string; name?: string; type?: string };
 }>;
 

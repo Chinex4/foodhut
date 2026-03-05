@@ -1,5 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { mockMeals } from "@/utils/mockData";
+import { api } from "@/api/axios";
+import { boolToQueryString, compactQuery, getApiErrorMessage, toNumberString } from "@/api/http";
+import { getStorageFileUrl, uploadSingleMedia } from "@/api/storage";
 import type {
   CreateMealPayload,
   Meal,
@@ -8,41 +10,54 @@ import type {
   UpdateMealPayload,
 } from "./meals.types";
 
-const now = new Date().toISOString();
+type BackendMeal = {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  original_price: string;
+  kitchen_id: string;
+  is_available: boolean;
+  likes: number;
+  rating: number;
+  cover_image_id: string;
+  discount: Meal["discount"];
+  created_at: number;
+  updated_at: number | null;
+};
 
-const toMeal = (m: any): Meal => ({
-  id: m.id,
-  name: m.name,
-  description: m.description,
-  price: m.price,
-  original_price: m.original_price,
-  is_available: m.is_available,
+type FetchMealsSuccessResponse = {
+  items: BackendMeal[];
+  meta: {
+    page: number;
+    per_page: number;
+    total: number;
+  };
+  _tag: "FetchMealsSuccessResponse";
+};
+
+const toMeal = (meal: BackendMeal): Meal => ({
+  id: meal.id,
+  name: meal.name,
+  description: meal.description,
+  price: meal.price,
+  original_price: meal.original_price,
+  is_available: meal.is_available,
   in_cart: false,
-  likes: m.likes ?? 0,
-  rating: m.rating ?? 0,
-  kitchen_id: m.kitchen_id,
-  cover_image: m.cover_image
+  likes: meal.likes,
+  rating: meal.rating,
+  kitchen_id: meal.kitchen_id,
+  cover_image_id: meal.cover_image_id,
+  cover_image: meal.cover_image_id
     ? {
-        public_id: "mock",
-        timestamp: Date.now(),
-        url: m.cover_image.url,
+        id: meal.cover_image_id,
+        url: getStorageFileUrl(meal.cover_image_id) ?? "",
       }
     : null,
-  created_at: now,
-  updated_at: null,
+  discount: meal.discount,
+  created_at: meal.created_at,
+  updated_at: meal.updated_at,
 });
-
-let meals: Meal[] = mockMeals.map(toMeal);
-
-const buildQuery = (q?: MealsQuery) => {
-  if (!q) return "";
-  const p = new URLSearchParams();
-  if (q.page) p.set("page", String(q.page));
-  if (q.per_page) p.set("per_page", String(q.per_page));
-  if (q.kitchen_id) p.set("kitchen_id", q.kitchen_id);
-  const s = p.toString();
-  return s ? `?${s}` : "";
-};
 
 export const createMeal = createAsyncThunk<
   { id?: string; message: string },
@@ -50,33 +65,29 @@ export const createMeal = createAsyncThunk<
   { rejectValue: string }
 >("meals/createMeal", async (payload, { rejectWithValue }) => {
   try {
-    const created: Meal = {
-      id: `meal-${meals.length + 1}`,
+    let coverImageId: string | null = null;
+    if (payload.cover) {
+      const uploaded = await uploadSingleMedia(payload.cover);
+      coverImageId = uploaded?.id ?? null;
+    }
+
+    if (!coverImageId) {
+      return rejectWithValue("Meal cover image is required");
+    }
+
+    const { data } = await api.post<{ id: string }>("/meals", {
       name: payload.name,
       description: payload.description,
-      price: payload.price,
-      original_price: undefined,
-      is_available: true,
-      likes: 0,
-      rating: 0,
-      kitchen_id: "kitchen-1",
-      cover_image: payload.cover
-        ? {
-            public_id: "mock",
-            timestamp: Date.now(),
-            url: payload.cover.uri,
-          }
-        : null,
-      created_at: new Date().toISOString(),
-      updated_at: null,
-    };
-    meals = [created, ...meals];
+      original_price: toNumberString(payload.price),
+      cover_image_id: coverImageId,
+    });
+
     return {
-      id: created.id,
+      id: data?.id,
       message: "Meal created!",
     };
-  } catch (err: any) {
-    return rejectWithValue("Failed to create meal");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to create meal"));
   }
 });
 
@@ -86,39 +97,36 @@ export const fetchMeals = createAsyncThunk<
   { rejectValue: string }
 >("meals/fetchMeals", async (query, { rejectWithValue }) => {
   try {
-    const page = query?.page ?? 1;
-    const perPage = query?.per_page ?? meals.length;
-    const filtered = query?.kitchen_id
-      ? meals.filter((m) => m.kitchen_id === query.kitchen_id)
-      : meals;
-    const start = (page - 1) * perPage;
-    const items = filtered.slice(start, start + perPage);
+    const params = compactQuery({
+      page: query?.page,
+      per_page: query?.per_page,
+      kitchen_id: query?.kitchen_id,
+      search: query?.search,
+      is_liked: boolToQueryString(query?.is_liked),
+    });
+
+    const { data } = await api.get<FetchMealsSuccessResponse>("/meals", { params });
+
     return {
-      items,
-      meta: {
-        page,
-        per_page: perPage,
-        total: filtered.length,
-      },
+      items: (data.items ?? []).map(toMeal),
+      meta: data.meta,
     };
-  } catch (err: any) {
-    return rejectWithValue("Failed to fetch meals");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to fetch meals"));
   }
 });
 
-export const fetchMealById = createAsyncThunk<
-  Meal,
-  string,
-  { rejectValue: string }
->("meals/fetchMealById", async (id, { rejectWithValue }) => {
-  try {
-    const found = meals.find((m) => m.id === id);
-    if (!found) return rejectWithValue("Failed to fetch meal");
-    return found;
-  } catch (err: any) {
-    return rejectWithValue("Failed to fetch meal");
+export const fetchMealById = createAsyncThunk<Meal, string, { rejectValue: string }>(
+  "meals/fetchMealById",
+  async (id, { rejectWithValue }) => {
+    try {
+      const { data } = await api.get<BackendMeal>(`/meals/${id}`);
+      return toMeal(data);
+    } catch (error) {
+      return rejectWithValue(getApiErrorMessage(error, "Failed to fetch meal"));
+    }
   }
-});
+);
 
 export const updateMealById = createAsyncThunk<
   { message: string; id: string; meal?: Meal },
@@ -126,34 +134,28 @@ export const updateMealById = createAsyncThunk<
   { rejectValue: string }
 >("meals/updateMealById", async ({ id, body }, { rejectWithValue }) => {
   try {
-    meals = meals.map((m) =>
-      m.id === id
-        ? {
-            ...m,
-            name: body.name ?? m.name,
-            description: body.description ?? m.description,
-            price: body.price ?? m.price,
-            is_available:
-              body.is_available !== undefined ? body.is_available : m.is_available,
-            cover_image: body.cover
-              ? {
-                  public_id: "mock",
-                  timestamp: Date.now(),
-                  url: body.cover.uri,
-                }
-              : m.cover_image,
-            updated_at: new Date().toISOString(),
-          }
-        : m
-    );
-    const latest = meals.find((m) => m.id === id);
+    let coverImageId = body.cover_image_id;
+    if (body.cover) {
+      const uploaded = await uploadSingleMedia(body.cover);
+      coverImageId = uploaded?.id;
+    }
+
+    await api.patch(`/meals/${id}`, {
+      name: body.name,
+      description: body.description,
+      original_price:
+        body.price !== undefined ? toNumberString(body.price) : undefined,
+      cover_image_id: coverImageId,
+    });
+
+    const refreshed = await api.get<BackendMeal>(`/meals/${id}`);
     return {
       message: "Meal updated successfully",
       id,
-      meal: latest,
+      meal: toMeal(refreshed.data),
     };
-  } catch (err: any) {
-    return rejectWithValue("Failed to update meal");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to update meal"));
   }
 });
 
@@ -163,12 +165,10 @@ export const likeMeal = createAsyncThunk<
   { rejectValue: string }
 >("meals/likeMeal", async (id, { rejectWithValue }) => {
   try {
-    meals = meals.map((m) =>
-      m.id === id ? { ...m, is_liked: true, likes: (m.likes ?? 0) + 1 } : m
-    );
+    await api.put(`/meals/${id}/like`);
     return { message: "Meal liked successfully", id };
-  } catch (err: any) {
-    return rejectWithValue("Failed to like meal");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to like meal"));
   }
 });
 
@@ -178,14 +178,10 @@ export const unlikeMeal = createAsyncThunk<
   { rejectValue: string }
 >("meals/unlikeMeal", async (id, { rejectWithValue }) => {
   try {
-    meals = meals.map((m) =>
-      m.id === id
-        ? { ...m, is_liked: false, likes: Math.max(0, (m.likes ?? 0) - 1) }
-        : m
-    );
+    await api.put(`/meals/${id}/unlike`);
     return { message: "Meal unliked successfully", id };
-  } catch (err: any) {
-    return rejectWithValue("Failed to unlike meal");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to unlike meal"));
   }
 });
 
@@ -195,9 +191,9 @@ export const deleteMealById = createAsyncThunk<
   { rejectValue: string }
 >("meals/deleteMealById", async (id, { rejectWithValue }) => {
   try {
-    meals = meals.filter((m) => m.id !== id);
+    await api.delete(`/meals/${id}`);
     return { message: "Meal deleted successfully", id };
-  } catch (err: any) {
-    return rejectWithValue("Failed to delete meal");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to delete meal"));
   }
 });

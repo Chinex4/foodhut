@@ -6,15 +6,29 @@ export type Transaction = {
   amount: string | number;
   direction: Direction;
   note: string | null;
+  purpose?:
+    | {
+        type: "ORDER";
+        order_id: string;
+      }
+    | {
+        type: "OTHER";
+      };
+  type?: "WALLET" | "ONLINE" | string;
+  ref?: string;
   user_id: string;
-  created_at: string;
-  updated_at: string | null;
+  wallet_id?: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type TransactionsQuery = {
   page?: number;
   per_page?: number;
+  direction?: "incoming" | "outgoing";
+  type?: string;
   as_kitchen?: boolean;
+  wallet_id?: string;
 };
 
 export type TransactionsListResponse = {

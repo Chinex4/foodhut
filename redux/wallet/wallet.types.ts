@@ -2,10 +2,10 @@ export type WalletStatus = "idle" | "loading" | "succeeded" | "failed";
 
 export type Bank = {
   id: string;
-  name: string;       // e.g. "Access Bank"
-  code: string;       // e.g. "044"
-  created_at: string;
-  updated_at: string | null;
+  name: string;
+  code: string;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type BanksQuery = {
@@ -33,26 +33,28 @@ export type WalletProfile = {
   id: string;
   owner_id: string;
   balance: string;
+  wallet_type?: "user" | "kitchen" | "rider" | "unknown";
   metadata: {
-    backend?: {
-      customer?: { id?: string; code?: string };
-      dedicated_account?: unknown | null;
-    };
-    [k: string]: any;
+    user_wallet_id?: string | null;
+    kitchen_wallet_id?: string | null;
+    rider_wallet_id?: string | null;
+    selected_wallet_id?: string | null;
+    [k: string]: unknown;
   } | null;
-  created_at: string;
-  updated_at: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type CreateBankAccountPayload = {
   account_number: string;
   bank_code: string;
-  bvn: string;
+  bvn?: string;
 };
 
 export type TopupPayload = {
   amount: number;
   as_kitchen?: boolean;
+  wallet_id?: string;
 };
 
 export type TopupResponse = {
@@ -63,8 +65,9 @@ export type WithdrawPayload = {
   account_number: string;
   bank_code: string;
   account_name: string;
-  amount: number;
+  amount: number | string;
   as_kitchen?: boolean;
+  wallet_id?: string;
 };
 
 export type MessageResult = { message: string };

@@ -1,4 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
+import { api } from "@/api/axios";
+import { compactQuery, getApiErrorMessage } from "@/api/http";
+import { getStorageFileUrl, uploadSingleMedia } from "@/api/storage";
 import type {
   Ad,
   AdsListResponse,
@@ -6,28 +9,59 @@ import type {
   CreateAdPayload,
   UpdateAdPayload,
 } from "./ads.types";
-import { mockAds } from "@/utils/mockData";
 
-let ads: Ad[] = [...mockAds];
+type BackendAd = {
+  id: string;
+  duration: number;
+  link: string;
+  banner_image_id: string;
+  created_at: number;
+  updated_at: number | null;
+};
 
-const listAds = (query?: AdsQuery): AdsListResponse => {
-  const page = query?.page ?? 1;
-  const perPage = query?.per_page ?? ads.length;
-  const search = query?.search?.toLowerCase();
-  const filtered = search
-    ? ads.filter((ad) => ad.link.toLowerCase().includes(search))
-    : ads;
-  const start = (page - 1) * perPage;
-  const items = filtered.slice(start, start + perPage);
-  return {
-    items,
-    meta: {
-      page,
-      per_page: perPage,
-      total: filtered.length,
-    },
+type BackendAdWithMedia = BackendAd & {
+  banner_image: {
+    id: string;
+    url: string;
   };
 };
+
+type BackendAdsList = {
+  items: BackendAd[];
+  meta: {
+    page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+const toAd = (ad: BackendAd): Ad => ({
+  id: ad.id,
+  duration: ad.duration,
+  link: ad.link,
+  banner_image_id: ad.banner_image_id,
+  banner_image: ad.banner_image_id
+    ? {
+        id: ad.banner_image_id,
+        url: getStorageFileUrl(ad.banner_image_id) ?? "",
+      }
+    : null,
+  created_at: ad.created_at,
+  updated_at: ad.updated_at,
+});
+
+const toAdWithMedia = (ad: BackendAdWithMedia): Ad => ({
+  id: ad.id,
+  duration: ad.duration,
+  link: ad.link,
+  banner_image_id: ad.banner_image_id,
+  banner_image: {
+    id: ad.banner_image?.id ?? ad.banner_image_id,
+    url: ad.banner_image?.url ?? getStorageFileUrl(ad.banner_image_id) ?? "",
+  },
+  created_at: ad.created_at,
+  updated_at: ad.updated_at,
+});
 
 export const createAd = createAsyncThunk<
   { id?: string; message: string },
@@ -35,25 +69,25 @@ export const createAd = createAsyncThunk<
   { rejectValue: string }
 >("ads/createAd", async (payload, { rejectWithValue }) => {
   try {
-    const now = new Date().toISOString();
-    const newAd: Ad = {
-      id: `ad-${ads.length + 1}`,
-      link: payload.link,
+    let bannerImageId: string | null = null;
+    if (payload.banner) {
+      const uploaded = await uploadSingleMedia(payload.banner);
+      bannerImageId = uploaded?.id ?? null;
+    }
+
+    if (!bannerImageId) {
+      return rejectWithValue("Ad banner image is required");
+    }
+
+    const { data } = await api.post<{ id: string }>("/ads", {
       duration: Number(payload.duration),
-      banner_image: payload.banner
-        ? {
-            public_id: "mock",
-            timestamp: Date.now(),
-            url: payload.banner.uri,
-          }
-        : null,
-      created_at: now,
-      updated_at: null,
-    };
-    ads = [newAd, ...ads];
-    return { id: newAd.id, message: "Ad created!" };
-  } catch (err: any) {
-    return rejectWithValue("Failed to create ad");
+      link: payload.link,
+      banner_image_id: bannerImageId,
+    });
+
+    return { id: data?.id, message: "Ad created!" };
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to create ad"));
   }
 });
 
@@ -63,60 +97,62 @@ export const fetchAds = createAsyncThunk<
   { rejectValue: string }
 >("ads/fetchAds", async (query, { rejectWithValue }) => {
   try {
-    return listAds(query);
-  } catch (err: any) {
-    return rejectWithValue("Failed to fetch ads");
+    const params = compactQuery({
+      page: query?.page,
+      per_page: query?.per_page,
+      search: query?.search,
+    });
+
+    const { data } = await api.get<BackendAdsList>("/ads", { params });
+
+    return {
+      items: (data.items ?? []).map(toAd),
+      meta: data.meta,
+    };
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to fetch ads"));
   }
 });
 
-export const fetchAdById = createAsyncThunk<
-  Ad,
-  string,
-  { rejectValue: string }
->("ads/fetchAdById", async (id, { rejectWithValue }) => {
-  try {
-    const ad = ads.find((item) => item.id === id);
-    if (!ad) return rejectWithValue("Failed to fetch ad");
-    return ad;
-  } catch (err: any) {
-    return rejectWithValue("Failed to fetch ad");
+export const fetchAdById = createAsyncThunk<Ad, string, { rejectValue: string }>(
+  "ads/fetchAdById",
+  async (id, { rejectWithValue }) => {
+    try {
+      const { data } = await api.get<BackendAdWithMedia>(`/ads/${id}`);
+      return toAdWithMedia(data);
+    } catch (error) {
+      return rejectWithValue(getApiErrorMessage(error, "Failed to fetch ad"));
+    }
   }
-});
+);
 
 export const updateAdById = createAsyncThunk<
   { message: string; id: string; ad?: Ad },
   { id: string; body: UpdateAdPayload },
   { rejectValue: string }
->("ads/updateAdById", async ({ id, body }, { rejectWithValue }) => {
+>("ads/updateAdById", async ({ id, body }, { dispatch, rejectWithValue }) => {
   try {
-    ads = ads.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            link: body.link ?? item.link,
-            duration:
-              body.duration !== undefined
-                ? Number(body.duration)
-                : item.duration,
-            banner_image: body.banner
-              ? {
-                  public_id: "mock",
-                  timestamp: Date.now(),
-                  url: body.banner.uri,
-                }
-              : item.banner_image,
-            updated_at: new Date().toISOString(),
-          }
-        : item
-    );
-    const updated = ads.find((item) => item.id === id);
+    let bannerImageId = body.banner_image_id;
+    if (body.banner) {
+      const uploaded = await uploadSingleMedia(body.banner);
+      bannerImageId = uploaded?.id;
+    }
+
+    await api.patch(`/ads/${id}`, {
+      duration: body.duration !== undefined ? Number(body.duration) : undefined,
+      link: body.link,
+      banner_image: bannerImageId,
+    });
+
+    const ad = await dispatch(fetchAdById(id)).unwrap();
+
     return {
       message: "Ad updated successfully",
       id,
-      ad: updated,
+      ad,
     };
-  } catch (err: any) {
-    return rejectWithValue("Failed to update ad");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to update ad"));
   }
 });
 
@@ -126,9 +162,9 @@ export const deleteAdById = createAsyncThunk<
   { rejectValue: string }
 >("ads/deleteAdById", async (id, { rejectWithValue }) => {
   try {
-    ads = ads.filter((item) => item.id !== id);
+    await api.delete(`/ads/${id}`);
     return { message: "Ad deleted successfully", id };
-  } catch (err: any) {
-    return rejectWithValue("Failed to delete ad");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to delete ad"));
   }
 });

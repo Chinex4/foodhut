@@ -1,20 +1,25 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import type {
-  SignupPayload,
-  SendOtpPayload,
-  VerifyOtpPayload,
-  Tokens,
-} from "./auth.types";
+import { api } from "@/api/axios";
+import { getApiErrorMessage } from "@/api/http";
+import type { SendOtpPayload, SignupPayload, Tokens, VerifyOtpPayload } from "./auth.types";
 import {
-  saveToken,
-  saveRefreshToken,
+  clearRefreshToken,
   clearToken,
   clearUser,
   getRefreshToken,
+  getToken,
+  saveToken,
 } from "@/storage/auth";
 
+type VerifyOtpSuccessResponse = {
+  data: {
+    access_token: string;
+  };
+  _tag: "VerifyOtpSuccessResponse";
+};
+
 /**
- * SIGN UP (credentials strategy)
+ * SIGN UP
  */
 export const signUp = createAsyncThunk<
   { message: string; phone_number: string },
@@ -22,12 +27,20 @@ export const signUp = createAsyncThunk<
   { rejectValue: string }
 >("auth/signUp", async (body, { rejectWithValue }) => {
   try {
+    await api.post("/auth/sign-up", {
+      first_name: body.first_name,
+      last_name: body.last_name,
+      email: body.email,
+      phone_number: body.phone_number,
+      referral_code: body.referral_code ?? undefined,
+    });
+
     return {
-      message: "OK",
+      message: "OTP sent",
       phone_number: body.phone_number,
     };
-  } catch (err: any) {
-    return rejectWithValue("Sign up failed");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Sign up failed"));
   }
 });
 
@@ -40,17 +53,25 @@ export const sendSignInOtp = createAsyncThunk<
   { rejectValue: string }
 >("auth/sendSignInOtp", async (body, { rejectWithValue }) => {
   try {
+    await api.post("/auth/sign-in", body);
+    const identifier =
+      ("phone_number" in body ? body.phone_number : body.email) ?? null;
+    if (!identifier) {
+      return rejectWithValue("Phone number or email is required");
+    }
+
     return {
-      message: "OK",
-      phone_number: body.phone_number,
+      message: "OTP sent",
+      phone_number: identifier,
     };
-  } catch (err: any) {
-    return rejectWithValue("Sending OTP failed");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Sending OTP failed"));
   }
 });
 
 /**
- * (RE)SEND verification OTP (after signup)
+ * RESEND OTP
+ * Reuses sign-in endpoint with the identifier.
  */
 export const resendVerificationOtp = createAsyncThunk<
   { message: string; phone_number: string },
@@ -58,17 +79,24 @@ export const resendVerificationOtp = createAsyncThunk<
   { rejectValue: string }
 >("auth/resendVerificationOtp", async (body, { rejectWithValue }) => {
   try {
+    await api.post("/auth/sign-in", body);
+    const identifier =
+      ("phone_number" in body ? body.phone_number : body.email) ?? null;
+    if (!identifier) {
+      return rejectWithValue("Phone number or email is required");
+    }
+
     return {
-      message: "OK",
-      phone_number: body.phone_number,
+      message: "OTP resent",
+      phone_number: identifier,
     };
-  } catch (err: any) {
-    return rejectWithValue("Resend OTP failed");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Resend OTP failed"));
   }
 });
 
 /**
- * VERIFY OTP -> returns tokens
+ * VERIFY OTP -> access token
  */
 export const verifyOtp = createAsyncThunk<
   Tokens,
@@ -76,21 +104,30 @@ export const verifyOtp = createAsyncThunk<
   { rejectValue: string }
 >("auth/verifyOtp", async (body, { rejectWithValue }) => {
   try {
+    const { data } = await api.post<VerifyOtpSuccessResponse>("/auth/verify", body);
+    const accessToken = data?.data?.access_token;
+
+    if (!accessToken) {
+      return rejectWithValue("Invalid verification response");
+    }
+
     const tokens: Tokens = {
-      access_token: "mock-access-token",
-      refresh_token: "mock-refresh-token",
+      access_token: accessToken,
+      refresh_token: null,
     };
+
     await saveToken(tokens.access_token);
-    await saveRefreshToken(tokens.refresh_token);
-    // persistUser(user) if backend returns user later
+    await clearRefreshToken();
+
     return tokens;
-  } catch (err: any) {
-    return rejectWithValue("OTP verification failed");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "OTP verification failed"));
   }
 });
 
 /**
  * REFRESH TOKENS
+ * Backend currently exposes OTP verification only, so we reuse persisted access token if present.
  */
 export const refreshTokens = createAsyncThunk<
   Tokens,
@@ -98,27 +135,27 @@ export const refreshTokens = createAsyncThunk<
   { rejectValue: string }
 >("auth/refreshTokens", async (_, { rejectWithValue }) => {
   try {
+    const access = await getToken();
     const refresh = await getRefreshToken();
-    if (!refresh) return rejectWithValue("No refresh token");
-    const tokens: Tokens = {
-      access_token: "mock-access-token",
-      refresh_token: "mock-refresh-token",
+
+    if (!access && !refresh) {
+      return rejectWithValue("No session token found");
+    }
+
+    return {
+      access_token: access ?? "",
+      refresh_token: refresh ?? null,
     };
-    await saveToken(tokens.access_token);
-    await saveRefreshToken(tokens.refresh_token);
-    return tokens;
-  } catch (err: any) {
-    return rejectWithValue("Refresh failed");
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Refresh failed"));
   }
 });
 
 /**
- * LOGOUT (local)
+ * LOGOUT
  */
-export const logout = createAsyncThunk<void, void>(
-  "auth/logout",
-  async () => {
-    await clearToken();
-    await clearUser();
-  }
-);
+export const logout = createAsyncThunk<void, void>("auth/logout", async () => {
+  await clearToken();
+  await clearRefreshToken();
+  await clearUser();
+});

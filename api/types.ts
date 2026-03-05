@@ -1,20 +1,19 @@
-export type ApiEnvelope<T = unknown> = {
-  success?: boolean;
+export type ApiTagError = {
+  _tag: string;
   message?: string;
-  data?: T;
-  user?: T;            
-  token?: string | null;
-  status?: boolean;
-  otp?: string;
 };
 
-export type User = {
-  _id: number | string | undefined;
-  fullname: string;
-  email: string;
-  role?: string | null;
-  username?: string | null;
-  phoneNumber?: string | null;
-  profilePicture?: string | null;
-  channelCode?: string | null;
+export type PaginationMeta = {
+  page: number;
+  per_page: number;
+  total: number;
 };
+
+export type Paginated<T> = {
+  items: T[];
+  meta: PaginationMeta;
+};
+
+export type BooleanFromString = "true" | "false";
+
+export type EmptyMessage = Record<string, never> | [];

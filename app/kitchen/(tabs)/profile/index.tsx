@@ -138,7 +138,7 @@ export default function KitchenProfileScreen() {
     {
       icon: "star",
       title: "Reviews",
-      subtitle: "4.8 Average Rating",
+      subtitle: `${Number(kitchen?.rating || 0).toFixed(1)} Average Rating`,
       route: "/kitchen/profile/reviews",
     },
     {

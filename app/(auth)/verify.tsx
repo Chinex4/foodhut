@@ -45,7 +45,7 @@ export default function VerifyScreen() {
   const themeMode = useAppSelector((state) => state.theme.mode);
   const isDark = themeMode === "dark";
 
-  const { control, handleSubmit, setValue, watch } =
+  const { control, handleSubmit, setValue, watch, getValues } =
     useForm<FormValues>({
       resolver: yupResolver(schema),
       defaultValues: { d1: "", d2: "", d3: "", d4: "" },
@@ -70,18 +70,6 @@ export default function VerifyScreen() {
     return () => clearInterval(id);
   }, []);
 
-  // When user types across fields, submit automatically on 4 digits
-  const [d1, d2, d3, d4] = watch(["d1", "d2", "d3", "d4"]);
-  const otpValue = `${d1}${d2}${d3}${d4}`;
-
-  useEffect(() => {
-    if (otpValue.length === 4 && !loading && otpValue !== lastAutoOtp) {
-      setLastAutoOtp(otpValue);
-      const t = setTimeout(() => onSubmit(), 50);
-      return () => clearTimeout(t);
-    }
-  }, [otpValue, loading, lastAutoOtp, onSubmit]);
-
   const onSubmit = handleSubmit(async (vals) => {
     const otp = `${vals.d1}${vals.d2}${vals.d3}${vals.d4}`;
     if (otp.length !== 4) return;
@@ -104,6 +92,18 @@ export default function VerifyScreen() {
       }
     }
   });
+
+  // When user types across fields, submit automatically on 4 digits
+  const [d1, d2, d3, d4] = watch(["d1", "d2", "d3", "d4"]);
+  const otpValue = `${d1}${d2}${d3}${d4}`;
+
+  useEffect(() => {
+    if (otpValue.length === 4 && !loading && otpValue !== lastAutoOtp) {
+      setLastAutoOtp(otpValue);
+      const t = setTimeout(() => onSubmit(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [otpValue, loading, lastAutoOtp, onSubmit]);
 
   const handlePaste = (txt: string) => {
     const clean = digitsOnly(txt).slice(0, 4);

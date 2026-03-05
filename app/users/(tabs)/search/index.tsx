@@ -12,7 +12,6 @@ import { useAppSelector } from "@/store/hooks";
 import FloatingCartButton from "@/components/cart/FloatingCartButton";
 import { router } from "expo-router";
 import React, { useMemo } from "react";
-import { mockKitchens } from "@/utils/mockData";
 import {
   ActivityIndicator,
   FlatList,
@@ -30,9 +29,6 @@ export default function SearchResultsScreen() {
 
   const kitchenMap = useMemo(() => {
     const map = new Map<string, { name: string; rating?: string | number | null }>();
-    mockKitchens.forEach((k) => {
-      map.set(String(k.id), { name: k.name, rating: k.rating });
-    });
     kitchens.forEach((k: any) => {
       map.set(String(k.id), { name: k.name, rating: k.rating });
     });

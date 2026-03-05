@@ -30,7 +30,7 @@ export default function SearchBar({
     scope: "ALL",
     per_page: perPage,
   });
-  const debounceRef = React.useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const doSearch = async (q: string, extra?: Partial<SearchQuery>) => {
     const query: SearchQuery = {

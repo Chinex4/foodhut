@@ -1,21 +1,20 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
-import { useAppSelector } from "@/store/hooks";
-import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { mockVendorReviews } from "@/utils/mock/mockVendor";
+import React, { useMemo } from "react";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { useKitchenData } from "@/app/kitchen/hooks/useKitchenData";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 
 export default function KitchenReviewsScreen() {
-  const isDark = useAppSelector(selectThemeMode) === "dark";
+  const { isDark, kitchen, orders, ordersStatus } = useKitchenData({ ordersStatus: null });
   const palette = getKitchenPalette(isDark);
 
-  const avgRating = (
-    mockVendorReviews.reduce((sum, review) => sum + review.rating, 0) /
-    mockVendorReviews.length
-  ).toFixed(1);
+  const deliveredOrders = useMemo(
+    () => orders.filter((order) => order.status === "DELIVERED"),
+    [orders]
+  );
+  const avgRating = Number(kitchen?.rating || 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
@@ -41,13 +40,13 @@ export default function KitchenReviewsScreen() {
           </Text>
           <View className="flex-row items-center mt-1">
             <Text className="text-[20px] font-satoshiBold" style={{ color: palette.textPrimary }}>
-              {avgRating}
+              {avgRating.toFixed(1)}
             </Text>
             <View className="flex-row items-center ml-2">
               {Array.from({ length: 5 }).map((_, index) => (
                 <Ionicons
                   key={index}
-                  name={index < Math.round(Number(avgRating)) ? "star" : "star-outline"}
+                  name={index < Math.round(avgRating) ? "star" : "star-outline"}
                   size={16}
                   color={palette.accent}
                 />
@@ -55,22 +54,28 @@ export default function KitchenReviewsScreen() {
             </View>
           </View>
           <Text className="text-[13px] mt-1" style={{ color: palette.textSecondary }}>
-            Based on {mockVendorReviews.length} recent reviews
+            Based on delivered order activity
           </Text>
         </View>
 
-        {mockVendorReviews.map((review) => (
+        {ordersStatus === "loading" && !deliveredOrders.length ? (
+          <View className="py-8 items-center">
+            <ActivityIndicator color={palette.accent} />
+          </View>
+        ) : null}
+
+        {deliveredOrders.map((order) => (
           <View
-            key={review.id}
+            key={order.id}
             className="rounded-3xl p-4 mb-3"
             style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
           >
             <View className="flex-row items-center justify-between">
               <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
-                {review.name}
+                {order.owner.first_name} {order.owner.last_name}
               </Text>
               <Text className="text-[12px]" style={{ color: palette.textMuted }}>
-                {review.date}
+                {new Date(order.created_at).toLocaleDateString()}
               </Text>
             </View>
 
@@ -78,18 +83,29 @@ export default function KitchenReviewsScreen() {
               {Array.from({ length: 5 }).map((_, index) => (
                 <Ionicons
                   key={index}
-                  name={index < review.rating ? "star" : "star-outline"}
+                  name={index < Math.round(avgRating || 0) ? "star" : "star-outline"}
                   size={14}
-                  color={index < review.rating ? palette.accent : palette.textMuted}
+                  color={index < Math.round(avgRating || 0) ? palette.accent : palette.textMuted}
                 />
               ))}
             </View>
 
             <Text className="mt-2 text-[14px]" style={{ color: palette.textSecondary }}>
-              {review.comment}
+              {order.dispatch_rider_note || "Order delivered successfully."}
             </Text>
           </View>
         ))}
+
+        {!deliveredOrders.length && ordersStatus !== "loading" ? (
+          <View
+            className="rounded-3xl p-5 items-center"
+            style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
+          >
+            <Text style={{ color: palette.textSecondary }}>
+              No delivered orders yet.
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );

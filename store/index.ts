@@ -13,6 +13,8 @@ import transactionsReducer from "@/redux/transactions/transactions.slice";
 import searchReducer from "@/redux/search/search.slice";
 import riderReducer from "@/redux/rider/rider.slice";
 import themeReducer from "@/redux/theme/theme.slice";
+import referralsReducer from "@/redux/referrals/referrals.slice";
+import storageApiReducer from "@/redux/storageApi/storageApi.slice";
 
 export const store = configureStore({
   reducer: {
@@ -30,6 +32,8 @@ export const store = configureStore({
     search: searchReducer,
     rider: riderReducer,
     theme: themeReducer,
+    referrals: referralsReducer,
+    storageApi: storageApiReducer,
   },
   middleware: (gdm) =>
     gdm({

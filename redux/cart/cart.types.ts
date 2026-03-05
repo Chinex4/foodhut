@@ -2,8 +2,7 @@ export type KitchenId = string;
 export type MealId = string;
 
 export type Media = {
-  public_id: string;
-  timestamp: number;
+  id?: string;
   url: string;
 };
 
@@ -19,16 +18,16 @@ export type MealSummary = {
   rating: string | number;
   kitchen_id: KitchenId;
   cover_image: Media | null;
-  created_at: string;
-  updated_at: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type CitySummary = {
   id: string;
   name: string;
   state: string;
-  created_at: string;
-  updated_at: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type KitchenSummary = {
@@ -48,8 +47,8 @@ export type KitchenSummary = {
   cover_image: string | Media | null;
   city_id: string | null;
   city?: CitySummary;
-  created_at: string;
-  updated_at: string | null;
+  created_at: number | string;
+  updated_at: number | string | null;
 };
 
 export type CartMeal = {
@@ -97,10 +96,10 @@ export type CheckoutPayload = {
   dispatch_rider_note: string;
   delivery_address: string;
   delivery_date?: number;
-  rider_id?: string; 
+  rider_id?: string;
 };
 
 export type CheckoutResult = {
   id: string;
-  message: string; 
+  message: string;
 };

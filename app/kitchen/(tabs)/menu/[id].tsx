@@ -2,27 +2,72 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
-import React, { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
-import { useAppSelector } from "@/store/hooks";
-import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { mockVendorMeals } from "@/utils/mock/mockVendor";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 import { showError, showSuccess } from "@/components/ui/toast";
+import {
+  makeSelectMealByIdStatus,
+  makeSelectMealDeleteStatus,
+  makeSelectMealUpdateStatus,
+  selectMealById,
+} from "@/redux/meals/meals.selectors";
+import {
+  deleteMealById,
+  fetchMealById,
+  fetchMeals,
+  updateMealById,
+} from "@/redux/meals/meals.thunks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 export default function KitchenEditMealScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const mealId = String(id || "");
+  const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const palette = getKitchenPalette(isDark);
 
-  const meal = useMemo(() => mockVendorMeals.find((item) => item.id === id), [id]);
+  const meal = useAppSelector(selectMealById(mealId));
+  const byIdStatus = useAppSelector(useMemo(() => makeSelectMealByIdStatus(mealId), [mealId]));
+  const updateStatus = useAppSelector(
+    useMemo(() => makeSelectMealUpdateStatus(mealId), [mealId])
+  );
+  const deleteStatus = useAppSelector(
+    useMemo(() => makeSelectMealDeleteStatus(mealId), [mealId])
+  );
 
-  const [name, setName] = useState(meal?.name ?? "");
-  const [price, setPrice] = useState(meal?.price?.replace(/[^0-9.]/g, "") ?? "");
-  const [portion, setPortion] = useState(meal?.portion ?? "Regular");
-  const [desc, setDesc] = useState(meal?.description ?? "");
-  const [available, setAvailable] = useState(meal?.available ?? true);
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [desc, setDesc] = useState("");
+  const [available, setAvailable] = useState(true);
   const [mealImageUri, setMealImageUri] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (mealId && !meal) {
+      dispatch(fetchMealById(mealId));
+    }
+  }, [dispatch, meal, mealId]);
+
+  useEffect(() => {
+    if (!meal) return;
+    setName(meal.name ?? "");
+    setPrice(String(meal.original_price ?? meal.price ?? ""));
+    setDesc(meal.description ?? "");
+    setAvailable(Boolean(meal.is_available));
+    setMealImageUri(meal.cover_image?.url ?? null);
+  }, [meal]);
 
   const pickMealImage = async () => {
     try {
@@ -35,15 +80,84 @@ export default function KitchenEditMealScreen() {
       if (result.canceled) return;
       setMealImageUri(result.assets[0]?.uri ?? null);
       showSuccess("Meal image selected");
-    } catch (err: any) {
-      showError(err?.message || "Failed to upload image");
+    } catch (error: any) {
+      showError(error?.message || "Failed to select image");
     }
   };
 
-  const save = () => {
-    showSuccess("Meal updated");
-    router.back();
+  const canSave =
+    name.trim().length > 0 &&
+    desc.trim().length > 0 &&
+    Number(price) > 0 &&
+    updateStatus !== "loading";
+
+  const save = async () => {
+    if (!meal || !canSave) return;
+    try {
+      const isRemoteImage = Boolean(mealImageUri && mealImageUri.startsWith("http"));
+      const fileName = mealImageUri?.split("/").pop() || "meal.jpg";
+
+      await dispatch(
+        updateMealById({
+          id: meal.id,
+          body: {
+            name: name.trim(),
+            description: desc.trim(),
+            price: Number(price),
+            is_available: available,
+            cover: !isRemoteImage && mealImageUri
+              ? {
+                  uri: mealImageUri,
+                  name: fileName,
+                  type: "image/jpeg",
+                }
+              : undefined,
+          },
+        })
+      ).unwrap();
+
+      await dispatch(
+        fetchMeals({
+          page: 1,
+          per_page: 200,
+          kitchen_id: meal.kitchen_id,
+        })
+      );
+
+      showSuccess("Meal updated");
+      router.back();
+    } catch (error: any) {
+      showError(error?.message || "Failed to update meal");
+    }
   };
+
+  const removeMeal = async () => {
+    if (!meal) return;
+    try {
+      await dispatch(deleteMealById(meal.id)).unwrap();
+      await dispatch(
+        fetchMeals({
+          page: 1,
+          per_page: 200,
+          kitchen_id: meal.kitchen_id,
+        })
+      );
+      showSuccess("Meal deleted");
+      setConfirmDelete(false);
+      router.replace("/kitchen/(tabs)/menu");
+    } catch (error: any) {
+      showError(error?.message || "Failed to delete meal");
+    }
+  };
+
+  if (!meal && byIdStatus === "loading") {
+    return (
+      <View style={{ flex: 1, backgroundColor: palette.background, alignItems: "center", justifyContent: "center" }}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <ActivityIndicator color={palette.accent} />
+      </View>
+    );
+  }
 
   if (!meal) {
     return (
@@ -78,7 +192,11 @@ export default function KitchenEditMealScreen() {
           </Text>
         </View>
 
-        <Pressable className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: isDark ? palette.dangerSoft : "#FFF1F2" }}>
+        <Pressable
+          onPress={() => setConfirmDelete(true)}
+          className="w-10 h-10 rounded-full items-center justify-center"
+          style={{ backgroundColor: isDark ? palette.dangerSoft : "#FFF1F2" }}
+        >
           <Ionicons name="trash-outline" size={18} color={palette.danger} />
         </Pressable>
       </View>
@@ -107,31 +225,6 @@ export default function KitchenEditMealScreen() {
             style={{ backgroundColor: palette.surfaceAlt, color: palette.textPrimary }}
             placeholderTextColor={palette.textMuted}
           />
-
-          <Text className="text-[13px] mb-1 mt-4" style={{ color: palette.textSecondary }}>
-            Portion type
-          </Text>
-          <View className="flex-row items-center">
-            {(["Single", "Regular", "Large"] as const).map((item) => {
-              const active = portion === item;
-              return (
-                <Pressable
-                  key={item}
-                  onPress={() => setPortion(item)}
-                  className="rounded-full px-4 py-2 mr-2"
-                  style={{
-                    backgroundColor: active ? palette.accentSoft : palette.surfaceAlt,
-                    borderWidth: 1,
-                    borderColor: active ? palette.accentStrong : palette.border,
-                  }}
-                >
-                  <Text className="text-[12px] font-satoshiBold" style={{ color: active ? palette.accentStrong : palette.textSecondary }}>
-                    {item}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
 
           <Text className="text-[13px] mb-1 mt-4" style={{ color: palette.textSecondary }}>
             Description
@@ -212,10 +305,55 @@ export default function KitchenEditMealScreen() {
           </View>
         </View>
 
-        <Pressable onPress={save} className="mt-5 rounded-2xl py-4 items-center" style={{ backgroundColor: palette.accent }}>
-          <Text className="text-white font-satoshiBold text-[16px]">Save Changes</Text>
+        <Pressable
+          onPress={save}
+          disabled={!canSave}
+          className="mt-5 rounded-2xl py-4 items-center"
+          style={{ backgroundColor: canSave ? palette.accent : palette.textMuted }}
+        >
+          <Text className="text-white font-satoshiBold text-[16px]">
+            {updateStatus === "loading" ? "Saving..." : "Save Changes"}
+          </Text>
         </Pressable>
       </ScrollView>
+
+      <Modal visible={confirmDelete} transparent animationType="fade">
+        <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: palette.overlay }}>
+          <View className="w-full rounded-[26px] p-5" style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
+            <Text className="text-[18px] font-satoshiBold" style={{ color: palette.textPrimary }}>
+              Delete this meal?
+            </Text>
+            <Text className="text-[14px] mt-2" style={{ color: palette.textSecondary }}>
+              This will remove the meal from your kitchen menu.
+            </Text>
+
+            <View className="flex-row mt-5">
+              <Pressable
+                onPress={() => setConfirmDelete(false)}
+                className="flex-1 rounded-2xl py-3 items-center mr-2"
+                style={{ backgroundColor: palette.surfaceAlt }}
+              >
+                <Text className="font-satoshiBold" style={{ color: palette.textSecondary }}>
+                  Cancel
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={removeMeal}
+                disabled={deleteStatus === "loading"}
+                className="flex-1 rounded-2xl py-3 items-center ml-2"
+                style={{ backgroundColor: palette.accent, opacity: deleteStatus === "loading" ? 0.7 : 1 }}
+              >
+                {deleteStatus === "loading" ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text className="text-white font-satoshiBold">Delete</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
