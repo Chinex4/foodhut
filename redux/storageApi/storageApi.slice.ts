@@ -1,11 +1,13 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { StorageApiState } from "./storageApi.types";
-import { deleteStorageMedia, uploadStorageMedia } from "./storageApi.thunks";
+import { deleteStorageMedia, generateSignature, uploadStorageMedia } from "./storageApi.thunks";
 
 const initialState: StorageApiState = {
   items: {},
   order: [],
+  signature: null,
   uploadStatus: "idle",
+  signatureStatus: "idle",
   deleteStatus: {},
   error: null,
 };
@@ -55,6 +57,18 @@ const storageApiSlice = createSlice({
         const fileId = action.meta.arg;
         state.deleteStatus[fileId] = "failed";
         state.error = (action.payload as string) || "Failed to delete media";
+      })
+      .addCase(generateSignature.pending, (state) => {
+        state.signatureStatus = "loading";
+        state.error = null;
+      })
+      .addCase(generateSignature.fulfilled, (state, action) => {
+        state.signatureStatus = "succeeded";
+        state.signature = action.payload;
+      })
+      .addCase(generateSignature.rejected, (state, action) => {
+        state.signatureStatus = "failed";
+        state.error = (action.payload as string) || "Failed to generate signature";
       });
   },
 });

@@ -14,6 +14,7 @@ import { updateOrderStatus } from "@/redux/orders/orders.thunks";
 import { formatNGN } from "@/utils/money";
 import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
 import { selectWalletBalanceNumber, selectWalletProfileStatus } from "@/redux/wallet/wallet.selectors";
+import CachedImageView from "@/components/ui/CachedImage";
 
 export default function KitchenDashboardScreen() {
   const dispatch = useAppDispatch();
@@ -299,8 +300,14 @@ export default function KitchenDashboardScreen() {
               className="mr-3 rounded-3xl overflow-hidden"
               style={{ width: 235, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
             >
-              <View className="h-36 items-center justify-center" style={{ backgroundColor: idx % 2 === 0 ? palette.elevated : palette.surfaceAlt }}>
-                <Ionicons name="fast-food" size={36} color={palette.accentStrong} />
+              <View className="h-36 items-center justify-center bg-neutral-200">
+                <CachedImageView
+                  uri={meal.cover_image?.url}
+                  className="w-full h-full"
+                  fallback={
+                    <Ionicons name="fast-food" size={36} color={palette.accentStrong} />
+                  }
+                />
               </View>
 
               <View className="p-4">

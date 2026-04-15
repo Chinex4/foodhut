@@ -15,6 +15,7 @@ type Props = {
   onChangePhone: (v: string) => void;
   onChangeAddress: (v: string) => void;
   onUpdateCover: () => void;
+  onUpdateProfilePic: () => void;
   onSave: () => void;
   saving: boolean;
 };
@@ -29,6 +30,7 @@ export default function SettingsTab({
   onChangePhone,
   onChangeAddress,
   onUpdateCover,
+  onUpdateProfilePic,
   onSave,
   saving,
 }: Props) {
@@ -48,7 +50,35 @@ export default function SettingsTab({
         style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
       >
         <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
-          Kitchen Cover
+          Photos
+        </Text>
+        
+        {/* Profile Pic */}
+        <View className="items-center my-4">
+          <Pressable
+            onPress={onUpdateProfilePic}
+            className="w-24 h-24 rounded-full overflow-hidden items-center justify-center"
+            style={{ backgroundColor: palette.surfaceAlt, borderWidth: 1, borderColor: palette.border }}
+          >
+            {kitchen?.profile_picture ? (
+              <CachedImageView
+                uri={typeof kitchen.profile_picture === "string" ? kitchen.profile_picture : kitchen.profile_picture?.url}
+                className="w-full h-full"
+              />
+            ) : (
+              <Ionicons name="person-outline" size={32} color={palette.accentStrong} />
+            )}
+            <View className="absolute bottom-0 right-0 bg-primary p-1.5 rounded-full border-2 border-white">
+              <Ionicons name="camera" size={14} color="white" />
+            </View>
+          </Pressable>
+          <Text className="text-[12px] mt-2 font-satoshiMedium" style={{ color: palette.textSecondary }}>
+            Kitchen Logo / Profile
+          </Text>
+        </View>
+
+        <Text className="font-satoshiBold text-[14px] mt-2" style={{ color: palette.textPrimary }}>
+          Cover Banner
         </Text>
         <Pressable
           onPress={onUpdateCover}

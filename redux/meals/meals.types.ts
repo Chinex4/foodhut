@@ -54,6 +54,7 @@ export type CreateMealPayload = {
   name: string;
   description: string;
   price: string | number;
+  cover_image_id?: string;
   cover?: { uri: string; name?: string; type?: string } | null;
 };
 

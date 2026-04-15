@@ -11,3 +11,5 @@ export const makeSelectStorageDeleteStatus = (fileId: string) => (s: RootState) 
   s.storageApi.deleteStatus[fileId] ?? "idle";
 
 export const selectStorageApiError = (s: RootState) => s.storageApi.error;
+export const selectStorageSignature = (s: RootState) => s.storageApi.signature;
+export const selectStorageSignatureStatus = (s: RootState) => s.storageApi.signatureStatus;

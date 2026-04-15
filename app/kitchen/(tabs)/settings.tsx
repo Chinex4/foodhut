@@ -12,6 +12,7 @@ import {
 } from "@/redux/kitchen/kitchen.thunks";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+import { useImageUpload } from "@/hooks/useImageUpload";
 
 export default function KitchenSettingsScreen() {
   const dispatch = useAppDispatch();
@@ -21,6 +22,7 @@ export default function KitchenSettingsScreen() {
   const [kitchenName, setKitchenName] = useState("");
   const [kitchenPhone, setKitchenPhone] = useState("");
   const [kitchenAddress, setKitchenAddress] = useState("");
+  const { uploadImage, isUploading } = useImageUpload();
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -41,41 +43,55 @@ export default function KitchenSettingsScreen() {
       });
       if (res.canceled) return;
       const asset = res.assets[0];
-      await dispatch(
-        uploadKitchenCoverByProfile({
-          uri: asset.uri,
-          name: asset.fileName ?? "cover.jpg",
-          type: asset.type ?? "image/jpeg",
-        })
-      ).unwrap();
-      showSuccess("Cover updated");
+      const storageId = await uploadImage({
+        uri: asset.uri,
+        name: asset.fileName ?? "cover.jpg",
+        type: asset.mimeType ?? "image/jpeg",
+      });
+      if (storageId) {
+        await dispatch(updateKitchenByProfile({ cover_image_id: storageId })).unwrap();
+        showSuccess("Cover updated");
+      }
     } catch (err: any) {
-      showError(err?.message || "Failed to upload cover");
+      showError(err?.message || "Failed to update cover");
+    }
+  };
+
+  const handleUpdateProfilePic = async () => {
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (res.canceled) return;
+      const asset = res.assets[0];
+      const storageId = await uploadImage({
+        uri: asset.uri,
+        name: asset.fileName ?? "profile.jpg",
+        type: asset.mimeType ?? "image/jpeg",
+      });
+      if (storageId) {
+        await dispatch(updateKitchenByProfile({ profile_picture_id: storageId })).unwrap();
+        showSuccess("Profile picture updated");
+      }
+    } catch (err: any) {
+      showError(err?.message || "Failed to update profile picture");
     }
   };
 
   const handleSave = async () => {
     if (!kitchen) return;
-    const hasIdentityChanges =
-      kitchenName.trim() !== (kitchen.name ?? "") ||
-      kitchenPhone.trim() !== (kitchen.phone_number ?? "") ||
-      kitchenAddress.trim() !== (kitchen.address ?? "");
-
-    if (hasIdentityChanges) {
-      showError(
-        "This backend only allows availability, closing time, and images to be updated right now."
-      );
-      return;
-    }
-
     setSaving(true);
     try {
       await dispatch(
         updateKitchenByProfile({
+          name: kitchenName.trim(),
+          phone_number: kitchenPhone.trim(),
+          address: kitchenAddress.trim(),
           closing_time: kitchen.closing_time,
           is_available: kitchen.is_available,
-          profile_picture_id: kitchen.profile_picture_id ?? undefined,
-          cover_image_id: kitchen.cover_image_id ?? undefined,
         })
       ).unwrap();
       showSuccess("Kitchen updated");
@@ -108,8 +124,9 @@ export default function KitchenSettingsScreen() {
         onChangePhone={setKitchenPhone}
         onChangeAddress={setKitchenAddress}
         onUpdateCover={handleUpdateCover}
+        onUpdateProfilePic={handleUpdateProfilePic}
         onSave={handleSave}
-        saving={saving}
+        saving={saving || isUploading}
       />
     </View>
   );

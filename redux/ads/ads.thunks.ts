@@ -69,8 +69,8 @@ export const createAd = createAsyncThunk<
   { rejectValue: string }
 >("ads/createAd", async (payload, { rejectWithValue }) => {
   try {
-    let bannerImageId: string | null = null;
-    if (payload.banner) {
+    let bannerImageId: string | null = payload.banner_image_id ?? null;
+    if (!bannerImageId && payload.banner) {
       const uploaded = await uploadSingleMedia(payload.banner);
       bannerImageId = uploaded?.id ?? null;
     }

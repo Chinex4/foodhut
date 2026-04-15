@@ -12,6 +12,7 @@ import { fetchKitchenProfile } from "@/redux/kitchen/kitchen.thunks";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useImageUpload } from "@/hooks/useImageUpload";
 
 export default function KitchenCreateMealScreen() {
   const dispatch = useAppDispatch();
@@ -24,6 +25,7 @@ export default function KitchenCreateMealScreen() {
   const [price, setPrice] = useState("");
   const [desc, setDesc] = useState("");
   const [mealImageUri, setMealImageUri] = useState<string | null>(null);
+  const { uploadImage, isUploading } = useImageUpload();
 
   useEffect(() => {
     if (!kitchen) {
@@ -39,9 +41,10 @@ export default function KitchenCreateMealScreen() {
       Number.isFinite(amount) &&
       amount > 0 &&
       !!mealImageUri &&
-      createStatus !== "loading"
+      createStatus !== "loading" &&
+      !isUploading
     );
-  }, [createStatus, desc, mealImageUri, name, price]);
+  }, [createStatus, desc, isUploading, mealImageUri, name, price]);
 
   const pickMealImage = async () => {
     try {
@@ -63,16 +66,21 @@ export default function KitchenCreateMealScreen() {
     if (!canSave || !mealImageUri) return;
     try {
       const fileName = mealImageUri.split("/").pop() || "meal.jpg";
+      
+      const storageId = await uploadImage({
+        uri: mealImageUri,
+        name: fileName,
+        type: "image/jpeg",
+      });
+
+      if (!storageId) return;
+
       await dispatch(
         createMeal({
           name: name.trim(),
           description: desc.trim(),
           price: Number(price),
-          cover: {
-            uri: mealImageUri,
-            name: fileName,
-            type: "image/jpeg",
-          },
+          cover_image_id: storageId,
         })
       ).unwrap();
 
@@ -204,7 +212,7 @@ export default function KitchenCreateMealScreen() {
           style={{ backgroundColor: canSave ? palette.accent : palette.textMuted }}
         >
           <Text className="text-white font-satoshiBold text-[16px]">
-            {createStatus === "loading" ? "Creating..." : "Save Meal"}
+            {createStatus === "loading" || isUploading ? "Saving..." : "Save Meal"}
           </Text>
         </Pressable>
       </ScrollView>

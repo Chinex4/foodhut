@@ -365,7 +365,7 @@ export const updateOrderItemStatus = createAsyncThunk<
     try {
       await api.put(`/orders/${orderId}/status`, {
         status,
-        as_kitchen: as_kitchen ? "true" : "false",
+        as_kitchen: !!as_kitchen,
       });
 
       const order = await dispatch(fetchOrderById(orderId)).unwrap();
@@ -389,7 +389,7 @@ export const updateOrderStatus = createAsyncThunk<
   try {
     await api.put(`/orders/${orderId}/status`, {
       status,
-      as_kitchen: as_kitchen ? "true" : "false",
+      as_kitchen: !!as_kitchen,
     });
 
     const order = await dispatch(fetchOrderById(orderId)).unwrap();

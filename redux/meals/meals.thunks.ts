@@ -65,8 +65,8 @@ export const createMeal = createAsyncThunk<
   { rejectValue: string }
 >("meals/createMeal", async (payload, { rejectWithValue }) => {
   try {
-    let coverImageId: string | null = null;
-    if (payload.cover) {
+    let coverImageId: string | null = payload.cover_image_id ?? null;
+    if (!coverImageId && payload.cover) {
       const uploaded = await uploadSingleMedia(payload.cover);
       coverImageId = uploaded?.id ?? null;
     }

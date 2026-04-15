@@ -18,11 +18,13 @@ import { createAd } from "@/redux/ads/ads.thunks";
 import { selectAdCreateStatus } from "@/redux/ads/ads.selectors";
 import { showSuccess } from "@/components/ui/toast";
 import CachedImageView from "@/components/ui/CachedImage";
+import { useImageUpload } from "@/hooks/useImageUpload";
 
 export default function CreatedAdFormScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const createStatus = useAppSelector(selectAdCreateStatus);
+  const { uploadImage, isUploading } = useImageUpload();
 
   const [duration, setDuration] = useState<string>("86400");
   const [link, setLink] = useState<string>("");
@@ -37,7 +39,7 @@ export default function CreatedAdFormScreen() {
     type?: string;
   } | null>(null);
 
-  const picking = createStatus === "loading";
+  const picking = createStatus === "loading" || isUploading;
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -68,18 +70,28 @@ export default function CreatedAdFormScreen() {
     }
 
     try {
+      let storageId: string | undefined = undefined;
+      const uploadedId = banner ? await uploadImage({
+        uri: banner.uri,
+        name: banner.name || "banner.jpg",
+        type: banner.type || "image/jpeg",
+      }) : undefined;
+      
+      if (banner && !uploadedId) return;
+      storageId = uploadedId || undefined;
+
       await dispatch(
         createAd({
           duration: duration || 86400,
           link,
-          banner: banner || undefined,
+          banner_image_id: storageId,
         })
       ).unwrap();
 
       showSuccess("Ad created!");
       router.back();
     } catch {
-      // errors already toasted by axios interceptor / thunk reject
+      // errors already toasted
     }
   };
 

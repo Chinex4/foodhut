@@ -9,23 +9,15 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useEffect } from "react";
+import { fetchUsers } from "@/redux/users/users.thunks";
+import { selectRiders, selectVendors } from "@/redux/users/users.selectors";
+import CachedImageView from "@/components/ui/CachedImage";
 
 type Mode = "vendors" | "riders";
 
-const vendorData = new Array(5).fill(null).map((_, i) => ({
-  id: `vendor-${i}`,
-  name: "MamaPut Kitchen",
-  status: i % 2 === 0 ? "Now Open" : "Closed",
-}));
-
-const riderData = new Array(5).fill(null).map((_, i) => ({
-  id: `rider-${i}`,
-  name: "Oga Solo",
-  phone: "+234 8094 67223",
-  address: "12, Odii Street, Ketu, Lagos",
-  approved: i % 2 === 0,
-  section: i < 2 ? "Today" : i < 4 ? "Yesterday" : "Dec 19th, 2024",
-}));
+// Removed hardcoded data
 
 export function VendorRiderListScreen({
   title,
@@ -35,7 +27,15 @@ export function VendorRiderListScreen({
   initialMode: Mode;
 }) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [mode, setMode] = useState<Mode>(initialMode);
+
+  const vendors = useAppSelector(selectVendors);
+  const riders = useAppSelector(selectRiders);
+
+  useEffect(() => {
+    dispatch(fetchUsers({ per_page: 500 }));
+  }, [dispatch]);
 
   return (
     <View className="flex-1 bg-primary-50">
@@ -106,90 +106,89 @@ export function VendorRiderListScreen({
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
       >
         {mode === "vendors" &&
-          vendorData.map((vendor, idx) => (
+          vendors.map((vendor) => (
             <Pressable
               key={vendor.id}
               onPress={() => router.push(`/admin/vendors/${vendor.id}`)}
-              className="bg-white rounded-3xl mb-3 overflow-hidden"
+              className="bg-white rounded-3xl mb-3 overflow-hidden border border-neutral-100"
             >
               <View className="m-3 rounded-2xl overflow-hidden bg-gray-200 h-28">
-                <Image
-                  source={require("@/assets/images/banner-placeholder.png")}
+                <CachedImageView
+                  uri={vendor.profile_picture?.url}
                   className="w-full h-full"
-                  resizeMode="cover"
                 />
               </View>
               <View className="px-4 pb-3 flex-row items-center justify-between">
                 <View>
-                  <Text className="text-[14px] font-satoshiMedium text-neutral-900">
-                    MamaPut Kitchen
+                  <Text className="text-[14px] font-satoshiBold text-neutral-900">
+                    {vendor.first_name} {vendor.last_name}
                   </Text>
                   <Text
                     className={`text-[11px] font-satoshi mt-1 ${
-                      idx % 2 === 0 ? "text-emerald-600" : "text-neutral-500"
+                      vendor.is_verified ? "text-emerald-600" : "text-neutral-500"
                     }`}
                   >
-                    {idx % 2 === 0 ? "Now Open" : "Closed"}
+                    {vendor.is_verified ? "Verified" : "Pending Verification"}
                   </Text>
                 </View>
-                <Pressable className="px-3 py-1 rounded-full bg-primary">
-                  <Text className="text-[11px] text-white font-satoshiMedium">
-                    {idx % 2 === 0 ? "Verify Kitchen" : "Unverify Kitchen"}
+                <View className={`px-3 py-1 rounded-full ${vendor.is_verified ? "bg-emerald-100" : "bg-neutral-100"}`}>
+                  <Text className={`text-[11px] font-satoshiMedium ${vendor.is_verified ? "text-emerald-700" : "text-neutral-600"}`}>
+                    {vendor.role}
                   </Text>
-                </Pressable>
+                </View>
               </View>
             </Pressable>
           ))}
 
-        {mode === "riders" &&
-          ["Today", "Yesterday", "Dec 19th, 2024"].map((section) => (
-            <View key={section} className="mb-4">
-              <Text className="text-[12px] text-neutral-500 font-satoshi mb-1">
-                {section}
-              </Text>
-              {riderData
-                .filter((r) => r.section === section)
-                .map((r) => (
-                  <Pressable
-                    key={r.id}
-                    onPress={() => router.push(`/admin/riders/${r.id}`)}
-                    className="bg-white rounded-3xl px-4 py-3 mb-2 flex-row items-center justify-between"
+        {mode === "riders" && (
+          <View>
+            {riders.map((r) => (
+              <Pressable
+                key={r.id}
+                onPress={() => router.push(`/admin/riders/${r.id}`)}
+                className="bg-white rounded-3xl px-4 py-3 mb-2 flex-row items-center justify-between border border-neutral-100"
+              >
+                <View className="flex-row items-center">
+                  <View className="w-10 h-10 rounded-full bg-neutral-100 overflow-hidden items-center justify-center mr-3">
+                    {r.profile_picture ? (
+                      <CachedImageView uri={r.profile_picture.url} className="w-full h-full" />
+                    ) : (
+                      <Ionicons name="person" size={20} color="#CBD5E1" />
+                    )}
+                  </View>
+                  <View>
+                    <Text className="text-[14px] font-satoshiBold text-neutral-900">
+                      {r.first_name} {r.last_name}
+                    </Text>
+                    <Text className="text-[11px] text-neutral-500 font-satoshi">
+                      {r.email}
+                    </Text>
+                  </View>
+                </View>
+                <View className="items-end">
+                  <Text className="text-[11px] text-neutral-500 font-satoshi mb-1">
+                    {r.phone_number}
+                  </Text>
+                  <View
+                    className={`px-3 py-1 rounded-full border ${
+                      r.is_verified
+                        ? "bg-emerald-50 border-emerald-500"
+                        : "bg-amber-50 border-amber-700"
+                    }`}
                   >
-                    <View className="flex-row items-center">
-                      <View className="w-10 h-10 rounded-full bg-gray-300 mr-3" />
-                      <View>
-                        <Text className="text-[13px] font-satoshiMedium text-neutral-900">
-                          {r.name}
-                        </Text>
-                        <Text className="text-[11px] text-emerald-600 font-satoshi">
-                          12, Odii Street, Ketu, Lagos
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="items-end">
-                      <Text className="text-[11px] text-neutral-500 font-satoshi mb-1">
-                        {r.phone}
-                      </Text>
-                      <View
-                        className={`px-3 py-1 rounded-full border ${
-                          r.approved
-                            ? "bg-emerald-50 border-emerald-500"
-                            : "bg-amber-50 border-amber-700"
-                        }`}
-                      >
-                        <Text
-                          className={`text-[11px] font-satoshiMedium ${
-                            r.approved ? "text-emerald-700" : "text-amber-800"
-                          }`}
-                        >
-                          {r.approved ? "Approved" : "Unapproved"}
-                        </Text>
-                      </View>
-                    </View>
-                  </Pressable>
-                ))}
-            </View>
-          ))}
+                    <Text
+                      className={`text-[11px] font-satoshiBold ${
+                        r.is_verified ? "text-emerald-700" : "text-amber-800"
+                      }`}
+                    >
+                      {r.is_verified ? "Verified" : "Pending"}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );

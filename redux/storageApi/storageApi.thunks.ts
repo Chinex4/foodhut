@@ -3,7 +3,7 @@ import { api } from "@/api/axios";
 import { getApiErrorMessage } from "@/api/http";
 import { uploadMedia } from "@/api/storage";
 import type { MediaDescription } from "@/api/storage";
-import type { UploadMediaPayload } from "./storageApi.types";
+import type { UploadMediaPayload, UploadSignature } from "./storageApi.types";
 
 type DeleteMediaResponse = {
   _tag: "DeleteMediaResponse";
@@ -31,5 +31,20 @@ export const deleteStorageMedia = createAsyncThunk<
     return { fileId };
   } catch (error) {
     return rejectWithValue(getApiErrorMessage(error, "Failed to delete media"));
+  }
+});
+
+export const generateSignature = createAsyncThunk<
+  UploadSignature,
+  void,
+  { rejectValue: string }
+>("storageApi/generateSignature", async (_, { rejectWithValue }) => {
+  try {
+    const { data } = await api.get<UploadSignature>("/storage/signature");
+    return data;
+  } catch (error) {
+    return rejectWithValue(
+      getApiErrorMessage(error, "Failed to generate signature")
+    );
   }
 });

@@ -4,6 +4,7 @@ import {
   deleteMyProfile,
   fetchMyProfile,
   fetchUserById,
+  fetchUsers,
   updateMyProfile,
   uploadProfilePicture,
 } from "./users.thunks";
@@ -107,6 +108,16 @@ const usersSlice = createSlice({
       .addCase(deleteMyProfile.rejected, (state, action) => {
         state.deleteMeStatus = "failed";
         state.error = (action.payload as string) || "Failed to delete account";
+      });
+
+    builder
+      .addCase(fetchUsers.fulfilled, (state, action) => {
+        for (const user of action.payload.items) {
+          upsert(state, user);
+        }
+      })
+      .addCase(fetchUsers.rejected, (state, action) => {
+        state.error = (action.payload as string) || "Failed to load users";
       });
   },
 });

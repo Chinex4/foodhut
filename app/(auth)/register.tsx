@@ -156,14 +156,14 @@ export default function RegisterScreen() {
       if (!valid) return;
     }
     if (step < totalSteps - 1) {
-      setStep((s) => s + 1);
+      setStep((s) => Math.min(s + 1, totalSteps - 1));
       return;
     }
     onSubmit();
   };
 
   const handleBack = () => {
-    if (step > 0) setStep((s) => s - 1);
+    setStep((s) => Math.max(0, s - 1));
   };
 
   return (
@@ -179,7 +179,7 @@ export default function RegisterScreen() {
           Create an Account
         </Text>
         <Text className={`text-base font-satoshi mt-1 ${isDark ? "text-neutral-300" : "text-gray-600"}`}>
-          {steps[step].title}
+          {steps[step]?.title}
         </Text>
 
         <View className="mt-4">
@@ -194,7 +194,7 @@ export default function RegisterScreen() {
               Step {step + 1} of {totalSteps}
             </Text>
             <Text className={`${isDark ? "text-neutral-400" : "text-neutral-500"} text-xs font-satoshi`}>
-              {steps[step].hint}
+              {steps[step]?.hint}
             </Text>
           </View>
         </View>

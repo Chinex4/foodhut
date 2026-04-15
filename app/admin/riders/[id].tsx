@@ -1,12 +1,46 @@
-import React from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import React, { useEffect } from "react";
+import { Pressable, ScrollView, Text, View, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchUserById } from "@/redux/users/users.thunks";
+import { makeSelectUserById, makeSelectByIdStatus } from "@/redux/users/users.selectors";
+import CachedImageView from "@/components/ui/CachedImage";
 
 export default function RiderDetailsScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const dispatch = useAppDispatch();
+
+  const rider = useAppSelector(makeSelectUserById(id!));
+  const status = useAppSelector(makeSelectByIdStatus(id!));
+
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchUserById(id));
+    }
+  }, [dispatch, id]);
+
+  if (status === "loading" && !rider) {
+    return (
+      <View className="flex-1 items-center justify-center bg-primary-50">
+        <ActivityIndicator color="#ffa800" />
+      </View>
+    );
+  }
+
+  if (!rider) {
+    return (
+      <View className="flex-1 items-center justify-center bg-primary-50">
+        <Text className="font-satoshiBold text-black">Rider not found</Text>
+        <Pressable onPress={() => router.back()} className="mt-4 bg-primary px-4 py-2 rounded-xl">
+          <Text className="text-white">Back</Text>
+        </Pressable>
+      </View>
+    );
+  }
   return (
     <SafeAreaView className="flex-1 bg-primary-50">
       <StatusBar style="dark" />
@@ -28,31 +62,27 @@ export default function RiderDetailsScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
       >
         <View className="items-center mb-4">
-          <View className="w-28 h-28 rounded-full overflow-hidden bg-gray-300 mb-2">
-            <Image
-              source={require("@/assets/images/avatar.png")}
+          <View className="w-28 h-28 rounded-full overflow-hidden bg-neutral-100 mb-2 border border-neutral-200">
+            <CachedImageView
+              uri={rider.profile_picture?.url}
               className="w-full h-full"
             />
           </View>
-          <Text className="text-[16px] font-satoshiBold text-neutral-900">
-            Oga Solo
+          <Text className="text-[18px] font-satoshiBold text-neutral-900">
+            {rider.first_name} {rider.last_name}
+          </Text>
+          <Text className="text-[14px] font-satoshi text-neutral-500">
+            {rider.email}
           </Text>
         </View>
 
-        <DetailRow label="Rider Name" value="Pepper Chi" />
-        <DetailRow label="Phone Number" value="+234 8091 345 678" />
-        <DetailRow label="Address" value="1, Kadi Street, Ogun, Lagos" />
-        <DetailRow label="Date of SignUp" value="01/03/2023" />
-        <DetailRow label="Total Number of Rides" value="145" />
-        <DetailRow label="Routes" value="FUTO" />
-        <View className="flex-row mt-2">
-          <View className="flex-1 mr-2">
-            <DetailRow label="Open Time" value="8:30 AM" />
-          </View>
-          <View className="flex-1 ml-2">
-            <DetailRow label="Closing Time" value="9:00 PM" />
-          </View>
-        </View>
+        <DetailRow label="First Name" value={rider.first_name} />
+        <DetailRow label="Last Name" value={rider.last_name} />
+        <DetailRow label="Phone Number" value={rider.phone_number} />
+        <DetailRow label="Address" value={rider.kitchen?.address || "No address on file"} />
+        <DetailRow label="Date of SignUp" value={new Date(rider.created_at).toLocaleDateString()} />
+        <DetailRow label="Verified Status" value={rider.is_verified ? "Verified" : "Pending"} />
+        <DetailRow label="Role" value={rider.role || "RIDER"} />
       </ScrollView>
     </SafeAreaView>
   );

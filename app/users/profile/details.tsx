@@ -11,6 +11,9 @@ import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { selectMe, selectUpdateMeStatus } from "@/redux/users/users.selectors";
 import { deleteMyProfile, updateMyProfile } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import * as ImagePicker from "expo-image-picker";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { Image } from "expo-image";
 
 function Field({
   icon,
@@ -58,6 +61,41 @@ export default function ProfileDetailsScreen() {
   // name is the only editable field per your UpdateUserPayload
   const [firstName, setFirstName] = useState(me?.first_name ?? "");
   const [lastName, setLastName] = useState(me?.last_name ?? "");
+
+  const { uploadImage, isUploading } = useImageUpload();
+
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      showError("Permission to access library was denied");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      const storageId = await uploadImage({
+        uri: asset.uri,
+        name: asset.fileName ?? "avatar.jpg",
+        type: asset.mimeType ?? "image/jpeg",
+      });
+
+      if (storageId) {
+        try {
+          await dispatch(updateMyProfile({ profile_picture_id: storageId })).unwrap();
+          showSuccess("Profile picture updated");
+        } catch (e: any) {
+          showError(e);
+        }
+      }
+    }
+  };
 
   const canSave = useMemo(() => {
     return (
@@ -120,6 +158,48 @@ export default function ProfileDetailsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+        {/* Profile Picture */}
+        <View className="items-center mb-8 mt-4">
+          <Pressable
+            onPress={handlePickImage}
+            disabled={isUploading}
+            className={`w-32 h-32 rounded-full overflow-hidden items-center justify-center ${
+              isDark ? "bg-neutral-800" : "bg-neutral-200"
+            }`}
+          >
+            {me?.profile_picture?.url ? (
+              <Image
+                source={{ uri: me.profile_picture.url }}
+                className="w-full h-full"
+                contentFit="cover"
+              />
+            ) : (
+              <Ionicons
+                name="person"
+                size={64}
+                color={isDark ? "#404040" : "#A3A3A3"}
+              />
+            )}
+            
+            {(isUploading || updating) && (
+              <View className="absolute inset-0 bg-black/30 items-center justify-center">
+                <View className="bg-white/90 p-2 rounded-full">
+                  <Text className="text-[10px] font-satoshiBold text-black">
+                    {isUploading ? "Uploading..." : "Saving..."}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <View className="absolute bottom-0 right-0 bg-primary p-2 rounded-full border-4 border-primary-50">
+              <Ionicons name="camera" size={16} color="white" />
+            </View>
+          </Pressable>
+          <Text className={`mt-3 font-satoshiMedium ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+            Tap to change photo
+          </Text>
+        </View>
+
         {/* Editable name */}
         <Field
           icon={<Ionicons name="person-outline" size={18} color={isDark ? "#9CA3AF" : "#6B7280"} />}

@@ -168,3 +168,24 @@ export const deleteMyProfile = createAsyncThunk<
     return rejectWithValue(getApiErrorMessage(error, "Failed to delete account"));
   }
 });
+
+export const fetchUsers = createAsyncThunk<
+  { items: User[]; meta: { page: number; per_page: number; total: number } },
+  { page?: number; per_page?: number; role?: string; search?: string } | undefined,
+  { rejectValue: string }
+>("users/fetchUsers", async (query, { rejectWithValue }) => {
+  try {
+    const { data } = await api.get<{
+      items: BackendUserById[];
+      meta: { page: number; per_page: number; total: number };
+    }>("/users", {
+      params: query,
+    });
+    return {
+      items: (data.items ?? []).map(toUser),
+      meta: data.meta,
+    };
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to load users"));
+  }
+});

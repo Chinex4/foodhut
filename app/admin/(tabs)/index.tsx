@@ -1,9 +1,16 @@
-import React, { useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useEffect, useMemo } from "react";
+import { fetchOrders } from "@/redux/orders/orders.thunks";
+import { selectOrdersList } from "@/redux/orders/orders.selectors";
+import { fetchTransactions } from "@/redux/transactions/transactions.thunks";
+import { selectTransactionsList } from "@/redux/transactions/transactions.selectors";
+import { fetchUsers } from "@/redux/users/users.thunks";
+import { selectRiders, selectVendors } from "@/redux/users/users.selectors";
+import { fetchAds } from "@/redux/ads/ads.thunks";
+import { selectAdsMeta } from "@/redux/ads/ads.selectors";
+import { formatNGN } from "@/utils/money";
 
 function StatCard({
   label,
@@ -43,9 +50,45 @@ function StatCard({
 
 export default function AdminHomeScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [showAmount, setShowAmount] = useState(true);
 
-  const totalAmount = "₦240,573.04";
+  const orders = useAppSelector(selectOrdersList);
+  const transactions = useAppSelector(selectTransactionsList);
+  const vendors = useAppSelector(selectVendors);
+  const riders = useAppSelector(selectRiders);
+  const adsMeta = useAppSelector(selectAdsMeta);
+
+  useEffect(() => {
+    dispatch(fetchOrders({ per_page: 500 }));
+    dispatch(fetchTransactions({ per_page: 500 }));
+    dispatch(fetchUsers({ per_page: 500 }));
+    dispatch(fetchAds({ per_page: 100 }));
+  }, [dispatch]);
+
+  const stats = useMemo(() => {
+    const earnings = transactions.reduce((acc, tx) => {
+      const amt = Number(tx.amount) || 0;
+      return tx.direction === "INCOMING" ? acc + amt : acc - amt;
+    }, 0);
+
+    const pending = orders.filter((o) => o.status !== "DELIVERED" && o.status !== "CANCELLED").length;
+    const completed = orders.filter((o) => o.status === "DELIVERED").length;
+    const canceled = orders.filter((o) => o.status === "CANCELLED").length;
+
+    return {
+      totalEarnings: formatNGN(earnings),
+      pendingOrders: pending,
+      completedOrders: completed,
+      canceledOrders: canceled,
+      ridersCount: riders.length,
+      vendorsCount: vendors.length,
+      adsCount: adsMeta?.total ?? 0,
+      transactionsCount: transactions.length,
+    };
+  }, [transactions, orders, riders, vendors, adsMeta]);
+
+  const totalAmount = stats.totalEarnings;
 
   return (
     <SafeAreaView className="flex-1 bg-primary-50">
@@ -113,7 +156,7 @@ export default function AdminHomeScreen() {
                     Pending
                   </Text>
                   <Text className="text-[14px] font-satoshiBold text-neutral-900">
-                    50
+                    {stats.pendingOrders}
                   </Text>
                 </View>
                 <View className="mr-4">
@@ -121,7 +164,7 @@ export default function AdminHomeScreen() {
                     Completed
                   </Text>
                   <Text className="text-[14px] font-satoshiBold text-neutral-900">
-                    510
+                    {stats.completedOrders}
                   </Text>
                 </View>
                 <View>
@@ -129,7 +172,7 @@ export default function AdminHomeScreen() {
                     Canceled
                   </Text>
                   <Text className="text-[14px] font-satoshiBold text-neutral-900">
-                    13
+                    {stats.canceledOrders}
                   </Text>
                 </View>
               </View>
@@ -140,14 +183,14 @@ export default function AdminHomeScreen() {
             {/* Riders */}
             <StatCard
               label="Riders"
-              value="45"
+              value={String(stats.ridersCount)}
               onPress={() => router.push("/admin/riders")}
             />
             
             {/* Transactions */}
             <StatCard
               label="Transactions"
-              value="48"
+              value={String(stats.transactionsCount)}
               onPress={() => router.push("/admin/transactions")}
             />
           </View>
@@ -156,14 +199,14 @@ export default function AdminHomeScreen() {
             {/* Vendors */}
             <StatCard
               label="Vendors"
-              value="100"
+              value={String(stats.vendorsCount)}
               onPress={() => router.push("/admin/vendors")}
             />
             
             {/* Created Ads */}
             <StatCard
               label="Created ADs"
-              value="45"
+              value={String(stats.adsCount)}
               onPress={() => router.push("/admin/ads")}
             />
           </View>

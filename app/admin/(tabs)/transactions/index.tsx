@@ -1,17 +1,39 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchTransactions } from "@/redux/transactions/transactions.thunks";
+import { selectTransactionsList } from "@/redux/transactions/transactions.selectors";
+import { formatNGN } from "@/utils/money";
 
 const ANALYTIC_TABS = ["Total", "Vendor", "Margin", "Riders"] as const;
 type AnalyticTab = (typeof ANALYTIC_TABS)[number];
 
 export default function AdminTransactionsScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [tab, setTab] = useState<AnalyticTab>("Total");
   const [range, setRange] = useState<"today" | "custom">("today");
+
+  const transactions = useAppSelector(selectTransactionsList);
+
+  useEffect(() => {
+    dispatch(fetchTransactions({ per_page: 500 }));
+  }, [dispatch]);
+
+  const stats = useMemo(() => {
+    const earnings = transactions.reduce((acc, tx) => {
+      const amt = Number(tx.amount) || 0;
+      return tx.direction === "INCOMING" ? acc + amt : acc - amt;
+    }, 0);
+
+    return {
+      total: formatNGN(earnings),
+    };
+  }, [transactions]);
 
   return (
     <SafeAreaView className="flex-1 bg-primary-50">
@@ -42,7 +64,7 @@ export default function AdminTransactionsScreen() {
           </Text>
           <Pressable
             onPress={() =>
-              setRange((r) => (r === "today" ? "custom" : "today"))
+              setRange((r: string) => (r === "today" ? "custom" : "today"))
             }
             className="flex-row items-center px-3 py-1.5 rounded-full bg-white"
           >
@@ -89,7 +111,7 @@ export default function AdminTransactionsScreen() {
                 Total
               </Text>
               <Text className="text-[16px] font-satoshiBold text-neutral-900">
-                NGN678,000
+                {stats.total}
               </Text>
             </View>
           </View>
@@ -130,31 +152,30 @@ export default function AdminTransactionsScreen() {
         </View>
 
         {/* History */}
-        <Text className="text-[14px] font-satoshiMedium text-neutral-900 mb-2">
-          Transaction History
-        </Text>
-        {[1, 2, 3, 4, 5].map((i) => (
+        {transactions.map((tx) => (
           <View
-            key={i}
-            className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-3 mb-2"
+            key={tx.id}
+            className="flex-row items-center justify-between bg-white rounded-2xl px-4 py-3 mb-2 border border-neutral-100"
           >
             <View className="flex-row items-center">
-              <Ionicons
-                name="document-text-outline"
-                size={18}
-                color="#6B7280"
-              />
+              <View className={`w-8 h-8 rounded-full items-center justify-center ${tx.direction === "INCOMING" ? "bg-emerald-50" : "bg-red-50"}`}>
+                <Ionicons
+                  name={tx.direction === "INCOMING" ? "arrow-down-outline" : "arrow-up-outline"}
+                  size={14}
+                  color={tx.direction === "INCOMING" ? "#059669" : "#DC2626"}
+                />
+              </View>
               <View className="ml-3">
-                <Text className="text-[12px] font-satoshiMedium text-neutral-900">
-                  Trnxid: 12538989
+                <Text className="text-[12px] font-satoshiBold text-neutral-900">
+                  {tx.note || (tx.purpose?.type === "ORDER" ? `Order #${tx.purpose.order_id.slice(-6)}` : "Transaction")}
                 </Text>
                 <Text className="text-[11px] text-neutral-500 font-satoshi">
-                  April 10th, 5:45pm
+                  {new Date(tx.created_at).toLocaleString()}
                 </Text>
               </View>
             </View>
-            <Text className="text-[12px] font-satoshiMedium text-neutral-900">
-              NGN 6,500
+            <Text className={`text-[12px] font-satoshiBold ${tx.direction === "INCOMING" ? "text-emerald-700" : "text-red-700"}`}>
+              {tx.direction === "INCOMING" ? "+" : "-"} {formatNGN(tx.amount)}
             </Text>
           </View>
         ))}

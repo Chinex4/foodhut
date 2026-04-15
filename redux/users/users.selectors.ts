@@ -22,6 +22,14 @@ export const selectUpdateMeStatus = (s: RootState) => s.users.updateMeStatus;
 export const selectUploadPicStatus = (s: RootState) => s.users.uploadPicStatus;
 export const selectDeleteMeStatus = (s: RootState) => s.users.deleteMeStatus;
 
+export const selectAllUsers = (s: RootState) => Object.values(s.users.entities);
+
+export const selectVendors = (s: RootState) =>
+  Object.values(s.users.entities).filter((u) => u.role === "VENDOR" || u.has_kitchen);
+
+export const selectRiders = (s: RootState) =>
+  Object.values(s.users.entities).filter((u) => u.role === "RIDER" || u.has_rider);
+
 export const makeSelectByIdStatus =
   (id: UserId) =>
   (s: RootState) =>

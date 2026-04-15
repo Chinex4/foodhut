@@ -166,18 +166,27 @@ export const fetchWalletProfile = createAsyncThunk<
   { rejectValue: string }
 >("wallet/fetchWalletProfile", async (opts, { rejectWithValue }) => {
   try {
-    const { walletId, walletType, pointers } = await resolveWalletId({ as_kitchen: opts?.as_kitchen });
+    // Current backend returns all wallet IDs available to the user in the /profile response.
+    const { data } = await api.get<any>("/wallets/profile");
 
-    if (!walletId) {
+    const pointers = {
+      user: data?.user ?? null,
+      kitchen: data?.kitchen ?? null,
+      rider: data?.rider ?? null,
+    };
+
+    const picked = pickWalletId(pointers, { as_kitchen: opts?.as_kitchen });
+
+    if (!picked.walletId) {
       return {
         id: "",
         owner_id: "",
         balance: "0",
         wallet_type: "unknown",
         metadata: {
-          user_wallet_id: pointers?.user ?? null,
-          kitchen_wallet_id: pointers?.kitchen ?? null,
-          rider_wallet_id: pointers?.rider ?? null,
+          user_wallet_id: pointers.user,
+          kitchen_wallet_id: pointers.kitchen,
+          rider_wallet_id: pointers.rider,
           selected_wallet_id: null,
         },
         created_at: Date.now(),
@@ -185,21 +194,24 @@ export const fetchWalletProfile = createAsyncThunk<
       };
     }
 
-    const balance = await fetchWalletBalance(walletId);
+    // If we picked a specific wallet other than the default profile one, we might need its balance.
+    // However, the /wallets/profile typically returns the default wallet's balance.
+    // To be safe and efficient, we use the balance from the profile if it matches our picked ID.
+    const balance = data.id === picked.walletId ? String(data.balance ?? 0) : String(await fetchWalletBalance(picked.walletId));
 
     return {
-      id: walletId,
-      owner_id: "",
-      balance: String(balance),
-      wallet_type: walletType,
+      id: picked.walletId,
+      owner_id: data.owner_id ?? "",
+      balance,
+      wallet_type: picked.walletType,
       metadata: {
-        user_wallet_id: pointers?.user ?? null,
-        kitchen_wallet_id: pointers?.kitchen ?? null,
-        rider_wallet_id: pointers?.rider ?? null,
-        selected_wallet_id: walletId,
+        user_wallet_id: pointers.user,
+        kitchen_wallet_id: pointers.kitchen,
+        rider_wallet_id: pointers.rider,
+        selected_wallet_id: picked.walletId,
       },
-      created_at: Date.now(),
-      updated_at: null,
+      created_at: data.created_at ?? Date.now(),
+      updated_at: data.updated_at ?? null,
     };
   } catch (error) {
     return rejectWithValue(getApiErrorMessage(error, "Failed to fetch wallet profile"));

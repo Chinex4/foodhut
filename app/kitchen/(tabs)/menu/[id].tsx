@@ -30,6 +30,7 @@ import {
 } from "@/redux/meals/meals.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useImageUpload } from "@/hooks/useImageUpload";
 
 export default function KitchenEditMealScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,6 +54,7 @@ export default function KitchenEditMealScreen() {
   const [available, setAvailable] = useState(true);
   const [mealImageUri, setMealImageUri] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { uploadImage, isUploading } = useImageUpload();
 
   useEffect(() => {
     if (mealId && !meal) {
@@ -89,13 +91,26 @@ export default function KitchenEditMealScreen() {
     name.trim().length > 0 &&
     desc.trim().length > 0 &&
     Number(price) > 0 &&
-    updateStatus !== "loading";
+    updateStatus !== "loading" &&
+    !isUploading;
 
   const save = async () => {
     if (!meal || !canSave) return;
     try {
       const isRemoteImage = Boolean(mealImageUri && mealImageUri.startsWith("http"));
       const fileName = mealImageUri?.split("/").pop() || "meal.jpg";
+
+      let coverImageId: string | undefined = undefined;
+      
+      if (!isRemoteImage && mealImageUri) {
+        const sid = await uploadImage({
+          uri: mealImageUri,
+          name: fileName,
+          type: "image/jpeg",
+        });
+        if (!sid) return;
+        coverImageId = sid;
+      }
 
       await dispatch(
         updateMealById({
@@ -105,13 +120,7 @@ export default function KitchenEditMealScreen() {
             description: desc.trim(),
             price: Number(price),
             is_available: available,
-            cover: !isRemoteImage && mealImageUri
-              ? {
-                  uri: mealImageUri,
-                  name: fileName,
-                  type: "image/jpeg",
-                }
-              : undefined,
+            cover_image_id: coverImageId,
           },
         })
       ).unwrap();
@@ -312,7 +321,7 @@ export default function KitchenEditMealScreen() {
           style={{ backgroundColor: canSave ? palette.accent : palette.textMuted }}
         >
           <Text className="text-white font-satoshiBold text-[16px]">
-            {updateStatus === "loading" ? "Saving..." : "Save Changes"}
+            {updateStatus === "loading" || isUploading ? "Saving..." : "Save Changes"}
           </Text>
         </Pressable>
       </ScrollView>

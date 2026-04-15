@@ -29,6 +29,7 @@ export type AdsListResponse = {
 export type CreateAdPayload = {
   duration: number | string;
   link: string;
+  banner_image_id?: string;
   banner?: { uri: string; name?: string; type?: string };
 };
 

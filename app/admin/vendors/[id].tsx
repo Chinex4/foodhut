@@ -1,15 +1,50 @@
-import React, { useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import React, { useState, useEffect } from "react";
+import { Pressable, ScrollView, Text, View, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchUserById } from "@/redux/users/users.thunks";
+import { makeSelectUserById, makeSelectByIdStatus } from "@/redux/users/users.selectors";
+import CachedImageView from "@/components/ui/CachedImage";
+import { formatNGN } from "@/utils/money";
 
 type Tab = "profile" | "menu";
 
 export default function VendorDetailsScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [tab, setTab] = useState<Tab>("profile");
+
+  const vendor = useAppSelector(makeSelectUserById(id!));
+  const status = useAppSelector(makeSelectByIdStatus(id!));
+
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchUserById(id));
+    }
+  }, [dispatch, id]);
+
+  if (status === "loading" && !vendor) {
+    return (
+      <View className="flex-1 items-center justify-center bg-primary-50">
+        <ActivityIndicator color="#ffa800" />
+      </View>
+    );
+  }
+
+  if (!vendor) {
+    return (
+      <View className="flex-1 items-center justify-center bg-primary-50">
+        <Text className="font-satoshiBold text-black">Vendor not found</Text>
+        <Pressable onPress={() => router.back()} className="mt-4 bg-primary px-4 py-2 rounded-xl">
+          <Text className="text-white">Back</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-primary-50">
@@ -54,35 +89,36 @@ export default function VendorDetailsScreen() {
         </View>
       </View>
 
-      {tab === "profile" ? <ProfileTab /> : <MenuTab />}
+      {tab === "profile" ? <ProfileTab vendor={vendor} /> : <MenuTab vendor={vendor} />}
     </SafeAreaView>
   );
 }
 
-function ProfileTab() {
+function ProfileTab({ vendor }: { vendor: any }) {
+  const kitchen = vendor.kitchen;
   return (
     <ScrollView
       className="flex-1"
       contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
     >
-      <View className="bg-white rounded-3xl px-4 py-4 mb-4">
+      <View className="bg-white rounded-3xl px-4 py-4 mb-4 border border-neutral-100">
         <View className="rounded-2xl overflow-hidden bg-gray-200 h-32 mb-4">
-          <Image
-            source={require("@/assets/images/banner-placeholder.png")}
+          <CachedImageView
+            uri={kitchen?.cover_image?.url || vendor.profile_picture?.url}
             className="w-full h-full"
           />
         </View>
-        <Info label="Business Name" value="Pepper Chi" />
-        <Info label="Phone Number" value="+234 8091 345 678" />
-        <Info label="Address" value="1, Kadi Street, Ogun, Lagos" />
-        <Info label="Date of SignUp" value="01/03/2023" />
-        <Info label="Total Number of Orders" value="145" />
+        <Info label="Business Name" value={kitchen?.name || `${vendor.first_name} ${vendor.last_name}`} />
+        <Info label="Phone Number" value={kitchen?.phone_number || vendor.phone_number} />
+        <Info label="Address" value={kitchen?.address || "No address provided"} />
+        <Info label="Date of SignUp" value={new Date(vendor.created_at).toLocaleDateString()} />
+        <Info label="Account Role" value={vendor.role || "VENDOR"} />
         <View className="flex-row mt-3">
           <View className="flex-1 mr-2">
-            <Info label="Open Time" value="8:30 AM" />
+            <Info label="Open Time" value={kitchen?.opening_time || "N/A"} />
           </View>
           <View className="flex-1 ml-2">
-            <Info label="Closing Time" value="9:00 PM" />
+            <Info label="Closing Time" value={kitchen?.closing_time || "N/A"} />
           </View>
         </View>
       </View>
@@ -90,68 +126,50 @@ function ProfileTab() {
   );
 }
 
-function MenuTab() {
+function MenuTab({ vendor }: { vendor: any }) {
+  const kitchen = vendor.kitchen;
   return (
     <ScrollView
       className="flex-1"
       contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
     >
-      <View className="bg-white rounded-3xl px-4 py-4 mb-4 flex-row items-center justify-between">
+      <View className="bg-white rounded-3xl px-4 py-4 mb-4 flex-row items-center justify-between border border-neutral-100">
         <View>
           <Text className="text-[11px] text-neutral-500 font-satoshi">
             Opens
           </Text>
-          <Text className="text-[12px] font-satoshiMedium text-neutral-900">
-            11:00am
+          <Text className="text-[12px] font-satoshiBold text-neutral-900">
+            {kitchen?.opening_time || "N/A"}
           </Text>
         </View>
         <View>
           <Text className="text-[11px] text-neutral-500 font-satoshi">
-            Preparation Time
+            Prep Time
           </Text>
-          <Text className="text-[12px] font-satoshiMedium text-neutral-900">
-            28 - 38 mins
+          <Text className="text-[12px] font-satoshiBold text-neutral-900">
+            {kitchen?.preparation_time || "N/A"}
           </Text>
         </View>
         <View>
-          <Text className="text-[11px] text-neutral-500 font-satoshi">
-            Delivery Type
-          </Text>
-          <Text className="text-[12px] font-satoshiMedium text-neutral-900">
-            Instant & Scheduled
-          </Text>
-        </View>
-        <View className="items-end">
           <Text className="text-[11px] text-neutral-500 font-satoshi">
             Rating
           </Text>
-          <Text className="text-[12px] font-satoshiMedium text-neutral-900">
-            2.5
+          <Text className="text-[12px] font-satoshiBold text-neutral-900">
+            {kitchen?.rating || "0.0"}
           </Text>
-          <Pressable className="mt-1 px-3 py-1 rounded-full bg-amber-500">
-            <Text className="text-[11px] text-white font-satoshiMedium">
-              Block
+        </View>
+        <View className="items-end">
+          <Pressable className="px-3 py-1 rounded-full bg-amber-500">
+            <Text className="text-[11px] text-white font-satoshiBold">
+              Suspend
             </Text>
           </Pressable>
         </View>
       </View>
 
-      {[1, 2, 3].map((i) => (
-        <View key={i} className="flex-row bg-white rounded-3xl px-4 py-3 mb-3">
-          <View className="w-16 h-16 rounded-2xl bg-gray-300 mr-3" />
-          <View className="flex-1">
-            <Text className="text-[13px] font-satoshiMedium text-neutral-900">
-              Sushi rolls made with vinegared rice and seaweed (nori)
-            </Text>
-            <Text className="text-[11px] text-neutral-500 font-satoshi mt-1">
-              Sushi rolls made with vinegared rice and seaweed (nori)...
-            </Text>
-            <Text className="text-[12px] font-satoshiBold text-neutral-900 mt-1">
-              NGN 5,500
-            </Text>
-          </View>
-        </View>
-      ))}
+      <Text className="text-[12px] text-neutral-500 font-satoshi mb-4 px-1">
+        Currently shows general kitchen profile. Item-level integration would require fetching specific kitchen items.
+      </Text>
     </ScrollView>
   );
 }

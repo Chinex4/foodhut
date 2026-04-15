@@ -1,27 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchOrders } from "@/redux/orders/orders.thunks";
+import { selectOrdersList } from "@/redux/orders/orders.selectors";
+import { formatNGN } from "@/utils/money";
+import type { OrderStatus } from "@/redux/orders/orders.types";
 
 const TABS = ["Incoming", "Pending", "Completed", "Canceled"] as const;
 type OrdersTab = (typeof TABS)[number];
 
-const mockOrders = [
-  {
-    id: "237895",
-    restaurant: "The Tasty Hub",
-    amount: "₦2400.04",
-    pickupLocation: "FUTO, Owerri",
-    contact: "+234 8094 67223",
-    status: "Incoming" as OrdersTab,
-  },
-];
+const STATUS_MAP: Record<OrdersTab, OrderStatus[]> = {
+  Incoming: ["AWAITING_ACKNOWLEDGEMENT"],
+  Pending: ["PREPARING", "IN_TRANSIT", "AWAITING_PAYMENT"],
+  Completed: ["DELIVERED"],
+  Canceled: ["CANCELLED"],
+};
 
 export default function AdminOrdersScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [tab, setTab] = useState<OrdersTab>("Incoming");
+
+  const orders = useAppSelector(selectOrdersList);
+
+  useEffect(() => {
+    dispatch(fetchOrders({ per_page: 500 }));
+  }, [dispatch]);
+
+  const filteredOrders = useMemo(() => {
+    const statuses = STATUS_MAP[tab as OrdersTab];
+    return orders.filter((o) => statuses.includes(o.status));
+  }, [orders, tab]);
 
   return (
     <SafeAreaView className="flex-1 bg-primary-50">
@@ -85,9 +98,7 @@ export default function AdminOrdersScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
       >
-        {mockOrders
-          .filter((o) => o.status === tab)
-          .map((order) => (
+        {filteredOrders.map((order) => (
             <Pressable
               key={order.id}
               onPress={() => router.push(`/admin/orders/${order.id}`)}
@@ -96,20 +107,20 @@ export default function AdminOrdersScreen() {
               <View className="px-4 pt-4 pb-3">
                 <View className="flex-row justify-between mb-2">
                   <Text className="text-[16px] font-satoshiBold text-white">
-                    {order.restaurant}
+                    {order.kitchen.name}
                   </Text>
                   <Text className="text-[12px] font-satoshiMedium text-white">
-                    {order.amount}
+                    {formatNGN(order.total)}
                   </Text>
                 </View>
                 <Text className="text-[12px] text-gray-200 font-satoshi">
-                  Amount:
+                  Status: {order.status}
                 </Text>
                 <Text className="text-[12px] text-gray-200 font-satoshi mt-1">
-                  Time For Pickup: FUTO, Owerri
+                  Pickup: {order.kitchen.address || "N/A"}
                 </Text>
                 <Text className="text-[12px] text-gray-200 font-satoshi mt-1">
-                  Contact: {order.contact}
+                  Contact: {order.kitchen.phone_number || "N/A"}
                 </Text>
               </View>
 

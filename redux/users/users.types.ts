@@ -1,3 +1,5 @@
+import type { KitchenSummary } from "../orders/orders.types";
+
 export type UserId = string;
 
 export type UserRole = "USER" | "ADMIN" | string;
@@ -11,6 +13,7 @@ export type User = {
   last_name: string;
   has_kitchen?: boolean;
   has_rider?: boolean;
+  kitchen?: KitchenSummary;
   role?: UserRole;
   birthday?: string | null;
   referral_code?: string | null;
