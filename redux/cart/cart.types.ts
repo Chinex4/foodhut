@@ -83,11 +83,16 @@ export type CartState = {
   checkoutStatus: CartStatus;
 
   error: string | null;
+  optimisticSnapshots: Record<MealId, ActiveCartResponse>;
+  latestSetItemRequestId: Record<MealId, string>;
+  latestRemoveItemRequestId: Record<MealId, string>;
 };
 
 export type SetCartItemPayload = {
   mealId: MealId;
   quantity: number;
+  meal?: MealSummary;
+  kitchen?: KitchenSummary;
 };
 
 export type CheckoutPayload = {

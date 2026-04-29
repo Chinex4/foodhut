@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useKitchenData } from "@/app/kitchen/hooks/useKitchenData";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -83,7 +84,7 @@ export default function KitchenMetricsScreen() {
   }, [deliveredOrders]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <View className="px-5 pt-4 pb-2 flex-row items-center">
@@ -165,6 +166,6 @@ export default function KitchenMetricsScreen() {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

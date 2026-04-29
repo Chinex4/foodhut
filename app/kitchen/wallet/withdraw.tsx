@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -27,6 +27,7 @@ import { resetResolvedAccount } from "@/redux/wallet/wallet.slice";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+import { goBackOrReplace } from "@/utils/navigation";
 
 function Field({
   icon,
@@ -72,6 +73,7 @@ export default function KitchenWithdrawScreen() {
   const [bankName, setBankName] = useState<string>("");
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
+  const lastResolvedKeyRef = useRef<string | null>(null);
 
   const resolveStatus = useAppSelector(selectResolveStatus);
   const resolvedName = useAppSelector(selectResolvedAccountName);
@@ -89,7 +91,7 @@ export default function KitchenWithdrawScreen() {
 
   const cleanAccount = accountNumber.replace(/\D/g, "");
 
-  const canResolve = bankCode.length > 0 && cleanAccount.length >= 10;
+  const canResolve = bankCode.length > 0 && cleanAccount.length === 10;
   const canWithdraw =
     !!resolvedName && Number(amount.replace(/[^0-9.]/g, "")) > 0 && canResolve && !busy;
 
@@ -128,7 +130,17 @@ export default function KitchenWithdrawScreen() {
 
   useEffect(() => {
     dispatch(resetResolvedAccount());
+    lastResolvedKeyRef.current = null;
   }, [bankCode, accountNumber, dispatch]);
+
+  useEffect(() => {
+    if (!canResolve || resolveStatus === "loading") return;
+    const key = `${bankCode}:${cleanAccount}`;
+    if (lastResolvedKeyRef.current === key) return;
+    lastResolvedKeyRef.current = key;
+    doResolve();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bankCode, canResolve, cleanAccount, resolveStatus]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }}>
@@ -140,7 +152,7 @@ export default function KitchenWithdrawScreen() {
       >
         <View className="px-5 pt-2 pb-3 flex-row items-center">
           <Pressable
-            onPress={() => router.push("/kitchen/wallet")}
+            onPress={() => goBackOrReplace(router, "/kitchen/wallet")}
             className="w-10 h-10 rounded-full items-center justify-center mr-2"
             style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
           >
@@ -204,6 +216,7 @@ export default function KitchenWithdrawScreen() {
               value={accountNumber}
               onChangeText={setAccountNumber}
               keyboardType="numeric"
+              maxLength={10}
               placeholderTextColor={palette.textMuted}
               className="font-satoshi text-[15px]"
               style={{ color: palette.textPrimary }}
@@ -222,22 +235,14 @@ export default function KitchenWithdrawScreen() {
             />
           </Field>
 
-          <Pressable
-            onPress={doResolve}
-            disabled={!canResolve || busy}
-            className="rounded-2xl py-3 items-center justify-center"
-            style={{
-              backgroundColor: canResolve && !busy ? palette.surfaceAlt : palette.textMuted,
-            }}
-          >
-            {resolveStatus === "loading" ? (
-              <ActivityIndicator color={palette.textPrimary} />
-            ) : (
-              <Text className="font-satoshiBold" style={{ color: palette.textPrimary }}>
-                Verify Account
+          {resolveStatus === "loading" ? (
+            <View className="flex-row items-center mt-1 mb-2">
+              <ActivityIndicator size="small" color={palette.accent} />
+              <Text className="ml-2 font-satoshi" style={{ color: palette.textSecondary }}>
+                Resolving account...
               </Text>
-            )}
-          </Pressable>
+            </View>
+          ) : null}
 
           {resolvedName ? (
             <View

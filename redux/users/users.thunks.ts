@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/api/axios";
 import { getApiErrorMessage } from "@/api/http";
-import { getStorageFileUrl, uploadSingleMedia } from "@/api/storage";
+import { getMediaUrl, uploadSingleMedia } from "@/api/storage";
 import type { UpdateUserPayload, User } from "./users.types";
 import { setUser as setAuthUser } from "@/redux/auth/auth.slice";
 import type { RootState } from "@/store";
@@ -9,7 +9,8 @@ import { clearRefreshToken, clearToken, clearUser } from "@/storage/auth";
 
 type BackendMediaDescription = {
   id: string;
-  url: string;
+  url?: string | null;
+  meta?: Record<string, string | null | undefined> | null;
 };
 
 type BackendProfileUser = {
@@ -28,14 +29,14 @@ type BackendProfileUser = {
   referral?: {
     code?: string;
     url?: string;
-  };
-  profile_picture: BackendMediaDescription | null;
+  } | null;
+  profile_picture?: BackendMediaDescription | null;
 };
 
 type GetProfileResponse = {
-  data: BackendProfileUser;
+  data?: BackendProfileUser;
   _tag: "GetProfileResponse";
-};
+} & Partial<BackendProfileUser>;
 
 type BackendUserById = {
   id: string;
@@ -54,6 +55,7 @@ type BackendUserById = {
 
 const toUser = (data: BackendProfileUser | BackendUserById): User => {
   const media = "profile_picture" in data ? data.profile_picture : null;
+  const profilePictureUrl = getMediaUrl(media, data.profile_picture_id);
 
   return {
     id: data.id,
@@ -62,15 +64,16 @@ const toUser = (data: BackendProfileUser | BackendUserById): User => {
     is_verified: data.is_verified,
     first_name: data.first_name,
     last_name: data.last_name,
-    has_kitchen: data.has_kitchen,
+    has_kitchen: data.has_kitchen ?? false,
     role: data.role,
     birthday: null,
     referral_code: "referral" in data ? data.referral?.code ?? null : null,
+    referral_url: "referral" in data ? data.referral?.url ?? null : null,
     profile_picture_id: data.profile_picture_id,
-    profile_picture: data.profile_picture_id || media?.url
+    profile_picture: profilePictureUrl
       ? {
           id: data.profile_picture_id,
-          url: media?.url ?? getStorageFileUrl(data.profile_picture_id) ?? "",
+          url: profilePictureUrl,
         }
       : null,
     created_at: data.created_at,
@@ -84,7 +87,8 @@ export const fetchMyProfile = createAsyncThunk<User, void, { rejectValue: string
   async (_, { dispatch, rejectWithValue }) => {
     try {
       const { data } = await api.get<GetProfileResponse>("/users/profile");
-      const user = toUser(data.data);
+      const profile = data.data ?? (data as BackendProfileUser);
+      const user = toUser(profile);
 
       dispatch(
         setAuthUser({

@@ -26,10 +26,16 @@ const jitterFor = (id: string, salt: string) => {
   return (h % 1000) / 1000; // 0..0.999
 };
 
+const rotateRandomly = (arr: Meal[], salt: string) =>
+  arr
+    .slice()
+    .sort((a, b) => jitterFor(b.id, salt) - jitterFor(a.id, salt));
+
 // === FACTORY SELECTORS (memoized) ===
 export const makeSelectTrendingDiscounts = (limit = 10) =>
   createSelector([selectMealsArray], (arr) => {
-    const discounted = arr
+    const discounted = rotateRandomly(
+      arr
       .map((m) => {
         const price = toNum(m.price);
         const original = toNum(m.original_price);
@@ -40,18 +46,13 @@ export const makeSelectTrendingDiscounts = (limit = 10) =>
       .filter((x) => x.discount > 0)
       .sort((a, b) => b.discount - a.discount)
       .slice(0, limit)
-      .map((x) => x.m);
+      .map((x) => x.m),
+      "trending-discounts"
+    );
 
     if (discounted.length) return discounted;
 
-    // fallback – popular (same as before)
-    return arr
-      .slice()
-      .sort(
-        (a, b) =>
-          toNum(b.rating) - toNum(a.rating) || toNum(b.likes) - toNum(a.likes)
-      )
-      .slice(0, limit);
+    return rotateRandomly(arr, "trending-fallback").slice(0, limit);
   });
 
 export const makeSelectMostPopular = (limit = 10, salt = "day-1") => {
@@ -60,7 +61,7 @@ export const makeSelectMostPopular = (limit = 10, salt = "day-1") => {
   return createSelector([selectMealsArray, selectTrending], (arr, trending) => {
     const excludeIds = new Set(trending.map((m) => m.id));
     const candidates = arr.filter((m) => !excludeIds.has(m.id));
-    if (!candidates.length) return trending;
+    if (!candidates.length) return rotateRandomly(arr, "popular-fallback").slice(0, limit);
 
     const scored = candidates.map((m) => {
       const baseScore = toNum(m.rating) * 3 + toNum(m.likes); // your main metric
@@ -104,6 +105,18 @@ export const selectMealsState = (s: RootState) => s.meals;
 
 export const selectMealsList = (s: RootState) =>
   s.meals.lastListIds.map((id) => s.meals.entities[id]).filter(Boolean);
+
+export const makeSelectMealsByKitchenId = (kitchenId: string) =>
+  createSelector([selectMealsArray], (meals) => {
+    const seen = new Set<string>();
+    return meals
+      .filter((meal) => meal.kitchen_id === kitchenId)
+      .filter((meal) => {
+        if (seen.has(meal.id)) return false;
+        seen.add(meal.id);
+        return true;
+      });
+  });
 
 export const selectMealsMeta = (s: RootState) => s.meals.lastListMeta;
 export const selectMealsQuery = (s: RootState) => s.meals.lastListQuery;

@@ -23,8 +23,15 @@ import { formatNGN } from "@/utils/money";
 import type { Transaction } from "@/redux/transactions/transactions.types";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+import { goBackOrReplace } from "@/utils/navigation";
 
 type TabKey = "ALL" | "CREDIT" | "DEBIT";
+
+const formatTransactionDate = (value: Transaction["created_at"]) => {
+  const raw = Number(value);
+  const timestamp = Number.isFinite(raw) && raw < 1_000_000_000_000 ? raw * 1000 : raw;
+  return new Date(timestamp).toLocaleString();
+};
 
 export default function KitchenWalletTransactionsScreen() {
   const router = useRouter();
@@ -99,10 +106,10 @@ export default function KitchenWalletTransactionsScreen() {
 
     return (
       <View
-        className="rounded-2xl px-4 py-4 mb-3 flex-row items-center justify-between"
+        className="rounded-2xl px-4 py-4 mb-3 flex-row items-center"
         style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
       >
-        <View className="flex-row items-center flex-1 pr-3">
+        <View className="flex-row items-center flex-1 min-w-0 pr-3">
           <View
             className="w-10 h-10 rounded-full items-center justify-center"
             style={{ backgroundColor: isCredit ? "#EAFBEF" : isDark ? palette.dangerSoft : "#FFF1F2" }}
@@ -113,17 +120,21 @@ export default function KitchenWalletTransactionsScreen() {
               color={isCredit ? palette.success : palette.danger}
             />
           </View>
-          <View className="ml-3 flex-1">
+          <View className="ml-3 flex-1 min-w-0">
             <Text className="font-satoshiBold text-[15px]" style={{ color: palette.textPrimary }} numberOfLines={1}>
               {label}
             </Text>
             <Text className="text-[12px]" style={{ color: palette.textSecondary }}>
-              {new Date(item.created_at).toLocaleString()}
+              {formatTransactionDate(item.created_at)}
             </Text>
           </View>
         </View>
 
-        <Text className="font-satoshiBold text-[15px]" style={{ color: isCredit ? palette.success : palette.textPrimary }}>
+        <Text
+          numberOfLines={1}
+          className="font-satoshiBold text-[15px] text-right shrink-0 max-w-[96px]"
+          style={{ color: isCredit ? palette.success : palette.textPrimary }}
+        >
           {isCredit ? "+" : "-"}
           {formatNGN(amountNum)}
         </Text>
@@ -137,7 +148,7 @@ export default function KitchenWalletTransactionsScreen() {
 
       <View className="px-5 pt-2 pb-3 flex-row items-center">
         <Pressable
-          onPress={() => router.push("/kitchen/wallet")}
+          onPress={() => goBackOrReplace(router, "/kitchen/wallet")}
           className="w-10 h-10 rounded-full items-center justify-center mr-2"
           style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
         >

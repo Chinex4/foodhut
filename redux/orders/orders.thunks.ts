@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/api/axios";
 import { getApiErrorMessage } from "@/api/http";
-import { getStorageFileUrl } from "@/api/storage";
+import { getMediaUrl } from "@/api/storage";
 import type {
   KitchenSummary,
   MealSummary,
@@ -19,25 +19,50 @@ import type {
 } from "./orders.types";
 
 type BackendOrderItem = {
+  id?: string;
   meal_id: string;
-  price: string;
+  price: string | number;
   quantity: number;
+  meal?: {
+    id: string;
+    name: string;
+    description?: string;
+    price: string | number;
+    original_price?: string | number;
+    kitchen_id?: string;
+    is_available?: boolean;
+    likes?: number;
+    rating?: string | number;
+    cover_image_id?: string | null;
+    cover_image?: {
+      id: string;
+      url?: string | null;
+      meta?: Record<string, string | null | undefined> | null;
+    } | null;
+    created_at?: number | string;
+    updated_at?: number | string | null;
+  };
 };
 
 type BackendOrder = {
   id: string;
   status: OrderStatus;
   payment_method: "WALLET" | "ONLINE";
-  delivery_fee: string;
-  service_fee: string;
-  sub_total: string;
-  total: string;
+  delivery_fee: string | number;
+  service_fee: string | number;
+  sub_total: string | number;
+  total: string | number;
   delivery_address: string;
-  delivery_date: number;
-  dispatch_rider_note: string;
+  delivery_date: number | string | null;
+  dispatch_rider_note: string | null;
   items: BackendOrderItem[];
   kitchen_id: string;
   owner_id: string;
+  kitchen?: {
+    id: string;
+    name: string;
+  };
+  owner?: BackendUser;
   created_at: number;
   updated_at: number | null;
 };
@@ -50,48 +75,6 @@ type FetchOrdersSuccessResponse = {
     total: number;
   };
   _tag: "FetchOrdersSuccessResponse";
-};
-
-type BackendKitchen = {
-  id: string;
-  name: string;
-  address: string;
-  phone_number: string;
-  type: string;
-  opening_time: string;
-  closing_time: string;
-  delivery_time: string;
-  preparation_time: string;
-  city_id: string;
-  owner_id: string;
-  is_available: boolean;
-  likes: number;
-  rating: number;
-  cover_image_id: string | null;
-  city?: {
-    id: string;
-    name: string;
-    state: string;
-    created_at: number;
-    updated_at: number | null;
-  };
-  created_at: number;
-  updated_at: number | null;
-};
-
-type BackendMeal = {
-  id: string;
-  name: string;
-  description: string;
-  price: string;
-  original_price: string;
-  kitchen_id: string;
-  is_available: boolean;
-  likes: number;
-  rating: number;
-  cover_image_id: string;
-  created_at: number;
-  updated_at: number | null;
 };
 
 type BackendUser = {
@@ -107,154 +90,71 @@ type PayForOrderByIdSuccessResponse = {
   _tag: "PayForOrderByIdSuccessResponse";
 };
 
-const kitchenCache = new Map<string, Promise<KitchenSummary>>();
-const mealCache = new Map<string, Promise<MealSummary>>();
-const ownerCache = new Map<string, Promise<OwnerSummary>>();
-
-const getKitchenSummary = (kitchenId: string): Promise<KitchenSummary> => {
-  const cached = kitchenCache.get(kitchenId);
-  if (cached) return cached;
-
-  const promise = api
-    .get<BackendKitchen>(`/kitchens/${kitchenId}`)
-    .then(({ data }) => ({
-      id: data.id,
-      name: data.name,
-      address: data.address,
-      phone_number: data.phone_number,
-      type: data.type,
-      opening_time: data.opening_time,
-      closing_time: data.closing_time,
-      delivery_time: data.delivery_time,
-      preparation_time: data.preparation_time,
-      rating: data.rating,
-      likes: data.likes,
-      is_available: data.is_available,
-      owner_id: data.owner_id,
-      cover_image: data.cover_image_id
-        ? {
-            id: data.cover_image_id,
-            url: getStorageFileUrl(data.cover_image_id) ?? "",
-          }
-        : null,
-      city_id: data.city_id,
-      city: data.city,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    }))
-    .catch(() => ({
-      id: kitchenId,
-      name: "Kitchen",
-      address: "",
-      phone_number: "",
-      type: "",
-      opening_time: "",
-      closing_time: "",
-      delivery_time: "",
-      preparation_time: "",
-      rating: 0,
-      likes: 0,
-      is_available: true,
-      owner_id: "",
-      cover_image: null,
-      city_id: null,
-      created_at: Date.now(),
-      updated_at: null,
-    }));
-
-  kitchenCache.set(kitchenId, promise);
-  return promise;
-};
-
-const getMealSummary = (mealId: string): Promise<MealSummary> => {
-  const cached = mealCache.get(mealId);
-  if (cached) return cached;
-
-  const promise = api
-    .get<BackendMeal>(`/meals/${mealId}`)
-    .then(({ data }) => ({
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      price: data.price,
-      original_price: data.original_price,
-      is_available: data.is_available,
-      rating: data.rating,
-      likes: data.likes,
-      kitchen_id: data.kitchen_id,
-      cover_image: data.cover_image_id
-        ? {
-            id: data.cover_image_id,
-            url: getStorageFileUrl(data.cover_image_id) ?? "",
-          }
-        : null,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    }))
-    .catch(() => ({
-      id: mealId,
-      name: "Meal",
-      description: "",
-      price: "0",
-      original_price: "0",
-      is_available: true,
-      rating: 0,
-      likes: 0,
-      kitchen_id: "",
-      cover_image: null,
-      created_at: Date.now(),
-      updated_at: null,
-    }));
-
-  mealCache.set(mealId, promise);
-  return promise;
-};
-
-const getOwnerSummary = (ownerId: string): Promise<OwnerSummary> => {
-  const cached = ownerCache.get(ownerId);
-  if (cached) return cached;
-
-  const promise = api
-    .get<BackendUser>(`/users/${ownerId}`)
-    .then(({ data }) => ({
-      id: data.id,
-      email: data.email,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      phone_number: data.phone_number,
-    }))
-    .catch(() => ({
-      id: ownerId,
-      email: "",
-      first_name: "Foodhut",
-      last_name: "User",
-      phone_number: "",
-    }));
-
-  ownerCache.set(ownerId, promise);
-  return promise;
-};
-
 const toOrderItemId = (orderId: string, item: BackendOrderItem, index: number) =>
-  `${orderId}:${item.meal_id}:${index}`;
+  item.id ?? `${orderId}:${item.meal_id}:${index}`;
 
-const hydrateOrder = async (order: BackendOrder): Promise<Order> => {
-  const [kitchen, owner, items] = await Promise.all([
-    getKitchenSummary(order.kitchen_id),
-    getOwnerSummary(order.owner_id),
-    Promise.all(
-      (order.items ?? []).map(async (item, index): Promise<OrderItem> => {
-        const meal = await getMealSummary(item.meal_id);
-        return {
-          id: toOrderItemId(order.id, item, index),
-          meal_id: item.meal_id,
-          meal,
-          price: item.price,
-          quantity: item.quantity,
-        };
-      })
-    ),
-  ]);
+const toKitchenSummary = (order: BackendOrder): KitchenSummary => ({
+  id: order.kitchen?.id ?? order.kitchen_id,
+  name: order.kitchen?.name ?? "Kitchen",
+  address: "",
+  phone_number: "",
+  type: "",
+  opening_time: "",
+  closing_time: "",
+  delivery_time: "",
+  preparation_time: "",
+  rating: 0,
+  likes: 0,
+  is_available: true,
+  owner_id: order.owner_id,
+  cover_image: null,
+  city_id: null,
+  created_at: order.created_at,
+  updated_at: order.updated_at,
+});
+
+const toMealSummary = (item: BackendOrderItem, order: BackendOrder): MealSummary => {
+  const meal = item.meal;
+
+  return {
+    id: meal?.id ?? item.meal_id,
+    name: meal?.name ?? "Meal",
+    description: meal?.description ?? "",
+    price: meal?.price ?? item.price,
+    original_price: meal?.original_price ?? meal?.price ?? item.price,
+    is_available: meal?.is_available ?? true,
+    rating: meal?.rating ?? 0,
+    likes: meal?.likes ?? 0,
+    kitchen_id: meal?.kitchen_id ?? order.kitchen_id,
+    cover_image: getMediaUrl(meal?.cover_image, meal?.cover_image_id)
+      ? {
+          id: meal?.cover_image_id ?? meal?.cover_image?.id,
+          url: getMediaUrl(meal?.cover_image, meal?.cover_image_id) ?? "",
+        }
+      : null,
+    created_at: meal?.created_at ?? order.created_at,
+    updated_at: meal?.updated_at ?? order.updated_at,
+  };
+};
+
+const toOwnerSummary = (order: BackendOrder): OwnerSummary => ({
+  id: order.owner?.id ?? order.owner_id,
+  email: order.owner?.email ?? "",
+  first_name: order.owner?.first_name ?? "Foodhut",
+  last_name: order.owner?.last_name ?? "User",
+  phone_number: order.owner?.phone_number ?? "",
+});
+
+const toOrder = (order: BackendOrder): Order => {
+  const items = (order.items ?? []).map(
+    (item, index): OrderItem => ({
+      id: toOrderItemId(order.id, item, index),
+      meal_id: item.meal_id,
+      meal: toMealSummary(item, order),
+      price: item.price,
+      quantity: item.quantity,
+    })
+  );
 
   return {
     id: order.id,
@@ -264,9 +164,9 @@ const hydrateOrder = async (order: BackendOrder): Promise<Order> => {
     delivery_date: order.delivery_date,
     dispatch_rider_note: order.dispatch_rider_note,
     kitchen_id: order.kitchen_id,
-    kitchen,
+    kitchen: toKitchenSummary(order),
     owner_id: order.owner_id,
-    owner,
+    owner: toOwnerSummary(order),
     payment_method: order.payment_method,
     status: order.status,
     items,
@@ -299,10 +199,8 @@ export const fetchOrders = createAsyncThunk<
       },
     });
 
-    const items = await Promise.all((data.items ?? []).map(hydrateOrder));
-
     return {
-      items,
+      items: (data.items ?? []).map(toOrder),
       meta: data.meta,
     };
   } catch (error) {
@@ -316,7 +214,7 @@ export const fetchOrderById = createAsyncThunk<Order, OrderId, { rejectValue: st
   async (id, { rejectWithValue }) => {
     try {
       const { data } = await api.get<BackendOrder>(`/orders/${id}`);
-      return await hydrateOrder(data);
+      return toOrder(data);
     } catch (error) {
       return rejectWithValue(getApiErrorMessage(error, "Failed to fetch order"));
     }

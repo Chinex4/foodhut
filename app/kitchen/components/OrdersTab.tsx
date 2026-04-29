@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -32,6 +32,12 @@ type Props = {
 };
 
 type TabKey = "INCOMING" | "ONGOING" | "COMPLETED";
+
+const ORDER_TABS = [
+  { key: "INCOMING", label: "Incoming" },
+  { key: "ONGOING", label: "Ongoing" },
+  { key: "COMPLETED", label: "Completed" },
+] as const;
 
 const ORDER_GROUPS: Record<TabKey, Order["status"][]> = {
   INCOMING: ["AWAITING_ACKNOWLEDGEMENT"],
@@ -116,6 +122,38 @@ export default function OrdersTab({
 }: Props) {
   const palette = getKitchenPalette(isDark);
   const [activeTab, setActiveTab] = useState<TabKey>("INCOMING");
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+
+  const moveTab = (direction: "next" | "previous") => {
+    const currentIndex = ORDER_TABS.findIndex((tab) => tab.key === activeTab);
+    const nextIndex =
+      direction === "next"
+        ? Math.min(currentIndex + 1, ORDER_TABS.length - 1)
+        : Math.max(currentIndex - 1, 0);
+
+    if (nextIndex !== currentIndex) {
+      setActiveTab(ORDER_TABS[nextIndex].key);
+    }
+  };
+
+  const handleTouchEnd = (event: any) => {
+    if (!touchStart.current) return;
+
+    const touch = event.nativeEvent.changedTouches?.[0];
+    if (!touch) return;
+
+    const dx = touch.pageX - touchStart.current.x;
+    const dy = touch.pageY - touchStart.current.y;
+    touchStart.current = null;
+
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+
+    if (dx < 0) {
+      moveTab("next");
+    } else {
+      moveTab("previous");
+    }
+  };
 
   const kitchenOrders = useMemo(() => {
     if (!kitchenId) return orders;
@@ -167,11 +205,7 @@ export default function OrdersTab({
       </View>
 
       <View className="mt-7 flex-row items-center">
-        {([
-          { key: "INCOMING", label: "Incoming" },
-          { key: "ONGOING", label: "Ongoing" },
-          { key: "COMPLETED", label: "Completed" },
-        ] as const).map((tab) => {
+        {ORDER_TABS.map((tab) => {
           const active = activeTab === tab.key;
           const count = tabCounts[tab.key];
 
@@ -208,160 +242,168 @@ export default function OrdersTab({
         })}
       </View>
 
-      {loading && !visibleOrders.length ? (
-        <View className="py-12 items-center">
-          <ActivityIndicator color={palette.accent} />
-        </View>
-      ) : null}
+      <View
+        onTouchStart={(event) => {
+          const touch = event.nativeEvent.touches?.[0];
+          if (touch) touchStart.current = { x: touch.pageX, y: touch.pageY };
+        }}
+        onTouchEnd={handleTouchEnd}
+      >
+        {loading && !visibleOrders.length ? (
+          <View className="py-12 items-center">
+            <ActivityIndicator color={palette.accent} />
+          </View>
+        ) : null}
 
-      {visibleOrders.map((order) => {
-        const primaryItem = order.items?.[0];
-        const primaryItemId = primaryItem?.id ?? "";
-        const updatingItem = primaryItemId ? updatingMap[primaryItemId] : false;
-        const updatingOrder = updatingOrderMap[order.id] === true;
-        const badge = getStatusBadge(order.status);
-        const primaryAction = getPrimaryAction(order.status);
-        const canCancel = ["AWAITING_ACKNOWLEDGEMENT", "PREPARING"].includes(order.status);
+        {visibleOrders.map((order) => {
+          const primaryItem = order.items?.[0];
+          const primaryItemId = primaryItem?.id ?? "";
+          const updatingItem = primaryItemId ? updatingMap[primaryItemId] : false;
+          const updatingOrder = updatingOrderMap[order.id] === true;
+          const badge = getStatusBadge(order.status);
+          const primaryAction = getPrimaryAction(order.status);
+          const canCancel = ["AWAITING_ACKNOWLEDGEMENT", "PREPARING"].includes(order.status);
 
-        return (
-          <View
-            key={order.id}
-            className="rounded-[26px] p-4 mt-4"
-            style={{
-              backgroundColor: palette.surface,
-              borderWidth: 1,
-              borderColor:
-                order.status === "CANCELLED"
-                  ? isDark
-                    ? "#4B2430"
-                    : "#FFD6DD"
-                  : palette.border,
-            }}
-          >
-            <View className="flex-row items-start justify-between">
-              <View className="flex-row flex-1 pr-3">
-                <View
-                  className="w-14 h-14 rounded-2xl items-center justify-center"
-                  style={{ backgroundColor: isDark ? palette.elevated : palette.elevated }}
-                >
-                  <Ionicons
-                    name={getStatusIcon(order.status)}
-                    size={22}
-                    color={
-                      order.status === "CANCELLED"
-                        ? palette.danger
-                        : order.status === "DELIVERED"
-                        ? palette.success
-                        : palette.accentStrong
-                    }
-                  />
+          return (
+            <View
+              key={order.id}
+              className="rounded-[26px] p-4 mt-4"
+              style={{
+                backgroundColor: palette.surface,
+                borderWidth: 1,
+                borderColor:
+                  order.status === "CANCELLED"
+                    ? isDark
+                      ? "#4B2430"
+                      : "#FFD6DD"
+                    : palette.border,
+              }}
+            >
+              <View className="flex-row items-start justify-between">
+                <View className="flex-row flex-1 pr-3">
+                  <View
+                    className="w-14 h-14 rounded-2xl items-center justify-center"
+                    style={{ backgroundColor: isDark ? palette.elevated : palette.elevated }}
+                  >
+                    <Ionicons
+                      name={getStatusIcon(order.status)}
+                      size={22}
+                      color={
+                        order.status === "CANCELLED"
+                          ? palette.danger
+                          : order.status === "DELIVERED"
+                          ? palette.success
+                          : palette.accentStrong
+                      }
+                    />
+                  </View>
+
+                  <View className="ml-3 flex-1">
+                    <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
+                      #{order.id.slice(0, 8).toUpperCase()}
+                    </Text>
+                    <Text className="text-[14px]" style={{ color: palette.textSecondary }}>
+                      {order.items.length} items • {toRelativeTime(String(order.created_at))}
+                    </Text>
+                  </View>
                 </View>
 
-                <View className="ml-3 flex-1">
+                <View className="items-end">
                   <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
-                    #{order.id.slice(0, 8).toUpperCase()}
+                    {formatNGN(Number(order.total))}
                   </Text>
-                  <Text className="text-[14px]" style={{ color: palette.textSecondary }}>
-                    {order.items.length} items • {toRelativeTime(String(order.created_at))}
-                  </Text>
+                  <View className="rounded-full px-3 py-1 mt-1" style={{ backgroundColor: badge.bg }}>
+                    <Text className="text-[11px] font-satoshiBold" style={{ color: badge.color }}>
+                      {badge.label}
+                    </Text>
+                  </View>
                 </View>
               </View>
 
-              <View className="items-end">
-                <Text className="font-satoshiBold text-[16px]" style={{ color: palette.textPrimary }}>
-                  {formatNGN(Number(order.total))}
-                </Text>
-                <View className="rounded-full px-3 py-1 mt-1" style={{ backgroundColor: badge.bg }}>
-                  <Text className="text-[11px] font-satoshiBold" style={{ color: badge.color }}>
-                    {badge.label}
+              <Text className="mt-3 text-[17px]" style={{ color: palette.textPrimary }}>
+                {itemTitle(primaryItem)}
+              </Text>
+
+              {order.dispatch_rider_note ? (
+                <View
+                  className="mt-3 rounded-2xl px-3 py-3"
+                  style={{ backgroundColor: isDark ? palette.surfaceAlt : "#FFF6E8" }}
+                >
+                  <Text className="text-[13px] italic" style={{ color: palette.accentStrong }}>
+                    “{order.dispatch_rider_note}”
                   </Text>
                 </View>
-              </View>
-            </View>
+              ) : null}
 
-            <Text className="mt-3 text-[17px]" style={{ color: palette.textPrimary }}>
-              {itemTitle(primaryItem)}
-            </Text>
-
-            {order.dispatch_rider_note ? (
-              <View
-                className="mt-3 rounded-2xl px-3 py-3"
-                style={{ backgroundColor: isDark ? palette.surfaceAlt : "#FFF6E8" }}
-              >
-                <Text className="text-[13px] italic" style={{ color: palette.accentStrong }}>
-                  “{order.dispatch_rider_note}”
-                </Text>
-              </View>
-            ) : null}
-
-            <View className="mt-4 flex-row">
-              <Pressable
-                onPress={() => router.push(`/kitchen/orders/${order.id}`)}
-                className="flex-1 rounded-2xl py-3 items-center justify-center mr-2"
-                style={{ backgroundColor: palette.accent }}
-              >
-                <Text className="text-white font-satoshiBold text-[17px]">View</Text>
-              </Pressable>
-
-              {primaryAction ? (
+              <View className="mt-4 flex-row">
                 <Pressable
-                  onPress={() =>
-                    primaryItemId
-                      ? onAdvanceItem(order.id, primaryItemId, primaryAction.nextStatus)
-                      : undefined
-                  }
-                  disabled={updatingItem || updatingOrder || !primaryItemId}
-                  className="flex-1 rounded-2xl py-3 items-center justify-center ml-2"
+                  onPress={() => router.push(`/kitchen/orders/${order.id}`)}
+                  className="flex-1 rounded-2xl py-3 items-center justify-center mr-2"
+                  style={{ backgroundColor: palette.accent }}
+                >
+                  <Text className="text-white font-satoshiBold text-[17px]">View</Text>
+                </Pressable>
+
+                {primaryAction ? (
+                  <Pressable
+                    onPress={() =>
+                      primaryItemId
+                        ? onAdvanceItem(order.id, primaryItemId, primaryAction.nextStatus)
+                        : undefined
+                    }
+                    disabled={updatingItem || updatingOrder || !primaryItemId}
+                    className="flex-1 rounded-2xl py-3 items-center justify-center ml-2"
+                    style={{
+                      backgroundColor: isDark ? palette.surfaceAlt : "#EFE9E0",
+                      opacity: updatingItem || updatingOrder || !primaryItemId ? 0.6 : 1,
+                    }}
+                  >
+                    {updatingItem ? (
+                      <ActivityIndicator color={palette.textSecondary} />
+                    ) : (
+                      <Text className="font-satoshiBold text-[17px]" style={{ color: palette.textPrimary }}>
+                        {primaryAction.label}
+                      </Text>
+                    )}
+                  </Pressable>
+                ) : null}
+              </View>
+
+              {canCancel ? (
+                <Pressable
+                  onPress={() => onCancelOrder(order.id)}
+                  disabled={updatingOrder}
+                  className="mt-3 rounded-2xl py-3 items-center justify-center"
                   style={{
-                    backgroundColor: isDark ? palette.surfaceAlt : "#EFE9E0",
-                    opacity: updatingItem || updatingOrder || !primaryItemId ? 0.6 : 1,
+                    backgroundColor: isDark ? palette.dangerSoft : "#FFF1F3",
+                    opacity: updatingOrder ? 0.65 : 1,
                   }}
                 >
-                  {updatingItem ? (
-                    <ActivityIndicator color={palette.textSecondary} />
+                  {updatingOrder ? (
+                    <ActivityIndicator color={palette.danger} />
                   ) : (
-                    <Text className="font-satoshiBold text-[17px]" style={{ color: palette.textPrimary }}>
-                      {primaryAction.label}
+                    <Text className="font-satoshiBold text-[16px]" style={{ color: palette.danger }}>
+                      Decline
                     </Text>
                   )}
                 </Pressable>
               ) : null}
             </View>
+          );
+        })}
 
-            {canCancel ? (
-              <Pressable
-                onPress={() => onCancelOrder(order.id)}
-                disabled={updatingOrder}
-                className="mt-3 rounded-2xl py-3 items-center justify-center"
-                style={{
-                  backgroundColor: isDark ? palette.dangerSoft : "#FFF1F3",
-                  opacity: updatingOrder ? 0.65 : 1,
-                }}
-              >
-                {updatingOrder ? (
-                  <ActivityIndicator color={palette.danger} />
-                ) : (
-                  <Text className="font-satoshiBold text-[16px]" style={{ color: palette.danger }}>
-                    Decline
-                  </Text>
-                )}
-              </Pressable>
-            ) : null}
+        {!visibleOrders.length && !loading ? (
+          <View className="items-center justify-center mt-16">
+            <Image source={require("@/assets/images/empty-box.png")} className="w-24 h-24" />
+            <Text className="mt-3 text-[16px] font-satoshiBold" style={{ color: palette.textPrimary }}>
+              No {activeTab.toLowerCase()} orders
+            </Text>
+            <Text className="mt-1 text-[13px]" style={{ color: palette.textSecondary }}>
+              Pull to refresh and check for updates.
+            </Text>
           </View>
-        );
-      })}
-
-      {!visibleOrders.length && !loading ? (
-        <View className="items-center justify-center mt-16">
-          <Image source={require("@/assets/images/empty-box.png")} className="w-24 h-24" />
-          <Text className="mt-3 text-[16px] font-satoshiBold" style={{ color: palette.textPrimary }}>
-            No {activeTab.toLowerCase()} orders
-          </Text>
-          <Text className="mt-1 text-[13px]" style={{ color: palette.textSecondary }}>
-            Pull to refresh and check for updates.
-          </Text>
-        </View>
-      ) : null}
+        ) : null}
+      </View>
     </ScrollView>
   );
 }

@@ -186,7 +186,7 @@ export default function HomeScreen() {
           }
         />
 
-        <KitchenVendorsSection />
+        <KitchenVendorsSection selectedCity={selectedCity} />
 
         {/* <Pressable className=" bg-primary mt-10 mx-4 rounded-lg py-6 px-4" onPress={() => router.push('/(auth)/choose-role')}>
           <Text className="text-center text-white mt-6 mb-12">Move to choose role</Text>

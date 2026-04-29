@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import CachedImageView from "@/components/ui/CachedImage";
 import type { Kitchen } from "@/redux/kitchen/kitchen.types";
@@ -8,12 +8,10 @@ import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 type Props = {
   kitchen: Kitchen | null;
   isDark: boolean;
-  kitchenName: string;
-  kitchenPhone: string;
-  kitchenAddress: string;
-  onChangeName: (v: string) => void;
-  onChangePhone: (v: string) => void;
-  onChangeAddress: (v: string) => void;
+  closingTime: string;
+  isAvailable: boolean;
+  onChangeClosingTime: (v: string) => void;
+  onChangeAvailable: (v: boolean) => void;
   onUpdateCover: () => void;
   onUpdateProfilePic: () => void;
   onSave: () => void;
@@ -23,12 +21,10 @@ type Props = {
 export default function SettingsTab({
   kitchen,
   isDark,
-  kitchenName,
-  kitchenPhone,
-  kitchenAddress,
-  onChangeName,
-  onChangePhone,
-  onChangeAddress,
+  closingTime,
+  isAvailable,
+  onChangeClosingTime,
+  onChangeAvailable,
   onUpdateCover,
   onUpdateProfilePic,
   onSave,
@@ -42,7 +38,7 @@ export default function SettingsTab({
         Kitchen Settings
       </Text>
       <Text className="text-[13px] mt-1" style={{ color: palette.textSecondary }}>
-        Update your storefront details and contact info.
+        Update your storefront status and closing time.
       </Text>
 
       <View
@@ -109,25 +105,39 @@ export default function SettingsTab({
           Profile Details
         </Text>
 
-        {[{ label: "Kitchen Name", value: kitchenName, onChange: onChangeName },
-          { label: "Phone Number", value: kitchenPhone, onChange: onChangePhone },
-          { label: "Address", value: kitchenAddress, onChange: onChangeAddress, multiline: true }].map((field) => (
-          <View key={field.label} className="mt-4">
-            <Text className="text-[13px] mb-1" style={{ color: palette.textSecondary }}>
-              {field.label}
+        <View className="mt-4">
+          <Text className="text-[13px] mb-1" style={{ color: palette.textSecondary }}>
+            Closing Time
+          </Text>
+          <TextInput
+            value={closingTime}
+            onChangeText={onChangeClosingTime}
+            placeholder="12:00"
+            placeholderTextColor={palette.textMuted}
+            className="rounded-2xl px-3 py-3 font-satoshi text-[15px]"
+            style={{ backgroundColor: palette.surfaceAlt, color: palette.textPrimary }}
+          />
+        </View>
+
+        <View
+          className="mt-4 rounded-2xl px-3 py-3 flex-row items-center justify-between"
+          style={{ backgroundColor: palette.surfaceAlt }}
+        >
+          <View className="flex-1 pr-3">
+            <Text className="font-satoshiBold text-[15px]" style={{ color: palette.textPrimary }}>
+              Accepting Orders
             </Text>
-            <TextInput
-              value={field.value}
-              onChangeText={field.onChange}
-              multiline={field.multiline}
-              placeholder={field.label}
-              placeholderTextColor={palette.textMuted}
-              className={`rounded-2xl px-3 py-3 font-satoshi text-[15px] ${field.multiline ? "min-h-[100px]" : ""}`}
-              style={{ backgroundColor: palette.surfaceAlt, color: palette.textPrimary }}
-              textAlignVertical={field.multiline ? "top" : "center"}
-            />
+            <Text className="mt-1 text-[12px]" style={{ color: palette.textSecondary }}>
+              Turn this off when your kitchen is unavailable.
+            </Text>
           </View>
-        ))}
+          <Switch
+            value={isAvailable}
+            onValueChange={onChangeAvailable}
+            trackColor={{ false: palette.border, true: palette.accentSoft }}
+            thumbColor={isAvailable ? palette.accent : palette.textMuted}
+          />
+        </View>
 
         <Pressable
           onPress={onSave}

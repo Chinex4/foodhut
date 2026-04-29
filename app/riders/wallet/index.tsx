@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppSelector } from "@/store/hooks";
 import { formatNGN } from "@/utils/money";
+import { goBackOrReplace } from "@/utils/navigation";
 
 const mockTransactions = [
   {
@@ -53,7 +54,7 @@ export default function RiderWalletScreen() {
 
       <View className="px-5 pt-4 pb-3">
         <View className="flex-row items-center justify-between gap-2">
-          <Pressable onPress={() => router.push("/riders/(tabs)/index")} className="mr-2">
+          <Pressable onPress={() => goBackOrReplace(router, "/riders/(tabs)")} className="mr-2">
             <Ionicons
               name="chevron-back"
               size={22}

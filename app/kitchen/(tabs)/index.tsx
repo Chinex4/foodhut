@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useMemo } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
@@ -112,15 +113,18 @@ export default function KitchenDashboardScreen() {
 
   if (kitchenStatus === "loading" && !kitchen) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: palette.background }}>
+      <SafeAreaView
+        edges={["top"]}
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: palette.background }}
+      >
         <StatusBar style={isDark ? "light" : "dark"} />
         <ActivityIndicator color={palette.accent} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
@@ -322,6 +326,6 @@ export default function KitchenDashboardScreen() {
           ))}
         </ScrollView>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

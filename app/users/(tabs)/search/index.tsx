@@ -1,5 +1,5 @@
 import MealCard from "@/components/home/MealCard";
-import KitchenCard from "@/components/home/KitchenCard";
+import { getKitchenInitials } from "@/components/home/KitchenCard";
 import SearchBar from "@/components/search/SearchBar";
 import {
   selectSearchError,
@@ -16,9 +16,13 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Pressable,
   Text,
   View,
 } from "react-native";
+import type { SearchItem } from "@/redux/search/search.types";
+
+type SearchResult = SearchItem & { uniqueKey: string };
 
 export default function SearchResultsScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
@@ -26,6 +30,17 @@ export default function SearchResultsScreen() {
   const error = useAppSelector(selectSearchError);
   const meals = useAppSelector(selectSearchMeals);
   const kitchens = useAppSelector(selectSearchKitchens);
+  const results = useMemo<SearchResult[]>(() => {
+    const seen = new Set<string>();
+    return [...kitchens, ...meals]
+      .map((item, index) => ({ ...item, uniqueKey: `${item.kind}:${item.id}:${index}` }))
+      .filter((item) => {
+        const key = `${item.kind}:${item.id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [kitchens, meals]);
 
   const kitchenMap = useMemo(() => {
     const map = new Map<string, { name: string; rating?: string | number | null }>();
@@ -47,8 +62,10 @@ export default function SearchResultsScreen() {
       </View>
 
       <FlatList
-        data={meals}
-        keyExtractor={(m: any) => String(m.id)}
+        data={results}
+        keyExtractor={(item: SearchResult) => item.uniqueKey}
+        numColumns={2}
+        columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 12 }}
         contentContainerStyle={{
           paddingBottom: 120,
           paddingHorizontal: 16,
@@ -59,44 +76,66 @@ export default function SearchResultsScreen() {
         windowSize={7}
         initialNumToRender={6}
         ListHeaderComponent={
-          kitchens.length ? (
-            <View className="mb-6">
-              <Text className={sectionTitleClass}>Kitchens</Text>
-              <FlatList
-                data={kitchens}
-                keyExtractor={(k: any) => String(k.id)}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingTop: 12, paddingBottom: 4, paddingRight: 16 }}
-                renderItem={({ item }: any) => <KitchenCard kitchen={item} />}
-              />
-              {meals.length ? (
-                <Text className={`${sectionTitleClass} mt-2`}>Meals</Text>
-              ) : null}
-            </View>
-          ) : meals.length ? (
+          results.length ? (
             <View className="mb-3">
-              <Text className={sectionTitleClass}>Meals</Text>
+              <Text className={sectionTitleClass}>Results</Text>
             </View>
           ) : null
         }
-        renderItem={({ item }: any) => (
-          <View className="mb-4">
-            <MealCard
-              item={item}
-              onPress={() => router.push(`/users/meal/${item.id}`)}
-              kitchenName={kitchenMap.get(String(item.kitchen_id))?.name}
-              kitchenRating={kitchenMap.get(String(item.kitchen_id))?.rating}
-            />
-          </View>
-        )}
+        renderItem={({ item }: { item: SearchResult }) => {
+          if (item.kind === "kitchen") {
+            const coverUrl = item.cover_image?.url;
+            return (
+              <View style={{ width: "48%" }}>
+                <Pressable
+                  onPress={() => router.push(`/users/kitchen/${item.id}`)}
+                  className={`rounded-2xl border overflow-hidden ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
+                >
+                  <View className={`h-32 items-center justify-center ${isDark ? "bg-neutral-800" : "bg-secondary"}`}>
+                    {coverUrl ? (
+                      <Image source={{ uri: coverUrl }} className="w-full h-full" resizeMode="cover" />
+                    ) : (
+                      <Text className={`text-[28px] font-satoshiBold ${isDark ? "text-primary" : "text-neutral-900"}`}>
+                        {getKitchenInitials(item.name) || "FH"}
+                      </Text>
+                    )}
+                  </View>
+                  <View className="p-3">
+                    <Text numberOfLines={1} className={`font-satoshiBold text-[14px] ${isDark ? "text-white" : "text-neutral-900"}`}>
+                      {item.name}
+                    </Text>
+                    <Text numberOfLines={1} className={`mt-1 font-satoshi text-[11px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+                      {item.type || "Cuisine"}
+                    </Text>
+                    <Text numberOfLines={1} className={`mt-1 font-satoshi text-[11px] ${item.is_available ? "text-green-600" : isDark ? "text-neutral-500" : "text-neutral-500"}`}>
+                      {item.is_available ? "Open" : "Closed"}
+                    </Text>
+                  </View>
+                </Pressable>
+              </View>
+            );
+          }
+
+          return (
+            <View style={{ width: "48%" }}>
+              <MealCard
+                item={item}
+                onPress={() => router.push(`/users/meal/${item.id}`)}
+                kitchenName={kitchenMap.get(String(item.kitchen_id))?.name}
+                kitchenRating={kitchenMap.get(String(item.kitchen_id))?.rating}
+                compact
+                grid
+              />
+            </View>
+          );
+        }}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center">
             {status === "loading" ? (
               <ActivityIndicator style={{ marginTop: 40 }} color="#ffa800" />
             ) : status === "failed" ? (
               <Text className="text-center text-red-600 mt-6">{error}</Text>
-            ) : meals.length === 0 && kitchens.length === 0 ? (
+            ) : results.length === 0 ? (
               <View className="items-center">
                 <Image source={require("@/assets/images/trayy.png")} />
                 <Text className={`mt-4 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>

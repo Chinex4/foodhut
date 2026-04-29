@@ -37,6 +37,7 @@ export default function AllKitchensScreen() {
 
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState<string | null>(null);
+  const uniqueTypes = useMemo(() => Array.from(new Set(types)), [types]);
 
   useEffect(() => {
     if (typesStatus === "idle") {
@@ -61,7 +62,14 @@ export default function AllKitchensScreen() {
   }, [dispatch, search, activeType]);
 
   const loading = listStatus === "loading" && kitchens.length === 0;
-  const filtered = useMemo(() => kitchens, [kitchens]);
+  const filtered = useMemo(() => {
+    const seen = new Set<string>();
+    return kitchens.filter((k) => {
+      if (seen.has(k.id)) return false;
+      seen.add(k.id);
+      return true;
+    });
+  }, [kitchens]);
 
   return (
     <View className={`flex-1 pt-20 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
@@ -109,9 +117,9 @@ export default function AllKitchensScreen() {
               onPress={() => setActiveType(null)}
             />
 
-            {types.map((t) => (
+            {uniqueTypes.map((t, index) => (
               <FilterChip
-                key={t}
+                key={`type:${t}:${index}`}
                 label={t}
                 isActive={activeType === t}
                 onPress={() => setActiveType(t)}
@@ -142,13 +150,13 @@ export default function AllKitchensScreen() {
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => `kitchen:${item.id}:${index}`}
           contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
           numColumns={2}
           columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 16 }}
           renderItem={({ item }) => (
             <View style={{ width: "48%" }}>
-              <KitchenCard kitchen={item as any} />
+              <KitchenCard kitchen={item as any} grid />
             </View>
           )}
           ListEmptyComponent={

@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { goBackOrReplace } from "@/utils/navigation";
 
 const CHANGELOG = [
   {
@@ -38,7 +39,7 @@ export default function WhatsNewScreen() {
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
       >
-        <Pressable onPress={() => router.push("/users/(tabs)/profile")} className="mb-4 flex-row items-center">
+        <Pressable onPress={() => goBackOrReplace(router, "/users/(tabs)/profile")} className="mb-4 flex-row items-center">
           <Ionicons
             name="chevron-back"
             size={20}

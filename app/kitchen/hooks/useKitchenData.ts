@@ -38,7 +38,7 @@ export function useKitchenData(options?: UseKitchenDataOptions) {
   const kitchen = useAppSelector(selectKitchenProfile);
   const kitchenStatus = useAppSelector(selectKitchenProfileStatus);
 
-  const meals = useAppSelector(selectMealsArray);
+  const allMeals = useAppSelector(selectMealsArray);
   const mealsStatus = useAppSelector(selectMealsListStatus);
   const mealsQuery = useAppSelector(selectMealsQuery);
 
@@ -46,6 +46,14 @@ export function useKitchenData(options?: UseKitchenDataOptions) {
   const ordersStatus = useAppSelector(selectOrdersListStatus);
   const ordersQuery = useAppSelector(selectOrdersQuery);
   const ordersState = useAppSelector(selectOrdersState);
+
+  const meals = useMemo(
+    () =>
+      kitchen?.id
+        ? allMeals.filter((meal) => meal.kitchen_id === kitchen.id)
+        : [],
+    [allMeals, kitchen?.id]
+  );
 
   useEffect(() => {
     if (!kitchen) {

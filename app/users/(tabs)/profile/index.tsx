@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -21,7 +21,7 @@ import {
   selectMe,
   selectUploadPicStatus,
 } from "@/redux/users/users.selectors";
-import { uploadProfilePicture } from "@/redux/users/users.thunks";
+import { fetchMyProfile, uploadProfilePicture } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import {
@@ -88,6 +88,14 @@ export default function ProfileHomeScreen() {
   const isDark = themeMode === "dark";
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const requestedProfileRef = useRef(false);
+
+  useEffect(() => {
+    if (isAuthenticated && !me && fetchMe !== "loading" && !requestedProfileRef.current) {
+      requestedProfileRef.current = true;
+      dispatch(fetchMyProfile());
+    }
+  }, [dispatch, fetchMe, isAuthenticated, me]);
 
   const fullName =
     !isAuthenticated

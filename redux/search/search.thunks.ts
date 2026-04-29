@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/api/axios";
 import { boolToQueryString, compactQuery, getApiErrorMessage } from "@/api/http";
-import { getStorageFileUrl } from "@/api/storage";
+import { getMediaUrl } from "@/api/storage";
 import type {
   SearchListResponse,
   SearchQuery,
@@ -18,7 +18,12 @@ type BackendMeal = {
   is_available: boolean;
   likes: number;
   rating: number;
-  cover_image_id: string;
+  cover_image_id: string | null;
+  cover_image?: {
+    id: string;
+    url?: string | null;
+    meta?: Record<string, string | null | undefined> | null;
+  } | null;
   created_at: number;
   updated_at: number | null;
 };
@@ -46,6 +51,11 @@ type BackendKitchen = {
   likes: number;
   rating: number;
   cover_image_id: string | null;
+  cover_image?: {
+    id: string;
+    url?: string | null;
+    meta?: Record<string, string | null | undefined> | null;
+  } | null;
   created_at: number;
   updated_at: number | null;
 };
@@ -71,11 +81,11 @@ const mapMeal = (m: BackendMeal): SearchItem => ({
   likes: m.likes ?? 0,
   is_available: m.is_available,
   kitchen_id: m.kitchen_id,
-  cover_image: m.cover_image_id
+  cover_image: getMediaUrl(m.cover_image, m.cover_image_id)
     ? {
-        public_id: m.cover_image_id,
+        public_id: m.cover_image_id ?? m.cover_image?.id ?? "",
         timestamp: Date.now(),
-        url: getStorageFileUrl(m.cover_image_id) ?? "",
+        url: getMediaUrl(m.cover_image, m.cover_image_id) ?? "",
       }
     : null,
   created_at: String(m.created_at),
@@ -97,7 +107,9 @@ const mapKitchen = (k: BackendKitchen): SearchItem => ({
   likes: k.likes ?? 0,
   is_available: k.is_available,
   owner_id: k.owner_id,
-  cover_image: k.cover_image_id ? getStorageFileUrl(k.cover_image_id) : null,
+  cover_image: {
+    url: getMediaUrl(k.cover_image, k.cover_image_id),
+  },
   city_id: k.city_id ?? null,
   city: k.city
     ? {

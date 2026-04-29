@@ -25,8 +25,10 @@ export type Transaction = {
 export type TransactionsQuery = {
   page?: number;
   per_page?: number;
-  direction?: "incoming" | "outgoing";
+  direction?: "INCOMING" | "OUTGOING" | "incoming" | "outgoing";
   type?: string;
+  before?: string | number;
+  after?: string | number;
   as_kitchen?: boolean;
   wallet_id?: string;
 };

@@ -48,7 +48,7 @@ export type SearchKitchen = {
   likes: number;
   is_available: boolean;
   owner_id: string;
-  cover_image: string | null;
+  cover_image: { url: string | null } | null;
   city_id: string | null;
   city?: CitySummary;
   created_at: string;

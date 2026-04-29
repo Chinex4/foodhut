@@ -9,7 +9,15 @@ export type WalletPointers = {
 export type WalletType = "user" | "kitchen" | "rider" | "unknown";
 
 export const fetchWalletPointers = async (): Promise<WalletPointers> => {
-  const { data } = await api.get<WalletPointers>("/wallets/profile");
+  const { data } = await api.get<WalletPointers & { id?: string }>("/wallets/profile");
+  if (data?.id) {
+    return {
+      user: data.id,
+      kitchen: null,
+      rider: null,
+    };
+  }
+
   return {
     user: data?.user ?? null,
     kitchen: data?.kitchen ?? null,

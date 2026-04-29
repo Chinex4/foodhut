@@ -10,7 +10,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
-import { showError, showSuccess } from "../ui/toast";
+import { showError } from "../ui/toast";
 
 function AddToCartButton({
   qty,
@@ -19,29 +19,16 @@ function AddToCartButton({
   qty: number;
   onAdd: () => Promise<void> | void;
 }) {
-  const [pending, setPending] = React.useState(false);
   const added = qty > 0;
-
-  const handlePress = async () => {
-    if (pending) return;
-    setPending(true);
-    try {
-      await onAdd();
-    } finally {
-      setPending(false);
-    }
-  };
 
   return (
     <Pressable
-      onPress={added ? () => router.push("/users/(tabs)/orders") : handlePress}
-      disabled={pending}
+      onPress={added ? () => router.push("/users/(tabs)/orders") : onAdd}
       accessibilityRole="button"
       accessibilityLabel={added ? "View cart" : "Add to cart"}
       className={[
         "rounded-full px-3 py-1 flex-row items-center",
         added ? "bg-secondary" : "bg-primary",
-        pending ? "opacity-90" : "",
       ].join(" ")}
       style={{ justifyContent: "center" }}
     >
@@ -53,7 +40,7 @@ function AddToCartButton({
         </>
       ) : (
         <Text className="text-white font-satoshiMedium text-[12px]">
-          {pending ? "Adding..." : "Add To Cart"}
+          Add To Cart
         </Text>
       )}
     </Pressable>
@@ -64,11 +51,13 @@ export default function MealCard({
   item,
   onPress,
   compact = false,
+  grid = false,
   kitchenName,
   kitchenRating,
 }: {
   item: Meal;
   compact?: boolean;
+  grid?: boolean;
   onPress?: () => void;
   kitchenName?: string;
   kitchenRating?: string | number | null;
@@ -90,10 +79,9 @@ export default function MealCard({
   const addOne = async () => {
     warnGuest();
     try {
-      const res = await dispatch(
-        setCartItem({ mealId: item.id, quantity: qty + 1 })
+      await dispatch(
+        setCartItem({ mealId: item.id, quantity: qty + 1, meal: item })
       ).unwrap();
-      showSuccess(res.message || "Added to cart");
     } catch (err: any) {
       showError(err);
     }
@@ -101,7 +89,7 @@ export default function MealCard({
   return (
     <Pressable
       onPress={onPress}
-      className={`${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"} rounded-2xl border overflow-hidden ${compact ? "w-[200px]" : "w-full"}`}
+      className={`${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"} rounded-2xl border overflow-hidden ${compact && !grid ? "w-[200px]" : "w-full"}`}
       style={{
         shadowOpacity: isDark ? 0 : 0.05,
         shadowRadius: 10,
@@ -110,7 +98,7 @@ export default function MealCard({
       }}
     >
       {/* cover */}
-      <View className={`${compact ? "h-36" : "h-44"} w-full`}>
+      <View className={`${compact ? "h-32" : "h-44"} w-full`}>
         <Image
           source={
             item.cover_image?.url
@@ -121,9 +109,9 @@ export default function MealCard({
           resizeMode="cover"
         />
         <View className={`absolute right-3 top-3 ${isDark ? "bg-neutral-900/90" : "bg-white/90"} rounded-full px-2 py-1 flex-row items-center`}>
-          <Ionicons name="star" size={14} color="#FFA800" />
+          <Ionicons name="heart" size={14} color="#FFA800" />
           <Text className={`ml-1 font-satoshiMedium text-[12px] ${isDark ? "text-neutral-200" : "text-neutral-800"}`}>
-            {String(item.rating ?? "0")}
+            {String(item.likes ?? 0)}
           </Text>
         </View>
       </View>
@@ -131,7 +119,7 @@ export default function MealCard({
       {/* info */}
       <View className="p-3">
         <Text
-          className={`font-satoshiMedium text-[16px] ${isDark ? "text-white" : "text-neutral-900"}`}
+          className={`font-satoshiMedium ${compact ? "text-[14px]" : "text-[16px]"} ${isDark ? "text-white" : "text-neutral-900"}`}
           numberOfLines={1}
         >
           {capitalizeFirst(item.name)}
@@ -165,7 +153,7 @@ export default function MealCard({
 
         <View className="mt-2 flex-row items-center justify-between">
           <View className="flex-row items-end">
-            <Text className={`font-satoshiBold text-[18px] ${isDark ? "text-white" : "text-neutral-900"}`}>
+            <Text className={`font-satoshiBold ${compact ? "text-[15px]" : "text-[18px]"} ${isDark ? "text-white" : "text-neutral-900"}`}>
               {formatNGN(item.price)}
             </Text>
             {toNum(item.original_price) > toNum(item.price) && (

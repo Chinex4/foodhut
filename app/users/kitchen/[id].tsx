@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -22,19 +22,57 @@ import {
 } from "@/redux/kitchen/kitchen.selectors";
 import { fetchKitchenById } from "@/redux/kitchen/kitchen.thunks";
 import { fetchMeals } from "@/redux/meals/meals.thunks";
-import { selectMealsList, selectMealsListStatus } from "@/redux/meals/meals.selectors";
+import {
+  makeSelectMealsByKitchenId,
+  selectMealsListStatus,
+} from "@/redux/meals/meals.selectors";
+import type { Meal } from "@/redux/meals/meals.types";
+import { goBackOrReplace } from "@/utils/navigation";
+
+const dedupeMeals = (items: Meal[]) => {
+  const seen = new Set<string>();
+  return items.filter((meal) => {
+    if (seen.has(meal.id)) return false;
+    seen.add(meal.id);
+    return true;
+  });
+};
 
 export default function KitchenDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const kitchenId = id ?? "";
+  const { id } = useLocalSearchParams<{ id: string | string[] }>();
+  const kitchenId = Array.isArray(id) ? id[0] ?? "" : id ?? "";
 
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
 
   const kitchen = useAppSelector(selectKitchenById(kitchenId));
   const kitchenStatus = useAppSelector(makeSelectByIdStatus(kitchenId));
-  const meals = useAppSelector(selectMealsList);
+  const kitchenMealsSelector = useMemo(
+    () => makeSelectMealsByKitchenId(kitchenId),
+    [kitchenId]
+  );
+  const kitchenMeals = useAppSelector(kitchenMealsSelector);
   const mealsStatus = useAppSelector(selectMealsListStatus);
+  const [localMeals, setLocalMeals] = useState<Meal[]>([]);
+  const [localMealsStatus, setLocalMealsStatus] = useState<"idle" | "loading" | "succeeded" | "failed">("idle");
+  const displayMeals = localMeals.length ? localMeals : kitchenMeals;
+
+  const pickKitchenMeals = useMemo(
+    () => (items: Meal[]) => {
+      const uniqueMeals = dedupeMeals(items);
+      const mealsWithKitchenIds = uniqueMeals.filter((meal) => meal.kitchen_id);
+      const exactMatches = mealsWithKitchenIds.filter(
+        (meal) => meal.kitchen_id === kitchenId
+      );
+
+      if (exactMatches.length > 0 || mealsWithKitchenIds.length > 0) {
+        return exactMatches;
+      }
+
+      return uniqueMeals;
+    },
+    [kitchenId]
+  );
 
   useEffect(() => {
     if (!kitchenId) return;
@@ -42,14 +80,52 @@ export default function KitchenDetailScreen() {
       dispatch(fetchKitchenById(kitchenId));
     }
 
-    dispatch(
-      fetchMeals({
-        page: 1,
-        per_page: 200,
-        kitchen_id: kitchenId,
+    let cancelled = false;
+    setLocalMealsStatus("loading");
+    const loadMeals = async () => {
+      const response = await dispatch(
+        fetchMeals({
+          page: 1,
+          per_page: 200,
+          kitchen_id: kitchenId,
+        })
+      ).unwrap();
+
+      let nextMeals = pickKitchenMeals(response.items);
+
+      if (nextMeals.length === 0) {
+        const fallbackResponse = await dispatch(
+          fetchMeals({
+            page: 1,
+            per_page: 200,
+          })
+        ).unwrap();
+
+        nextMeals = dedupeMeals(
+          fallbackResponse.items.filter((meal) => meal.kitchen_id === kitchenId)
+        );
+      }
+
+      return nextMeals;
+    };
+
+    loadMeals()
+      .then((nextMeals) => {
+        if (cancelled) return;
+        setLocalMeals(nextMeals);
+        setLocalMealsStatus("succeeded");
       })
-    );
-  }, [dispatch, kitchenId, kitchen]);
+      .catch(() => {
+        if (!cancelled) setLocalMealsStatus("failed");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // kitchen?.id is enough here; using the full object causes repeated meal refetches
+    // whenever the kitchen entity is upserted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, kitchenId, kitchen?.id, pickKitchenMeals]);
 
   const coverUrl = useMemo(() => {
     const value = kitchen?.cover_image?.url;
@@ -92,7 +168,7 @@ export default function KitchenDetailScreen() {
 
         <View className="absolute top-20 left-4 right-4 flex-row items-center justify-between">
           <Pressable
-            onPress={() => router.push("/users/kitchen")}
+            onPress={() => goBackOrReplace(router, "/users/kitchen")}
             className="w-10 h-10 rounded-full bg-black/40 items-center justify-center"
           >
             <Ionicons name="chevron-back" size={20} color="#fff" />
@@ -131,21 +207,27 @@ export default function KitchenDetailScreen() {
           </Text>
         </View>
 
-        {mealsStatus === "loading" && meals.length === 0 ? (
+        {(localMealsStatus === "loading" || mealsStatus === "loading") && displayMeals.length === 0 ? (
           <View className="items-center mt-10">
             <ActivityIndicator color="#ffa800" />
           </View>
         ) : (
           <FlatList
-            data={meals}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ padding: 16, gap: 12 }}
+            data={displayMeals}
+            keyExtractor={(item, index) => `meal:${item.id}:${index}`}
+            contentContainerStyle={{ padding: 16, paddingBottom: 8 }}
             scrollEnabled={false}
+            numColumns={2}
+            columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 12 }}
             renderItem={({ item }) => (
-              <MealCard
-                item={item}
-                onPress={() => router.push(`/users/meal/${item.id}` as any)}
-              />
+              <View style={{ width: "48%" }}>
+                <MealCard
+                  item={item}
+                  onPress={() => router.push(`/users/meal/${item.id}` as any)}
+                  compact
+                  grid
+                />
+              </View>
             )}
             ListEmptyComponent={
               <View className="items-center mt-8">

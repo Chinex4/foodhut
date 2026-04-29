@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/api/axios";
 import { boolToQueryString, compactQuery, getApiErrorMessage } from "@/api/http";
-import { getStorageFileUrl, uploadSingleMedia } from "@/api/storage";
+import { getMediaUrl, uploadSingleMedia } from "@/api/storage";
 import type {
   CreateCityPayload,
   CreateKitchenPayload,
@@ -10,6 +10,7 @@ import type {
   KitchensListResponse,
   KitchensQuery,
   UpdateKitchenPayload,
+  UpdateKitchenProfilePayload,
 } from "./kitchen.types";
 
 type BackendKitchen = {
@@ -32,6 +33,16 @@ type BackendKitchen = {
   rating: number;
   profile_picture_id: string | null;
   cover_image_id: string | null;
+  profile_picture?: {
+    id: string;
+    url?: string | null;
+    meta?: Record<string, string | null | undefined> | null;
+  } | null;
+  cover_image?: {
+    id: string;
+    url?: string | null;
+    meta?: Record<string, string | null | undefined> | null;
+  } | null;
   created_at: number;
   updated_at: number | null;
 };
@@ -64,10 +75,10 @@ const toKitchen = (k: BackendKitchen): Kitchen => ({
   profile_picture_id: k.profile_picture_id,
   cover_image_id: k.cover_image_id,
   profile_picture: {
-    url: getStorageFileUrl(k.profile_picture_id),
+    url: getMediaUrl(k.profile_picture, k.profile_picture_id),
   },
   cover_image: {
-    url: getStorageFileUrl(k.cover_image_id),
+    url: getMediaUrl(k.cover_image, k.cover_image_id),
   },
   city_id: k.city_id,
   city: k.city,
@@ -125,6 +136,7 @@ export const fetchKitchens = createAsyncThunk<
       type: query?.type,
       is_available: boolToQueryString(query?.is_available ?? true),
       search: query?.search,
+      city_id: query?.city_id,
     });
 
     const { data } = await api.get<FetchKitchenListResponse>("/kitchens", { params });
@@ -219,19 +231,15 @@ export const updateKitchenById = createAsyncThunk<
 });
 
 export const updateKitchenByProfile = createAsyncThunk<
-  { message: string },
-  UpdateKitchenPayload,
+  { message: string; kitchen: Kitchen },
+  UpdateKitchenProfilePayload,
   { rejectValue: string }
->("kitchen/updateKitchenByProfile", async (body, { rejectWithValue }) => {
+>("kitchen/updateKitchenByProfile", async (body, { dispatch, rejectWithValue }) => {
   try {
-    await api.patch("/kitchens/profile", {
-      closing_time: body.closing_time,
-      is_available: body.is_available,
-      profile_picture_id: body.profile_picture_id,
-      cover_image_id: body.cover_image_id,
-    });
+    await api.patch("/kitchens/profile", body);
+    const kitchen = await dispatch(fetchKitchenProfile()).unwrap();
 
-    return { message: "Kitchen updated successfully" };
+    return { message: "Kitchen updated successfully", kitchen };
   } catch (error) {
     return rejectWithValue(getApiErrorMessage(error, "Failed to update your kitchen"));
   }

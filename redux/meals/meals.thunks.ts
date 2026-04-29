@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/api/axios";
-import { boolToQueryString, compactQuery, getApiErrorMessage, toNumberString } from "@/api/http";
-import { getStorageFileUrl, uploadSingleMedia } from "@/api/storage";
+import { boolToQueryString, compactQuery, getApiErrorMessage } from "@/api/http";
+import { getMediaUrl, uploadSingleMedia } from "@/api/storage";
 import type {
   CreateMealPayload,
   Meal,
@@ -14,13 +14,18 @@ type BackendMeal = {
   id: string;
   name: string;
   description: string;
-  price: string;
-  original_price: string;
+  price: string | number;
+  original_price: string | number;
   kitchen_id: string;
   is_available: boolean;
   likes: number;
   rating: number;
-  cover_image_id: string;
+  cover_image_id: string | null;
+  cover_image?: {
+    id: string;
+    url?: string | null;
+    meta?: Record<string, string | null | undefined> | null;
+  } | null;
   discount: Meal["discount"];
   created_at: number;
   updated_at: number | null;
@@ -47,17 +52,25 @@ const toMeal = (meal: BackendMeal): Meal => ({
   likes: meal.likes,
   rating: meal.rating,
   kitchen_id: meal.kitchen_id,
-  cover_image_id: meal.cover_image_id,
-  cover_image: meal.cover_image_id
+  cover_image_id: meal.cover_image_id ?? undefined,
+  cover_image: getMediaUrl(meal.cover_image, meal.cover_image_id)
     ? {
-        id: meal.cover_image_id,
-        url: getStorageFileUrl(meal.cover_image_id) ?? "",
+        id: meal.cover_image_id ?? meal.cover_image?.id,
+        url: getMediaUrl(meal.cover_image, meal.cover_image_id) ?? "",
       }
     : null,
   discount: meal.discount,
   created_at: meal.created_at,
   updated_at: meal.updated_at,
 });
+
+const toApiNumber = (value: string | number) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    throw new Error("Meal price must be a valid number");
+  }
+  return parsed;
+};
 
 export const createMeal = createAsyncThunk<
   { id?: string; message: string },
@@ -78,7 +91,7 @@ export const createMeal = createAsyncThunk<
     const { data } = await api.post<{ id: string }>("/meals", {
       name: payload.name,
       description: payload.description,
-      original_price: toNumberString(payload.price),
+      original_price: toApiNumber(payload.price),
       cover_image_id: coverImageId,
     });
 
@@ -144,7 +157,7 @@ export const updateMealById = createAsyncThunk<
       name: body.name,
       description: body.description,
       original_price:
-        body.price !== undefined ? toNumberString(body.price) : undefined,
+        body.price !== undefined ? toApiNumber(body.price) : undefined,
       cover_image_id: coverImageId,
     });
 

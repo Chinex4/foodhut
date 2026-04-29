@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -146,6 +146,15 @@ export default function CreateKitchenScreen() {
     types.find((t) => t === selectedType) || selectedType;
   const selectedCityName =
     cities.find((c) => c.id === selectedCityId)?.name || selectedCityId;
+  const uniqueTypes = useMemo(() => Array.from(new Set(types)), [types]);
+  const uniqueCities = useMemo(() => {
+    const seen = new Set<string>();
+    return cities.filter((city) => {
+      if (seen.has(city.id)) return false;
+      seen.add(city.id);
+      return true;
+    });
+  }, [cities]);
 
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const surfaceCard = `${isDark ? "bg-neutral-900 border border-neutral-800" : "bg-white border border-neutral-200"}`;
@@ -458,9 +467,9 @@ export default function CreateKitchenScreen() {
             </View>
 
             <FlatList
-              data={types}
-              keyExtractor={(item) => item}
-              scrollEnabled={types.length > 8}
+              data={uniqueTypes}
+              keyExtractor={(item, index) => `type:${item}:${index}`}
+              scrollEnabled={uniqueTypes.length > 8}
               contentContainerStyle={{ paddingHorizontal: 20 }}
               renderItem={({ item }) => (
                 <Pressable
@@ -520,8 +529,8 @@ export default function CreateKitchenScreen() {
             </View>
 
             <FlatList
-              data={cities}
-              keyExtractor={(item) => item.id}
+              data={uniqueCities}
+              keyExtractor={(item, index) => `city:${item.id}:${index}`}
               scrollEnabled
               contentContainerStyle={{ paddingHorizontal: 20 }}
               renderItem={({ item }) => (

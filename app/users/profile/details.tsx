@@ -1,19 +1,28 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { showError, showSuccess } from "@/components/ui/toast";
 import { logout } from "@/redux/auth/auth.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { selectMe, selectUpdateMeStatus } from "@/redux/users/users.selectors";
-import { deleteMyProfile, updateMyProfile } from "@/redux/users/users.thunks";
+import {
+  selectFetchMeStatus,
+  selectMe,
+  selectUpdateMeStatus,
+} from "@/redux/users/users.selectors";
+import {
+  deleteMyProfile,
+  fetchMyProfile,
+  updateMyProfile,
+} from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import * as ImagePicker from "expo-image-picker";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { Image } from "expo-image";
+import { goBackOrReplace } from "@/utils/navigation";
 
 function Field({
   icon,
@@ -56,13 +65,27 @@ export default function ProfileDetailsScreen() {
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const me = useAppSelector(selectMe);
+  const fetchMeStatus = useAppSelector(selectFetchMeStatus);
   const updating = useAppSelector(selectUpdateMeStatus) === "loading";
 
   // name is the only editable field per your UpdateUserPayload
   const [firstName, setFirstName] = useState(me?.first_name ?? "");
   const [lastName, setLastName] = useState(me?.last_name ?? "");
+  const requestedProfileRef = useRef(false);
 
   const { uploadImage, isUploading } = useImageUpload();
+
+  useEffect(() => {
+    if (!me && fetchMeStatus !== "loading" && !requestedProfileRef.current) {
+      requestedProfileRef.current = true;
+      dispatch(fetchMyProfile());
+    }
+  }, [dispatch, fetchMeStatus, me]);
+
+  useEffect(() => {
+    setFirstName(me?.first_name ?? "");
+    setLastName(me?.last_name ?? "");
+  }, [me?.first_name, me?.last_name]);
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -145,7 +168,7 @@ export default function ProfileDetailsScreen() {
       <View className={`px-5 pt-8 pb-2 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
         <View className="flex-row items-center justify-between">
           <Pressable
-            onPress={() => router.push("/users/(tabs)/profile")}
+            onPress={() => goBackOrReplace(router, "/users/(tabs)/profile")}
             className="mr-2"
           >
             <Ionicons name="chevron-back" size={22} color={isDark ? "#fff" : "#0F172A"} />

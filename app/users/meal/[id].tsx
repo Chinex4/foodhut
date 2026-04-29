@@ -38,7 +38,6 @@ export default function MealDetailsScreen() {
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const [adding, setAdding] = useState(false);
   const warnedRef = React.useRef(false);
 
   const meal = useAppSelector(selectMealById(mealId));
@@ -127,31 +126,25 @@ export default function MealDetailsScreen() {
       showError("You're updating the cart as a guest. Create an account to keep your orders.");
     }
     try {
-      const res = await dispatch(
-        setCartItem({ mealId, quantity: next })
+      await dispatch(
+        setCartItem({ mealId, quantity: next, meal: meal! })
       ).unwrap();
-      showSuccess(res.message || "Cart updated");
     } catch (err: any) {
       showError(err);
     }
   };
 
   const addOne = async () => {
-    if (adding) return;
     if (!isAuthenticated && !warnedRef.current) {
       warnedRef.current = true;
       showError("You're adding items as a guest. Create an account to save your orders.");
     }
-    setAdding(true);
     try {
-      const res = await dispatch(
-        setCartItem({ mealId, quantity: qty + 1 })
+      await dispatch(
+        setCartItem({ mealId, quantity: qty + 1, meal: meal! })
       ).unwrap();
-      showSuccess(res.message || "Added to cart");
     } catch (err: any) {
       showError(err);
-    } finally {
-      setAdding(false);
     }
   };
 
@@ -344,13 +337,13 @@ export default function MealDetailsScreen() {
         {/** If qty > 0, show "Added to Cart" and disable the button */}
         <Pressable
           onPress={qty > 0 ? undefined : addOne}
-          disabled={qty > 0 || adding}
+          disabled={qty > 0}
           accessibilityRole="button"
           accessibilityLabel={qty > 0 ? "Added to cart" : "Add to cart"}
           className={[
             "w-full rounded-2xl px-8 py-4 flex-row items-center justify-center",
             qty > 0 ? "bg-secondary" : "bg-primary",
-            qty > 0 || adding ? "opacity-90" : "",
+            qty > 0 ? "opacity-90" : "",
           ].join(" ")}
         >
           {qty > 0 ? (
@@ -364,7 +357,7 @@ export default function MealDetailsScreen() {
             <>
               <Ionicons name="cart" size={18} color="#fff" />
               <Text className="ml-2 text-white font-satoshiBold">
-                {adding ? "Adding..." : "Add to Cart"}
+                Add to Cart
               </Text>
             </>
           )}

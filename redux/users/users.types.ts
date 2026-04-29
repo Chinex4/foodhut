@@ -17,6 +17,7 @@ export type User = {
   role?: UserRole;
   birthday?: string | null;
   referral_code?: string | null;
+  referral_url?: string | null;
   profile_picture_id?: string | null;
   profile_picture: {
     id?: string | null;

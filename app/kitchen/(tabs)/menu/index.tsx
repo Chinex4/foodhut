@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
@@ -53,7 +54,7 @@ export default function KitchenMenuScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 130 }}>
@@ -179,6 +180,6 @@ export default function KitchenMenuScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }

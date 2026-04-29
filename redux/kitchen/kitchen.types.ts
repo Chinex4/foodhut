@@ -70,6 +70,11 @@ export type UpdateKitchenPayload = Partial<{
   cover_image_id: string;
 }>;
 
+export type UpdateKitchenProfilePayload = Partial<{
+  closing_time: string;
+  is_available: boolean;
+}>;
+
 export type CreateCityPayload = {
   name: string;
   state: string;
@@ -81,6 +86,7 @@ export type KitchensQuery = {
   type?: KitchenType;
   is_available?: boolean;
   search?: string;
+  city_id?: CityId;
 };
 
 export type KitchensListResponse = {

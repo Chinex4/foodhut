@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { goBackOrReplace } from "@/utils/navigation";
 
 type FaqItem = { id: string; question: string; answer: string };
 
@@ -56,7 +57,7 @@ export default function ProfileFaqScreen() {
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
       >
-        <Pressable onPress={() => router.push("/users/(tabs)/profile")} className="mb-4 flex-row items-center">
+        <Pressable onPress={() => goBackOrReplace(router, "/users/(tabs)/profile")} className="mb-4 flex-row items-center">
           <Ionicons
             name="chevron-back"
             size={20}

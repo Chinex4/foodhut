@@ -10,8 +10,8 @@ export type UploadableFile = {
 export type MediaDescription = {
   source: string;
   id: string;
-  url: string;
-  meta: Record<string, string>;
+  url?: string | null;
+  meta?: Record<string, string | null | undefined> | null;
 };
 
 type UploadMediaResponse = {
@@ -23,6 +23,18 @@ export const getStorageFileUrl = (fileId?: string | null): string | null => {
   if (!fileId) return null;
   const base = (api.defaults.baseURL ?? "").replace(/\/$/, "");
   return `${base}/storage/${fileId}`;
+};
+
+export const getMediaUrl = (
+  media?: Partial<MediaDescription> | null,
+  fileId?: string | null
+): string | null => {
+  return (
+    media?.url?.trim() ||
+    media?.meta?.secure_url?.trim() ||
+    getStorageFileUrl(fileId ?? media?.id) ||
+    null
+  );
 };
 
 export const uploadMedia = async (files: UploadableFile[]): Promise<MediaDescription[]> => {

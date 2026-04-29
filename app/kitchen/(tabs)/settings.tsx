@@ -1,84 +1,39 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import * as ImagePicker from "expo-image-picker";
 
 import SettingsTab from "@/app/kitchen/components/SettingsTab";
 import { useKitchenData } from "@/app/kitchen/hooks/useKitchenData";
 import { useAppDispatch } from "@/store/hooks";
 import {
   updateKitchenByProfile,
-  uploadKitchenCoverByProfile,
 } from "@/redux/kitchen/kitchen.thunks";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
-import { useImageUpload } from "@/hooks/useImageUpload";
 
 export default function KitchenSettingsScreen() {
   const dispatch = useAppDispatch();
   const { isDark, kitchen, kitchenStatus } = useKitchenData();
   const palette = getKitchenPalette(isDark);
 
-  const [kitchenName, setKitchenName] = useState("");
-  const [kitchenPhone, setKitchenPhone] = useState("");
-  const [kitchenAddress, setKitchenAddress] = useState("");
-  const { uploadImage, isUploading } = useImageUpload();
+  const [closingTime, setClosingTime] = useState("");
+  const [isAvailable, setIsAvailable] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (kitchen) {
-      setKitchenName(kitchen.name || "");
-      setKitchenPhone(kitchen.phone_number || "");
-      setKitchenAddress(kitchen.address || "");
+      setClosingTime(kitchen.closing_time || "");
+      setIsAvailable(Boolean(kitchen.is_available));
     }
   }, [kitchen]);
 
   const handleUpdateCover = async () => {
-    try {
-      const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [2, 1],
-        quality: 0.8,
-      });
-      if (res.canceled) return;
-      const asset = res.assets[0];
-      const storageId = await uploadImage({
-        uri: asset.uri,
-        name: asset.fileName ?? "cover.jpg",
-        type: asset.mimeType ?? "image/jpeg",
-      });
-      if (storageId) {
-        await dispatch(updateKitchenByProfile({ cover_image_id: storageId })).unwrap();
-        showSuccess("Cover updated");
-      }
-    } catch (err: any) {
-      showError(err?.message || "Failed to update cover");
-    }
+    showError("Cover image updates are not supported by this endpoint yet");
   };
 
   const handleUpdateProfilePic = async () => {
-    try {
-      const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (res.canceled) return;
-      const asset = res.assets[0];
-      const storageId = await uploadImage({
-        uri: asset.uri,
-        name: asset.fileName ?? "profile.jpg",
-        type: asset.mimeType ?? "image/jpeg",
-      });
-      if (storageId) {
-        await dispatch(updateKitchenByProfile({ profile_picture_id: storageId })).unwrap();
-        showSuccess("Profile picture updated");
-      }
-    } catch (err: any) {
-      showError(err?.message || "Failed to update profile picture");
-    }
+    showError("Profile picture updates are not supported by this endpoint yet");
   };
 
   const handleSave = async () => {
@@ -87,11 +42,8 @@ export default function KitchenSettingsScreen() {
     try {
       await dispatch(
         updateKitchenByProfile({
-          name: kitchenName.trim(),
-          phone_number: kitchenPhone.trim(),
-          address: kitchenAddress.trim(),
-          closing_time: kitchen.closing_time,
-          is_available: kitchen.is_available,
+          closing_time: closingTime.trim(),
+          is_available: isAvailable,
         })
       ).unwrap();
       showSuccess("Kitchen updated");
@@ -104,30 +56,31 @@ export default function KitchenSettingsScreen() {
 
   if (kitchenStatus === "loading" && !kitchen) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: palette.background }}>
+      <SafeAreaView
+        edges={["top"]}
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: palette.background }}
+      >
         <StatusBar style={isDark ? "light" : "dark"} />
         <ActivityIndicator color={palette.accent} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <SettingsTab
         kitchen={kitchen}
         isDark={isDark}
-        kitchenName={kitchenName}
-        kitchenPhone={kitchenPhone}
-        kitchenAddress={kitchenAddress}
-        onChangeName={setKitchenName}
-        onChangePhone={setKitchenPhone}
-        onChangeAddress={setKitchenAddress}
+        closingTime={closingTime}
+        isAvailable={isAvailable}
+        onChangeClosingTime={setClosingTime}
+        onChangeAvailable={setIsAvailable}
         onUpdateCover={handleUpdateCover}
         onUpdateProfilePic={handleUpdateProfilePic}
         onSave={handleSave}
-        saving={saving || isUploading}
+        saving={saving}
       />
-    </View>
+    </SafeAreaView>
   );
 }

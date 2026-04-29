@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -30,6 +30,7 @@ import {
 import { resetResolvedAccount } from "@/redux/wallet/wallet.slice";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { goBackOrReplace } from "@/utils/navigation";
 
 function Field({
   icon,
@@ -73,6 +74,7 @@ export default function WithdrawScreen() {
   const [bankName, setBankName] = useState<string>("");
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
+  const lastResolvedKeyRef = useRef<string | null>(null);
 
   // resolve
   const resolveStatus = useAppSelector(selectResolveStatus);
@@ -90,8 +92,9 @@ export default function WithdrawScreen() {
     );
   }, [banks, bankQuery]);
 
-  const canResolve =
-    bankCode.length > 0 && accountNumber.replace(/\D/g, "").length >= 10;
+  const cleanAccount = accountNumber.replace(/\D/g, "");
+
+  const canResolve = bankCode.length > 0 && cleanAccount.length === 10;
 
   const canWithdraw =
     !!resolvedName &&
@@ -104,7 +107,7 @@ export default function WithdrawScreen() {
       await dispatch(
         resolveBankAccount({
           bank_code: bankCode,
-          account_number: accountNumber.replace(/\D/g, ""),
+          account_number: cleanAccount,
         })
       ).unwrap();
     } catch (e: any) {
@@ -118,7 +121,7 @@ export default function WithdrawScreen() {
       const res = await dispatch(
         withdrawFunds({
           bank_code: bankCode,
-          account_number: accountNumber.replace(/\D/g, ""),
+          account_number: cleanAccount,
           account_name: resolvedName as string,
           amount: amt,
         })
@@ -133,7 +136,17 @@ export default function WithdrawScreen() {
   // reset resolved name when bank or account changes
   useEffect(() => {
     dispatch(resetResolvedAccount());
+    lastResolvedKeyRef.current = null;
   }, [bankCode, accountNumber, dispatch]);
+
+  useEffect(() => {
+    if (!canResolve || resolveStatus === "loading") return;
+    const key = `${bankCode}:${cleanAccount}`;
+    if (lastResolvedKeyRef.current === key) return;
+    lastResolvedKeyRef.current = key;
+    doResolve();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bankCode, canResolve, cleanAccount, resolveStatus]);
 
   return (
     <SafeAreaView
@@ -147,7 +160,7 @@ export default function WithdrawScreen() {
         {/* Header */}
         <View className="px-5 pt-3 pb-2 flex-row items-center">
           <Pressable
-            onPress={() => router.push("/users/wallet")}
+            onPress={() => goBackOrReplace(router, "/users/wallet")}
             className="mr-2"
           >
             <Ionicons
@@ -258,32 +271,20 @@ export default function WithdrawScreen() {
               onChangeText={setAccountNumber}
               keyboardType="number-pad"
               placeholder="Account Number"
-              maxLength={12}
+              maxLength={10}
               placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
               className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
             />
           </Field>
 
-          {/* Resolve button + result */}
-          <Pressable
-            disabled={!canResolve || busy}
-            onPress={doResolve}
-            className={`rounded-2xl py-3 items-center justify-center ${
-              canResolve
-                ? "bg-primary"
-                : isDark
-                  ? "bg-neutral-800"
-                  : "bg-neutral-300"
-            }`}
-          >
-            {resolveStatus === "loading" ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white font-satoshiBold">
-                Resolve Account
+          {resolveStatus === "loading" && (
+            <View className="flex-row items-center mt-1 mb-2">
+              <ActivityIndicator size="small" color="#ffa800" />
+              <Text className={`ml-2 font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+                Resolving account...
               </Text>
-            )}
-          </Pressable>
+            </View>
+          )}
 
           {resolvedName && (
             <View

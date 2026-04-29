@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/api/axios";
-import { compactQuery, getApiErrorMessage, toNumberString } from "@/api/http";
-import { fetchWalletPointers, pickWalletId } from "./wallet.api";
+import { getApiErrorMessage } from "@/api/http";
+import { pickWalletId } from "./wallet.api";
 import type {
   Bank,
   BanksListResponse,
@@ -21,23 +21,25 @@ type BackendBank = {
   code: string;
 };
 
-type BackendTransaction = {
-  amount: string;
-  direction: "INCOMING" | "OUTGOING";
-};
-
-type BackendTransactionsResponse = {
-  items: BackendTransaction[];
-  meta: {
-    page: number;
-    per_page: number;
-    total: number;
-  };
-};
-
 type FetchBankAccountDetailsSuccessResponse = {
   account_name: string;
   _tag: "FetchBankAccountDetailsSuccessResponse";
+};
+
+type FetchBanksSuccessResponse = {
+  banks?: BackendBank[];
+  items?: BackendBank[];
+  _tag?: "FetchBanksSuccessResponse";
+};
+
+type FetchWalletByProfileSuccessResponse = {
+  id: string;
+  balance: number | string;
+  metadata: WalletProfile["metadata"];
+  owner_id: string;
+  created_at: number;
+  updated_at: number | null;
+  _tag?: "FetchWalletByProfileSuccessResponse";
 };
 
 type CreateTopupLinkSuccessResponse = {
@@ -46,10 +48,11 @@ type CreateTopupLinkSuccessResponse = {
 };
 
 type WithdrawFundsSuccessResponse = {
-  message: string;
-  transaction_id: string;
+  message?: string;
+  transaction_id?: string;
   transfer_code?: string;
-  status: string;
+  status?: string;
+  _tag?: string;
 };
 
 const toBank = (bank: BackendBank, index: number): Bank => ({
@@ -81,59 +84,17 @@ const paginateBanks = (banks: Bank[], query?: BanksQuery): BanksListResponse => 
   };
 };
 
-const resolveWalletId = async (opts?: { as_kitchen?: boolean; wallet_id?: string }) => {
-  if (opts?.wallet_id) return { walletId: opts.wallet_id, walletType: "unknown" as const, pointers: null };
-
-  const pointers = await fetchWalletPointers();
-  const picked = pickWalletId(pointers, { as_kitchen: opts?.as_kitchen });
-  return {
-    walletId: picked.walletId,
-    walletType: picked.walletType,
-    pointers,
-  };
-};
-
-const fetchWalletBalance = async (walletId: string): Promise<number> => {
-  let page = 1;
-  const per_page = 100;
-  let totalPages = 1;
-  let balance = 0;
-
-  while (page <= totalPages) {
-    const { data } = await api.get<BackendTransactionsResponse>(
-      `/wallets/${walletId}/transactions`,
-      {
-        params: compactQuery({ page, per_page }),
-      }
-    );
-
-    const items = data?.items ?? [];
-    for (const tx of items) {
-      const amount = Number(tx.amount) || 0;
-      balance += tx.direction === "INCOMING" ? amount : -amount;
-    }
-
-    const total = data?.meta?.total ?? items.length;
-    totalPages = Math.max(1, Math.ceil(total / per_page));
-    page += 1;
-
-    if (page > 3) {
-      // Prevent very large loops on first profile fetch.
-      break;
-    }
-  }
-
-  return Math.max(0, balance);
-};
-
 export const fetchBanks = createAsyncThunk<
   BanksListResponse,
   BanksQuery | undefined,
   { rejectValue: string }
 >("wallet/fetchBanks", async (query, { rejectWithValue }) => {
   try {
-    const { data } = await api.get<BackendBank[]>("/wallets/banks");
-    const banks = (data ?? []).map(toBank);
+    const { data } = await api.get<FetchBanksSuccessResponse | BackendBank[]>(
+      "/wallets/banks"
+    );
+    const rawBanks = Array.isArray(data) ? data : data.banks ?? data.items ?? [];
+    const banks = rawBanks.map(toBank);
     return paginateBanks(banks, query);
   } catch (error) {
     return rejectWithValue(getApiErrorMessage(error, "Failed to fetch banks"));
@@ -166,52 +127,41 @@ export const fetchWalletProfile = createAsyncThunk<
   { rejectValue: string }
 >("wallet/fetchWalletProfile", async (opts, { rejectWithValue }) => {
   try {
-    // Current backend returns all wallet IDs available to the user in the /profile response.
-    const { data } = await api.get<any>("/wallets/profile");
+    const { data } =
+      await api.get<FetchWalletByProfileSuccessResponse | any>("/wallets/profile");
+
+    if (data?.id) {
+      return {
+        id: data.id,
+        owner_id: data.owner_id ?? "",
+        balance: String(data.balance ?? 0),
+        wallet_type: opts?.as_kitchen ? "kitchen" : "user",
+        metadata: data.metadata ?? null,
+        created_at: data.created_at ?? Date.now(),
+        updated_at: data.updated_at ?? null,
+      };
+    }
 
     const pointers = {
       user: data?.user ?? null,
       kitchen: data?.kitchen ?? null,
       rider: data?.rider ?? null,
     };
-
     const picked = pickWalletId(pointers, { as_kitchen: opts?.as_kitchen });
 
-    if (!picked.walletId) {
-      return {
-        id: "",
-        owner_id: "",
-        balance: "0",
-        wallet_type: "unknown",
-        metadata: {
-          user_wallet_id: pointers.user,
-          kitchen_wallet_id: pointers.kitchen,
-          rider_wallet_id: pointers.rider,
-          selected_wallet_id: null,
-        },
-        created_at: Date.now(),
-        updated_at: null,
-      };
-    }
-
-    // If we picked a specific wallet other than the default profile one, we might need its balance.
-    // However, the /wallets/profile typically returns the default wallet's balance.
-    // To be safe and efficient, we use the balance from the profile if it matches our picked ID.
-    const balance = data.id === picked.walletId ? String(data.balance ?? 0) : String(await fetchWalletBalance(picked.walletId));
-
     return {
-      id: picked.walletId,
-      owner_id: data.owner_id ?? "",
-      balance,
+      id: picked.walletId ?? "",
+      owner_id: "",
+      balance: "0",
       wallet_type: picked.walletType,
       metadata: {
         user_wallet_id: pointers.user,
         kitchen_wallet_id: pointers.kitchen,
         rider_wallet_id: pointers.rider,
-        selected_wallet_id: picked.walletId,
+        selected_wallet_id: picked.walletId ?? null,
       },
-      created_at: data.created_at ?? Date.now(),
-      updated_at: data.updated_at ?? null,
+      created_at: Date.now(),
+      updated_at: null,
     };
   } catch (error) {
     return rejectWithValue(getApiErrorMessage(error, "Failed to fetch wallet profile"));
@@ -243,19 +193,10 @@ export const createTopupLink = createAsyncThunk<
   { rejectValue: string }
 >("wallet/createTopupLink", async (body, { rejectWithValue }) => {
   try {
-    const { walletId } = await resolveWalletId({
-      as_kitchen: body.as_kitchen,
-      wallet_id: body.wallet_id,
-    });
-
-    if (!walletId) {
-      return rejectWithValue("Wallet profile not found");
-    }
-
     const { data } = await api.post<CreateTopupLinkSuccessResponse>(
-      `/wallets/${walletId}/top-up`,
+      "/wallets/top-up",
       {
-        amount: body.amount,
+        amount: Number(body.amount),
       }
     );
 
@@ -271,22 +212,13 @@ export const withdrawFunds = createAsyncThunk<
   { rejectValue: string }
 >("wallet/withdrawFunds", async (body, { rejectWithValue }) => {
   try {
-    const { walletId } = await resolveWalletId({
-      as_kitchen: body.as_kitchen,
-      wallet_id: body.wallet_id,
-    });
-
-    if (!walletId) {
-      return rejectWithValue("Wallet profile not found");
-    }
-
     const { data } = await api.post<WithdrawFundsSuccessResponse>(
-      `/wallets/${walletId}/withdraw`,
+      "/wallets/withdraw",
       {
         account_number: body.account_number,
         bank_code: body.bank_code,
         account_name: body.account_name,
-        amount: toNumberString(body.amount),
+        amount: Number(body.amount),
       }
     );
 

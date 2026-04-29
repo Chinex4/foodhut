@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { showSuccess } from "@/components/ui/toast";
+import { goBackOrReplace } from "@/utils/navigation";
 
 function Field({
   icon,
@@ -65,7 +66,7 @@ export default function RiderWithdrawScreen() {
         className="flex-1"
       >
         <View className="px-5 pt-3 pb-2 flex-row items-center">
-          <Pressable onPress={() => router.push("/riders/wallet")} className="mr-2">
+          <Pressable onPress={() => goBackOrReplace(router, "/riders/wallet")} className="mr-2">
             <Ionicons
               name="chevron-back"
               size={22}

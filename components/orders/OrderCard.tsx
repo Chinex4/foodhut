@@ -68,10 +68,14 @@ export default function OrderCard({ order, isDark }: Props) {
     try {
       for (const item of order.items) {
         await dispatch(
-          setCartItem({ mealId: item.meal_id, quantity: item.quantity })
+          setCartItem({
+            mealId: item.meal_id,
+            quantity: item.quantity,
+            meal: item.meal,
+            kitchen: order.kitchen,
+          })
         ).unwrap();
       }
-      showSuccess("Order items added to cart");
     } catch (err: any) {
       showError(err || "Failed to repeat order");
     }

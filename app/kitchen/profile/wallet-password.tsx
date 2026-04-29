@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { showSuccess } from "@/components/ui/toast";
@@ -24,7 +25,7 @@ export default function KitchenWalletPasswordScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <View className="px-5 pt-4 pb-2 flex-row items-center">
@@ -92,6 +93,6 @@ export default function KitchenWalletPasswordScreen() {
           <Text className="text-white font-satoshiBold">Save Password</Text>
         </Pressable>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -1,7 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/api/axios";
 import { getApiErrorMessage } from "@/api/http";
-import { getStorageFileUrl } from "@/api/storage";
+import { getMediaUrl } from "@/api/storage";
 import type {
   ActiveCartResponse,
   CheckoutPayload,
@@ -37,7 +37,12 @@ type BackendMeal = {
   is_available: boolean;
   likes: number;
   rating: number;
-  cover_image_id: string;
+  cover_image_id: string | null;
+  cover_image?: {
+    id: string;
+    url?: string | null;
+    meta?: Record<string, string | null | undefined> | null;
+  } | null;
   created_at: number;
   updated_at: number | null;
 };
@@ -65,6 +70,11 @@ type BackendKitchen = {
   likes: number;
   rating: number;
   cover_image_id: string | null;
+  cover_image?: {
+    id: string;
+    url?: string | null;
+    meta?: Record<string, string | null | undefined> | null;
+  } | null;
   created_at: number;
   updated_at: number | null;
 };
@@ -93,10 +103,10 @@ const fetchMealSummary = (mealId: string): Promise<MealSummary> => {
       likes: data.likes,
       rating: data.rating,
       kitchen_id: data.kitchen_id,
-      cover_image: data.cover_image_id
+      cover_image: getMediaUrl(data.cover_image, data.cover_image_id)
         ? {
-            id: data.cover_image_id,
-            url: getStorageFileUrl(data.cover_image_id) ?? "",
+            id: data.cover_image_id ?? data.cover_image?.id,
+            url: getMediaUrl(data.cover_image, data.cover_image_id) ?? "",
           }
         : null,
       created_at: data.created_at,
@@ -141,10 +151,10 @@ const fetchKitchenSummary = (kitchenId: string): Promise<KitchenSummary> => {
       likes: data.likes,
       is_available: data.is_available,
       owner_id: data.owner_id,
-      cover_image: data.cover_image_id
+      cover_image: getMediaUrl(data.cover_image, data.cover_image_id)
         ? {
-            id: data.cover_image_id,
-            url: getStorageFileUrl(data.cover_image_id) ?? "",
+            id: data.cover_image_id ?? data.cover_image?.id,
+            url: getMediaUrl(data.cover_image, data.cover_image_id) ?? "",
           }
         : null,
       city_id: data.city_id,

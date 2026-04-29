@@ -20,6 +20,7 @@ import { selectTopupStatus, selectTopupUrl } from "@/redux/wallet/wallet.selecto
 import { showError } from "@/components/ui/toast";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+import { goBackOrReplace } from "@/utils/navigation";
 
 const QUICK_AMOUNTS = [1000, 2000, 5000, 10000];
 
@@ -71,7 +72,7 @@ export default function KitchenTopupScreen() {
       >
         <View className="px-5 pt-2 pb-3 flex-row items-center">
           <Pressable
-            onPress={() => router.push("/kitchen/wallet")}
+            onPress={() => goBackOrReplace(router, "/kitchen/wallet")}
             className="w-10 h-10 rounded-full items-center justify-center mr-2"
             style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
           >

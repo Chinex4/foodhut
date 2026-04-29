@@ -26,7 +26,13 @@ export function getKitchenInitials(name: string) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
+export default function KitchenCard({
+  kitchen,
+  grid = false,
+}: {
+  kitchen: Kitchen;
+  grid?: boolean;
+}) {
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const rating = Number(kitchen.rating || 0).toFixed(1);
   const locationLabel = kitchen.city
@@ -34,6 +40,7 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
     : "Unknown location";
 
   const coverUrl = kitchen.cover_image?.url || null;
+  const initials = getKitchenInitials(kitchen.name);
 
   const handlePress = () => {
     // Adjust route to your kitchen details screen
@@ -46,7 +53,7 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
   return (
     <Pressable
       onPress={handlePress}
-      className={`w-52 mr-3 rounded-3xl ${isDark ? "bg-neutral-900" : "bg-white"}`}
+      className={`${grid ? "w-full" : "w-52 mr-3"} rounded-3xl ${isDark ? "bg-neutral-900" : "bg-white"}`}
       style={{
         shadowOpacity: isDark ? 0 : 0.07,
         shadowRadius: 12,
@@ -57,14 +64,20 @@ export default function KitchenCard({ kitchen }: { kitchen: Kitchen }) {
       }}
     >
       {/* cover */}
-      <View className="h-28 rounded-3xl overflow-hidden bg-secondary">
-        <Image
-          source={
-            coverUrl ? { uri: coverUrl } : require("@/assets/images/food1.png")
-          }
-          className="w-full h-full"
-          resizeMode="cover"
-        />
+      <View className={`h-28 rounded-3xl overflow-hidden ${isDark ? "bg-neutral-800" : "bg-secondary"}`}>
+        {coverUrl ? (
+          <Image
+            source={{ uri: coverUrl }}
+            className="w-full h-full"
+            resizeMode="cover"
+          />
+        ) : (
+          <View className="w-full h-full items-center justify-center">
+            <Text className={`text-[32px] font-satoshiBold ${isDark ? "text-primary" : "text-neutral-900"}`}>
+              {initials || "FH"}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* content */}

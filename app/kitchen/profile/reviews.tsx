@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useMemo } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useKitchenData } from "@/app/kitchen/hooks/useKitchenData";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 
@@ -17,7 +18,7 @@ export default function KitchenReviewsScreen() {
   const avgRating = Number(kitchen?.rating || 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <View className="px-5 pt-4 pb-2 flex-row items-center">
@@ -107,6 +108,6 @@ export default function KitchenReviewsScreen() {
           </View>
         ) : null}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

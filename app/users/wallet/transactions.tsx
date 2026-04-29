@@ -22,8 +22,15 @@ import { fetchTransactions } from "@/redux/transactions/transactions.thunks";
 import { formatNGN } from "@/utils/money";
 import type { Transaction } from "@/redux/transactions/transactions.types";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { goBackOrReplace } from "@/utils/navigation";
 
 type TabKey = "ALL" | "CREDIT" | "DEBIT";
+
+const formatTransactionDate = (value: Transaction["created_at"]) => {
+  const raw = Number(value);
+  const timestamp = Number.isFinite(raw) && raw < 1_000_000_000_000 ? raw * 1000 : raw;
+  return new Date(timestamp).toLocaleString();
+};
 
 export default function WalletTransactionsScreen() {
   const router = useRouter();
@@ -92,7 +99,7 @@ export default function WalletTransactionsScreen() {
 
     return (
       <View
-        className={`rounded-2xl border px-3 py-4 mb-3 flex-row items-center justify-between ${
+        className={`rounded-2xl border px-3 py-4 mb-3 flex-row items-center ${
           isDark
             ? "bg-neutral-900 border-neutral-800"
             : "bg-white border-neutral-100"
@@ -104,7 +111,7 @@ export default function WalletTransactionsScreen() {
           shadowOffset: { width: 0, height: 3 },
         }}
       >
-        <View className="flex-row items-center">
+        <View className="flex-row items-center flex-1 min-w-0 pr-3">
           <Ionicons
             name={
               isCredit ? "arrow-down-circle-outline" : "arrow-up-circle-outline"
@@ -112,8 +119,10 @@ export default function WalletTransactionsScreen() {
             size={20}
             color={isCredit ? "#16a34a" : "#ef4444"}
           />
-          <View className="ml-3">
+          <View className="ml-3 flex-1 min-w-0">
             <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
               className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}
             >
               {label}
@@ -121,13 +130,14 @@ export default function WalletTransactionsScreen() {
             <Text
               className={`font-satoshi text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}
             >
-              {new Date(item.created_at).toLocaleString()}
+              {formatTransactionDate(item.created_at)}
             </Text>
           </View>
         </View>
 
         <Text
-          className={`font-satoshiBold ${isCredit ? "text-green-600" : isDark ? "text-neutral-100" : "text-neutral-900"}`}
+          numberOfLines={1}
+          className={`font-satoshiBold text-right shrink-0 max-w-[96px] ${isCredit ? "text-green-600" : isDark ? "text-neutral-100" : "text-neutral-900"}`}
         >
           {isCredit ? "+" : "-"}
           {formatNGN(amountNum)}
@@ -145,7 +155,7 @@ export default function WalletTransactionsScreen() {
       {/* Header */}
       <View className="px-5 pt-3 pb-2 flex-row items-center">
         <Pressable
-          onPress={() => router.push("/users/wallet")}
+          onPress={() => goBackOrReplace(router, "/users/wallet")}
           className="mr-2"
         >
           <Ionicons

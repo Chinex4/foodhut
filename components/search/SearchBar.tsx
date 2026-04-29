@@ -1,11 +1,12 @@
 import React from "react";
 import { View, TextInput, Pressable } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { searchMealsAndKitchens } from "@/redux/search/search.thunks";
 import type { SearchQuery } from "@/redux/search/search.types";
 import { router, usePathname } from "expo-router";
 import SearchFilterModal, { SearchFilters } from "./SearchFilterModal";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 type Props = {
   placeholder?: string;
@@ -23,6 +24,7 @@ export default function SearchBar({
   className = "",
 }: Props) {
   const dispatch = useAppDispatch();
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const pathname = usePathname();
   const [value, setValue] = React.useState(initial);
   const [open, setOpen] = React.useState(false);
@@ -65,14 +67,14 @@ export default function SearchBar({
 
   return (
     <>
-      <View className={`flex-row items-center bg-[#949292]/10 rounded-2xl px-4 h-12 ${className}`}>
+      <View className={`flex-row items-center rounded-2xl px-4 h-12 ${isDark ? "bg-neutral-800" : "bg-[#949292]/10"} ${className}`}>
         <Ionicons name="search-outline" size={20} color="#949292" />
         <TextInput
           value={value}
           onChangeText={setValue}
           placeholder={placeholder}
           placeholderTextColor="#8E8E93"
-          className="flex-1 ml-3 py-4 font-satoshi"
+          className={`flex-1 ml-3 py-4 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
           autoFocus={autoFocus}
           returnKeyType="search"
           onSubmitEditing={() => doSearch(value)}

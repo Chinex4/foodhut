@@ -37,22 +37,22 @@ const lightPalette: KitchenPalette = {
 };
 
 const darkPalette: KitchenPalette = {
-  background: "#04070D",
-  surface: "#0A111C",
-  surfaceAlt: "#0E1624",
-  elevated: "#121C2C",
-  border: "#1A2638",
-  textPrimary: "#F8FBFF",
-  textSecondary: "#9AA9C2",
-  textMuted: "#74839B",
+  background: "#0A0A0A",
+  surface: "#171717",
+  surfaceAlt: "#1F1F1F",
+  elevated: "#262626",
+  border: "#2F2F2F",
+  textPrimary: "#FAFAFA",
+  textSecondary: "#C4C4C4",
+  textMuted: "#8A8A8A",
   accent: "#F7A600",
-  accentSoft: "#2A1D08",
+  accentSoft: "#312208",
   accentStrong: "#FDBA29",
   danger: "#F87171",
-  dangerSoft: "#2B1219",
+  dangerSoft: "#311318",
   success: "#4ADE80",
   warning: "#FBBF24",
-  overlay: "rgba(2, 6, 23, 0.78)",
+  overlay: "rgba(0, 0, 0, 0.78)",
 };
 
 export function getKitchenPalette(isDark: boolean): KitchenPalette {

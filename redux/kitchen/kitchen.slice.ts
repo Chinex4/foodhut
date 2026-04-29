@@ -139,8 +139,10 @@ const kitchenSlice = createSlice({
       .addCase(updateKitchenByProfile.pending, (state) => {
         state.updateProfileStatus = "loading";
       })
-      .addCase(updateKitchenByProfile.fulfilled, (state) => {
+      .addCase(updateKitchenByProfile.fulfilled, (state, a) => {
         state.updateProfileStatus = "succeeded";
+        upsert(state, a.payload.kitchen);
+        state.profileId = a.payload.kitchen.id;
       })
       .addCase(updateKitchenByProfile.rejected, (state, a) => {
         state.updateProfileStatus = "failed";

@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Image,
@@ -20,10 +20,11 @@ import {
 } from "@/redux/referrals/referrals.selectors";
 import { fetchReferrals } from "@/redux/referrals/referrals.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { selectMe } from "@/redux/users/users.selectors";
+import { selectFetchMeStatus, selectMe } from "@/redux/users/users.selectors";
 import { fetchMyProfile } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatNGN } from "@/utils/money";
+import { goBackOrReplace } from "@/utils/navigation";
 
 type Tab = "REFER" | "EARN";
 
@@ -32,25 +33,29 @@ export default function ReferralsScreen() {
   const dispatch = useAppDispatch();
   const me = useAppSelector(selectMe);
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const fetchMeStatus = useAppSelector(selectFetchMeStatus);
   const referrals = useAppSelector(selectReferralsItems);
   const referralsStatus = useAppSelector(selectReferralsStatus);
   const referralsError = useAppSelector(selectReferralsError);
   const [tab, setTab] = useState<Tab>("REFER");
+  const requestedProfileRef = useRef(false);
 
   useEffect(() => {
-    if (!me) {
+    if (!me && fetchMeStatus !== "loading" && !requestedProfileRef.current) {
+      requestedProfileRef.current = true;
       dispatch(fetchMyProfile());
     }
     if (referralsStatus === "idle") {
       dispatch(fetchReferrals());
     }
-  }, [dispatch, me, referralsStatus]);
+  }, [dispatch, fetchMeStatus, me, referralsStatus]);
 
   const code = me?.referral_code ?? referrals[0]?.code ?? "—";
   const link = useMemo(() => {
+    if (me?.referral_url) return me.referral_url;
     if (!code || code === "—") return "—";
-    return `https://www.foodhut.com/${code}`;
-  }, [code]);
+    return `/referrals/${code}`;
+  }, [code, me?.referral_url]);
 
   const totalEarned = useMemo(
     () => referrals.reduce((sum, item) => sum + (Number(item.balance) || 0), 0),
@@ -83,7 +88,7 @@ export default function ReferralsScreen() {
 
       <View className="px-5 pt-4 pb-3">
         <View className="flex-row items-center">
-          <Pressable onPress={() => router.push("/users/(tabs)/profile")} className="mr-2">
+          <Pressable onPress={() => goBackOrReplace(router, "/users/(tabs)/profile")} className="mr-2">
             <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
           </Pressable>
           <View>

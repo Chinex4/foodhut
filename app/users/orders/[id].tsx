@@ -17,6 +17,7 @@ import CachedImageView from "@/components/ui/CachedImage";
 import { setCartItem } from "@/redux/cart/cart.thunks";
 import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 import { showError, showSuccess } from "@/components/ui/toast";
+import { goBackOrReplace } from "@/utils/navigation";
 
 export default function OrderDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,7 +54,7 @@ export default function OrderDetails() {
     <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <View className="flex-row items-center justify-between px-4 pt-4 pb-2 mt-20">
-        <Pressable onPress={() => router.push("/users/(tabs)/orders")} className="mr-2 p-1">
+        <Pressable onPress={() => goBackOrReplace(router, "/users/(tabs)/orders")} className="mr-2 p-1">
           <Ionicons name="chevron-back" size={26} color={isDark ? "#E5E7EB" : "#111"} />
         </Pressable>
         <Text className={`text-2xl font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
@@ -149,7 +150,12 @@ export default function OrderDetails() {
                 onPress={async () => {
                   for (const item of order.items) {
                     await dispatch(
-                      setCartItem({ mealId: item.meal_id, quantity: item.quantity })
+                      setCartItem({
+                        mealId: item.meal_id,
+                        quantity: item.quantity,
+                        meal: item.meal,
+                        kitchen: order.kitchen,
+                      })
                     );
                   }
                   router.push("/users/(tabs)/orders");

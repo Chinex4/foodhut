@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { formatNGN } from "@/utils/money";
+import { goBackOrReplace } from "@/utils/navigation";
 
 type Transaction = {
   id: string;
@@ -74,7 +75,7 @@ export default function RiderWalletTransactionsScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <View className="px-5 pt-3 pb-2 flex-row items-center">
-        <Pressable onPress={() => router.push("/riders/wallet")} className="mr-2">
+        <Pressable onPress={() => goBackOrReplace(router, "/riders/wallet")} className="mr-2">
           <Ionicons
             name="chevron-back"
             size={22}

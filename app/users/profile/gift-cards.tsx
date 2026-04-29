@@ -12,6 +12,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { goBackOrReplace } from "@/utils/navigation";
 
 export default function GiftCardsScreen() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function GiftCardsScreen() {
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
       >
-        <Pressable onPress={() => router.push("/users/(tabs)/profile")} className="mb-4 flex-row items-center">
+        <Pressable onPress={() => goBackOrReplace(router, "/users/(tabs)/profile")} className="mb-4 flex-row items-center">
           <Ionicons
             name="chevron-back"
             size={20}
