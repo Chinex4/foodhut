@@ -3,6 +3,7 @@ import { selectAuthError, selectAuthStatus } from "@/redux/auth/auth.selectors";
 import { resendVerificationOtp, verifyOtp } from "@/redux/auth/auth.thunks";
 import { fetchMyProfile } from "@/redux/users/users.thunks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { saveLastDashboard } from "@/storage/dashboard";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -82,9 +83,14 @@ export default function VerifyScreen() {
 
       try {
         const me = await dispatch(fetchMyProfile()).unwrap();
-        if (me?.has_kitchen) {
+        if (me?.has_rider || me?.role === "RIDER") {
+          await saveLastDashboard("riders");
+          router.replace("/riders/(tabs)");
+        } else if (me?.has_kitchen) {
+          await saveLastDashboard("kitchen");
           router.replace("/kitchen/(tabs)");
         } else {
+          await saveLastDashboard("users");
           router.replace("/users/(tabs)");
         }
       } catch {
