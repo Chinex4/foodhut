@@ -2,15 +2,19 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { showSuccess } from "@/components/ui/toast";
+import { showError, showSuccess } from "@/components/ui/toast";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+import { setWalletPin } from "@/redux/wallet/wallet.thunks";
+import { selectSetWalletPinStatus } from "@/redux/wallet/wallet.selectors";
 
 export default function KitchenWalletPasswordScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const dispatch = useAppDispatch();
+  const status = useAppSelector(selectSetWalletPinStatus);
   const palette = getKitchenPalette(isDark);
 
   const [password, setPassword] = useState("");
@@ -18,10 +22,15 @@ export default function KitchenWalletPasswordScreen() {
 
   const isValid = password.length >= 4 && password === confirm;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isValid) return;
-    showSuccess("Wallet password set");
-    router.back();
+    try {
+      const res = await dispatch(setWalletPin({ pin: password })).unwrap();
+      showSuccess(res.message);
+      router.back();
+    } catch (error: any) {
+      showError(error);
+    }
   };
 
   return (
@@ -44,17 +53,17 @@ export default function KitchenWalletPasswordScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View className="rounded-3xl p-4" style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}>
           <Text className="text-[13px] mb-4" style={{ color: palette.textSecondary }}>
-            Set a wallet/finance password for withdrawals and sensitive actions.
+            Set a wallet PIN for withdrawals and sensitive wallet actions.
           </Text>
 
           <View className="mb-4">
             <Text className="text-[13px] mb-1" style={{ color: palette.textSecondary }}>
-              New password
+              New PIN
             </Text>
             <TextInput
               value={password}
-              onChangeText={setPassword}
-              placeholder="Enter new password"
+              onChangeText={(value) => setPassword(value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="Enter new PIN"
               placeholderTextColor={palette.textMuted}
               secureTextEntry
               className="rounded-2xl px-3 py-3 text-[15px] font-satoshi"
@@ -64,12 +73,12 @@ export default function KitchenWalletPasswordScreen() {
 
           <View>
             <Text className="text-[13px] mb-1" style={{ color: palette.textSecondary }}>
-              Confirm password
+              Confirm PIN
             </Text>
             <TextInput
               value={confirm}
-              onChangeText={setConfirm}
-              placeholder="Confirm password"
+              onChangeText={(value) => setConfirm(value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="Confirm PIN"
               placeholderTextColor={palette.textMuted}
               secureTextEntry
               className="rounded-2xl px-3 py-3 text-[15px] font-satoshi"
@@ -79,18 +88,22 @@ export default function KitchenWalletPasswordScreen() {
 
           {!isValid && confirm.length > 0 ? (
             <Text className="text-[12px] mt-2" style={{ color: palette.danger }}>
-              Passwords must match and be at least 4 characters.
+              PINs must match and be at least 4 digits.
             </Text>
           ) : null}
         </View>
 
         <Pressable
           onPress={handleSave}
-          disabled={!isValid}
+          disabled={!isValid || status === "loading"}
           className="mt-5 rounded-2xl py-4 items-center"
           style={{ backgroundColor: isValid ? palette.accent : palette.textMuted }}
         >
-          <Text className="text-white font-satoshiBold">Save Password</Text>
+          {status === "loading" ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-white font-satoshiBold">Save PIN</Text>
+          )}
         </Pressable>
       </ScrollView>
     </SafeAreaView>

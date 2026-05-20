@@ -7,7 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Clipboard from "expo-clipboard";
 import * as WebBrowser from "expo-web-browser";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   ActivityIndicator,
@@ -45,8 +45,17 @@ import { listenRiderPicked } from "@/utils/riderBus.native";
 import { fetchMeals } from "@/redux/meals/meals.thunks";
 import { selectMealsArray } from "@/redux/meals/meals.selectors";
 import { goBackOrReplace } from "@/utils/navigation";
+import PagerView from "react-native-pager-view";
 
 type PaymentUI = "ONLINE" | "WALLET" | "PAY_FOR_ME";
+type CheckoutTab = "ORDER" | "DELIVERY";
+const checkoutTabs: CheckoutTab[] = ["ORDER", "DELIVERY"];
+const checkoutTextInputStyle = {
+  minHeight: 28,
+  lineHeight: 20,
+  paddingVertical: 0,
+  includeFontPadding: false,
+};
 
 function SectionHeader({ title, isDark }: { title: string; isDark: boolean }) {
   return (
@@ -177,9 +186,10 @@ export default function CheckoutScreen() {
 
   // UI state
   const isGroupCheckout = activeKitchenIds.length > 1;
-  const [tab, setTab] = useState<"ORDER" | "DELIVERY">(
+  const [tab, setTab] = useState<CheckoutTab>(
     String(startTab ?? "").toUpperCase() === "DELIVERY" ? "DELIVERY" : "ORDER"
   );
+  const pagerRef = useRef<PagerView>(null);
   const [address, setAddress] = useState<string>("");
   const [fulfillment, setFulfillment] = useState<
     "DELIVERY" | "PICKUP" | "SITIN"
@@ -231,6 +241,11 @@ export default function CheckoutScreen() {
 
   const isBusy =
     placing || checkoutStatus === "loading" || payStatus === "loading";
+
+  const goToTab = (next: CheckoutTab) => {
+    setTab(next);
+    pagerRef.current?.setPage(checkoutTabs.indexOf(next));
+  };
 
   useEffect(() => {
     const off = listenRiderPicked((r) => setSelectedRider(r));
@@ -417,7 +432,7 @@ export default function CheckoutScreen() {
 
         {/* Tabs */}
         <View className="flex-row mt-5">
-          <Pressable onPress={() => setTab("ORDER")} className="mr-6 pb-2">
+          <Pressable onPress={() => goToTab("ORDER")} className="mr-6 pb-2">
             <Text
               className={`${
                 tab === "ORDER"
@@ -432,7 +447,7 @@ export default function CheckoutScreen() {
             )}
           </Pressable>
 
-          <Pressable onPress={() => setTab("DELIVERY")} className="pb-2">
+          <Pressable onPress={() => goToTab("DELIVERY")} className="pb-2">
             <Text
               className={`${
                 tab === "DELIVERY"
@@ -450,7 +465,14 @@ export default function CheckoutScreen() {
       </View>
 
       {/* Content */}
-      {tab === "ORDER" ? (
+      <View className="flex-1">
+        <PagerView
+          ref={pagerRef}
+          style={{ flex: 1 }}
+          initialPage={checkoutTabs.indexOf(tab)}
+          onPageSelected={(e) => setTab(checkoutTabs[e.nativeEvent.position] ?? "ORDER")}
+        >
+          <View key="order" style={{ flex: 1 }}>
         <View className="flex-1 px-5">
           <FlatList
             data={orderRows}
@@ -626,7 +648,7 @@ export default function CheckoutScreen() {
               </Text>
             </View>
             <Pressable
-              onPress={() => setTab("DELIVERY")}
+              onPress={() => goToTab("DELIVERY")}
               className="bg-primary rounded-2xl py-4 items-center justify-center"
             >
               <Text className="text-white font-satoshiBold">
@@ -635,7 +657,8 @@ export default function CheckoutScreen() {
             </Pressable>
           </View>
         </View>
-      ) : (
+          </View>
+          <View key="delivery" style={{ flex: 1 }}>
         <View className="flex-1 px-5">
           <ScrollView
             contentContainerStyle={{ paddingBottom: 200 }}
@@ -704,6 +727,7 @@ export default function CheckoutScreen() {
                   }
                   placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                   className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
+                  style={checkoutTextInputStyle}
                 />
               </View>
 
@@ -720,6 +744,7 @@ export default function CheckoutScreen() {
                   placeholder="Message for the rider"
                   placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                   className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
+                  style={checkoutTextInputStyle}
                 />
               </View>
 
@@ -741,6 +766,7 @@ export default function CheckoutScreen() {
                     placeholder="Voucher / Discount code"
                     placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                     className={`ml-3 flex-1 font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
+                    style={checkoutTextInputStyle}
                   />
                   <Pressable className="ml-3 px-3 py-2 rounded-lg bg-primary">
                     <Text className="text-white text-[12px] font-satoshiBold">
@@ -897,7 +923,7 @@ export default function CheckoutScreen() {
           >
             <View className="flex-row">
               <Pressable
-                onPress={() => setTab("ORDER")}
+                onPress={() => goToTab("ORDER")}
                 className={`flex-1 mr-3 rounded-2xl py-4 items-center justify-center border ${
                   isDark ? "bg-neutral-900 border-neutral-700" : "bg-[#FFF1E0] border-primary-500"
                 }`}
@@ -935,7 +961,9 @@ export default function CheckoutScreen() {
             </Text>
           </View>
         </View>
-      )}
+          </View>
+        </PagerView>
+      </View>
     </KeyboardAvoidingView>
   );
 }

@@ -41,6 +41,7 @@ export type MinimalUser = {
   last_name?: string;
   role?: string;
   has_kitchen?: boolean;
+  has_rider?: boolean;
 };
 
 export type AuthStatus = "idle" | "loading" | "succeeded" | "failed";
@@ -52,6 +53,7 @@ export type AuthState = {
   isAuthenticated: boolean;
   accessToken: string | null;
   refreshToken: string | null;
+  sessionExpired: boolean;
 
   otpSent: boolean;
   lastPhoneTried?: string | null;

@@ -31,4 +31,8 @@ export const selectWithdrawStatus = (s: RootState) => s.wallet.withdrawStatus;
 export const selectLastWithdrawMessage = (s: RootState) =>
   s.wallet.lastWithdrawMessage;
 
+export const selectSetWalletPinStatus = (s: RootState) => s.wallet.setPinStatus;
+export const selectLastSetWalletPinMessage = (s: RootState) =>
+  s.wallet.lastSetPinMessage;
+
 export const selectWalletError = (s: RootState) => s.wallet.error;

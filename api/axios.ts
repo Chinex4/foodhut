@@ -1,9 +1,10 @@
 import axios, { AxiosError } from "axios";
 import { ENV } from "@/config/env";
-import { getToken, clearToken, clearUser } from "@/storage/auth";
+import { getToken, clearRefreshToken, clearToken, clearUser } from "@/storage/auth";
 import type { RootStore } from "@/store";
 // import { logout } from "@/redux/auth/auth.slice";
 import { showError } from "@/components/ui/toast";
+import { getApiErrorMessage } from "@/api/http";
 
 export const api = axios.create({
   baseURL: ENV.API_BASE_URL,
@@ -16,32 +17,52 @@ export const attachStore = (store: RootStore) => {
   _store = store;
 };
 
+const getRequestLabel = (config?: { method?: string; baseURL?: string; url?: string }) => {
+  const method = (config?.method || "GET").toUpperCase();
+  const url = `${config?.baseURL ?? ""}${config?.url ?? ""}`;
+  return `${method} ${url}`;
+};
+
 api.interceptors.request.use(async (config) => {
   const token = await getToken();
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log("[API REQUEST]", getRequestLabel(config), {
+    params: config.params,
+    data: config.data,
+  });
   return config;
 });
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    console.log("[API RESPONSE]", getRequestLabel(res.config), {
+      status: res.status,
+      data: res.data,
+    });
+    return res;
+  },
   async (err: AxiosError<any>) => {
     const status = err.response?.status;
 
-    const serverMessage =
-      (err.response?.data as any)?.message ||
-      (err.response?.data as any)?.error ||
-      err.message;
+    console.log("[API ERROR]", getRequestLabel(err.config), {
+      status,
+      data: err.response?.data,
+      message: err.message,
+    });
+
+    const friendlyMessage = getApiErrorMessage(err);
 
     if (status === 401) {
       await clearToken();
+      await clearRefreshToken();
       await clearUser();
-      // _store?.dispatch(logout());
-      showError("Session expired. Please log in again.");
+      _store?.dispatch({ type: "auth/sessionExpired" });
+      showError(friendlyMessage);
     } else {
-      if (serverMessage) showError(serverMessage);
+      showError(friendlyMessage);
     }
     return Promise.reject(err);
   }

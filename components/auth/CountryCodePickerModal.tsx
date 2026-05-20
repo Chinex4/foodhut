@@ -7,6 +7,8 @@ import {
   View,
   FlatList,
 } from "react-native";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { useAppSelector } from "@/store/hooks";
 
 type Country = { name: string; dial_code: string; code: string };
 
@@ -39,6 +41,7 @@ export default function CountryCodePickerModal({
   onPick,
 }: Props) {
   const [q, setQ] = useState("");
+  const isDark = useAppSelector(selectThemeMode) === "dark";
 
   const filtered = useMemo(() => {
     const x = q.trim().toLowerCase();
@@ -59,16 +62,27 @@ export default function CountryCodePickerModal({
       onRequestClose={onClose}
     >
       <Pressable className="flex-1 bg-black/40" onPress={onClose} />
-      <View className="bg-white rounded-t-3xl p-4 max-h-[70%]">
-        <View className="h-1.5 w-12 bg-gray-300 self-center rounded-full mb-3" />
-        <Text className="text-xl font-satoshiBold mb-2">Select Country</Text>
+      <View
+        className={`rounded-t-3xl p-4 max-h-[70%] ${
+          isDark ? "bg-neutral-950 border-t border-neutral-800" : "bg-white"
+        }`}
+      >
+        <View className={`h-1.5 w-12 self-center rounded-full mb-3 ${isDark ? "bg-neutral-700" : "bg-gray-300"}`} />
+        <Text className={`text-xl font-satoshiBold mb-2 ${isDark ? "text-white" : "text-neutral-900"}`}>
+          Select Country
+        </Text>
 
-        <View className="border border-gray-200 rounded-xl px-3 py-2 mb-3">
+        <View
+          className={`border rounded-xl px-3 py-2 mb-3 ${
+            isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-gray-200"
+          }`}
+        >
           <TextInput
             placeholder="Search country or code"
             value={q}
             onChangeText={setQ}
-            className="text-base font-satoshi"
+            placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+            className={`text-base font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
           />
         </View>
 
@@ -76,7 +90,7 @@ export default function CountryCodePickerModal({
           data={filtered}
           keyExtractor={(item) => item.code}
           ItemSeparatorComponent={() => (
-            <View className="h-[1px] bg-gray-100" />
+            <View className={`h-[1px] ${isDark ? "bg-neutral-800" : "bg-gray-100"}`} />
           )}
           renderItem={({ item }) => (
             <Pressable
@@ -87,17 +101,17 @@ export default function CountryCodePickerModal({
               className="flex-row items-center justify-between py-3"
             >
               <View className="flex-row items-center gap-3">
-                <Text className="text-xl">{flagFromCode(item.code)}</Text>
-                <View>
-                  <Text className="text-base font-satoshiMedium">
+                  <Text className="text-xl">{flagFromCode(item.code)}</Text>
+                  <View>
+                  <Text className={`text-base font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
                     {item.name}
                   </Text>
-                  <Text className="text-xs text-gray-500 font-satoshi">
+                  <Text className={`text-xs font-satoshi ${isDark ? "text-neutral-500" : "text-gray-500"}`}>
                     {item.code}
                   </Text>
                 </View>
               </View>
-              <Text className="text-base font-satoshiMedium">
+              <Text className={`text-base font-satoshiMedium ${isDark ? "text-neutral-200" : "text-neutral-900"}`}>
                 {item.dial_code}
               </Text>
             </Pressable>

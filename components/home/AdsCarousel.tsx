@@ -3,6 +3,7 @@ import { FlatList, Pressable, View } from "react-native";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchAds } from "@/redux/ads/ads.thunks";
 import { selectAdsList, selectAdsListStatus } from "@/redux/ads/ads.selectors";
+import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
 import CachedImageView from "../ui/CachedImage";
 
 function AdSkeleton() {
@@ -15,14 +16,19 @@ export default function AdsCarousel() {
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectAdsListStatus);
   const ads = useAppSelector(selectAdsList);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   useEffect(() => {
-    if (status === "idle" || status === "failed") {
+    if (isAuthenticated && (status === "idle" || status === "failed")) {
       dispatch(fetchAds({ page: 1, per_page: 5 }));
     }
-  }, [status, dispatch]);
+  }, [dispatch, isAuthenticated, status]);
 
 //   console.log(ads)
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (status === "loading") {
     return (

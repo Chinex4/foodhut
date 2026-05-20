@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -10,65 +11,133 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  selectTransactionsError,
+  selectTransactionsList,
+  selectTransactionsListStatus,
+  selectTransactionsMeta,
+} from "@/redux/transactions/transactions.selectors";
+import { fetchTransactions } from "@/redux/transactions/transactions.thunks";
+import type { Transaction } from "@/redux/transactions/transactions.types";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { selectWalletProfile, selectWalletProfileStatus } from "@/redux/wallet/wallet.selectors";
+import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
 import { formatNGN } from "@/utils/money";
 import { goBackOrReplace } from "@/utils/navigation";
 
-type Transaction = {
-  id: string;
-  direction: "INCOMING" | "OUTGOING";
-  amount: number;
-  note: string;
-  created_at: string;
-};
-
-const mockTransactions: Transaction[] = [
-  {
-    id: "tx_001",
-    direction: "INCOMING",
-    amount: 3200,
-    note: "Delivery payout",
-    created_at: "2025-08-01T12:34:00Z",
-  },
-  {
-    id: "tx_002",
-    direction: "OUTGOING",
-    amount: 1500,
-    note: "Withdrawal to bank",
-    created_at: "2025-07-31T09:12:00Z",
-  },
-  {
-    id: "tx_003",
-    direction: "INCOMING",
-    amount: 4200,
-    note: "Delivery payout",
-    created_at: "2025-07-30T18:45:00Z",
-  },
-  {
-    id: "tx_004",
-    direction: "INCOMING",
-    amount: 2800,
-    note: "Delivery payout",
-    created_at: "2025-07-29T14:20:00Z",
-  },
-];
-
 type TabKey = "ALL" | "CREDIT" | "DEBIT";
+
+const formatTransactionDate = (value: Transaction["created_at"]) => {
+  const raw = Number(value);
+  const timestamp = Number.isFinite(raw) && raw < 1_000_000_000_000 ? raw * 1000 : raw;
+  return new Date(timestamp).toLocaleString();
+};
 
 export default function RiderWalletTransactionsScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const wallet = useAppSelector(selectWalletProfile);
+  const walletStatus = useAppSelector(selectWalletProfileStatus);
+  const items = useAppSelector(selectTransactionsList);
+  const meta = useAppSelector(selectTransactionsMeta);
+  const listStatus = useAppSelector(selectTransactionsListStatus);
+  const error = useAppSelector(selectTransactionsError);
   const [tab, setTab] = useState<TabKey>("ALL");
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    if (walletStatus === "idle" || wallet?.wallet_type !== "rider") {
+      dispatch(fetchWalletProfile({ as_rider: true }));
+    }
+    if (listStatus === "idle") {
+      dispatch(fetchTransactions({ page: 1, per_page: 20 }));
+    }
+  }, [dispatch, listStatus, wallet?.wallet_type, walletStatus]);
+
+  const walletId = wallet?.metadata?.selected_wallet_id || wallet?.id;
+  const walletItems = useMemo(
+    () => (walletId ? items.filter((item) => !item.wallet_id || item.wallet_id === walletId) : items),
+    [items, walletId]
+  );
 
   const filtered = useMemo(() => {
-    if (tab === "ALL") return mockTransactions;
+    if (tab === "ALL") return walletItems;
     const wantIncoming = tab === "CREDIT";
-    return mockTransactions.filter((t) =>
+    return walletItems.filter((t) =>
       wantIncoming ? t.direction === "INCOMING" : t.direction === "OUTGOING"
     );
-  }, [tab]);
+  }, [tab, walletItems]);
+
+  const hasMore = useMemo(() => {
+    if (!meta) return false;
+    return items.length < (meta.total ?? 0);
+  }, [items.length, meta]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(fetchWalletProfile({ as_rider: true })).unwrap();
+      await dispatch(fetchTransactions({ page: 1, per_page: meta?.per_page ?? 20 })).unwrap();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch, meta?.per_page]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = (meta?.page ?? 1) + 1;
+      await dispatch(fetchTransactions({ page: nextPage, per_page: meta?.per_page ?? 20 })).unwrap();
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [dispatch, hasMore, loadingMore, meta?.page, meta?.per_page]);
+
+  const renderItem = ({ item }: { item: Transaction }) => {
+    const isCredit = item.direction === "INCOMING";
+    const label = item.note ?? (isCredit ? "Delivery payout" : "Wallet transaction");
+
+    return (
+      <View
+        className={`rounded-2xl border px-3 py-4 mb-3 flex-row items-center ${
+          isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+        }`}
+      >
+        <View className="flex-row items-center flex-1 min-w-0 pr-3">
+          <Ionicons
+            name={isCredit ? "arrow-down-circle-outline" : "arrow-up-circle-outline"}
+            size={20}
+            color={isCredit ? "#16a34a" : "#ef4444"}
+          />
+          <View className="ml-3 flex-1 min-w-0">
+            <Text
+              numberOfLines={1}
+              className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}
+            >
+              {label}
+            </Text>
+            <Text className={`font-satoshi text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+              {formatTransactionDate(item.created_at)}
+            </Text>
+          </View>
+        </View>
+
+        <Text
+          numberOfLines={1}
+          className={`font-satoshiBold text-right shrink-0 max-w-[96px] ${
+            isCredit ? "text-green-600" : isDark ? "text-neutral-100" : "text-neutral-900"
+          }`}
+        >
+          {isCredit ? "+" : "-"}
+          {formatNGN(item.amount)}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
@@ -76,11 +145,7 @@ export default function RiderWalletTransactionsScreen() {
 
       <View className="px-5 pt-3 pb-2 flex-row items-center">
         <Pressable onPress={() => goBackOrReplace(router, "/riders/wallet")} className="mr-2">
-          <Ionicons
-            name="chevron-back"
-            size={22}
-            color={isDark ? "#E5E7EB" : "#0F172A"}
-          />
+          <Ionicons name="chevron-back" size={22} color={isDark ? "#E5E7EB" : "#0F172A"} />
         </Pressable>
         <Text className={`text-[18px] font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
           Transactions
@@ -95,9 +160,7 @@ export default function RiderWalletTransactionsScreen() {
               <Pressable
                 key={key}
                 onPress={() => setTab(key)}
-                className={`flex-1 py-2 rounded-lg items-center justify-center ${
-                  active ? "bg-primary" : ""
-                }`}
+                className={`flex-1 py-2 rounded-lg items-center justify-center ${active ? "bg-primary" : ""}`}
               >
                 <Text
                   className={`text-[13px] ${
@@ -119,47 +182,44 @@ export default function RiderWalletTransactionsScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(x) => x.id}
-        renderItem={({ item }) => {
-          const isCredit = item.direction === "INCOMING";
-          return (
-            <View
-              className={`rounded-2xl border px-3 py-4 mb-3 flex-row items-center justify-between ${
-                isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
-              }`}
-            >
-              <View className="flex-row items-center">
-                <Ionicons
-                  name={isCredit ? "arrow-down-circle-outline" : "arrow-up-circle-outline"}
-                  size={20}
-                  color={isCredit ? "#16a34a" : "#ef4444"}
-                />
-                <View className="ml-3">
-                  <Text className={`font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
-                    {item.note}
-                  </Text>
-                  <Text className={`font-satoshi text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                    {new Date(item.created_at).toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-
-              <Text className={`font-satoshiBold ${isCredit ? "text-green-600" : isDark ? "text-neutral-100" : "text-neutral-900"}`}>
-                {isCredit ? "+" : "-"}
-                {formatNGN(item.amount)}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F59E0B" />
+        }
+        onEndReachedThreshold={0.4}
+        onEndReached={loadMore}
+        ListEmptyComponent={
+          listStatus === "loading" ? (
+            <View className="px-5 mt-10 items-center">
+              <ActivityIndicator color="#F59E0B" />
+              <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
+                Loading transactions...
               </Text>
             </View>
-          );
-        }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(false)} />}
-        ListEmptyComponent={
-          <View className="mt-6 items-center">
-            <Ionicons name="wallet-outline" size={36} color={isDark ? "#9CA3AF" : "#E5E7EB"} />
-            <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
-              No transactions yet
-            </Text>
-          </View>
+          ) : error ? (
+            <View className="px-5 mt-10 items-center">
+              <Ionicons name="alert-circle-outline" size={36} color="#ef4444" />
+              <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
+                {error}
+              </Text>
+            </View>
+          ) : (
+            <View className="px-5 mt-10 items-center">
+              <Ionicons name="document-text-outline" size={36} color={isDark ? "#6B7280" : "#9CA3AF"} />
+              <Text className={`mt-2 font-satoshi ${isDark ? "text-neutral-300" : "text-neutral-500"}`}>
+                No transactions yet.
+              </Text>
+            </View>
+          )
         }
-        ListFooterComponent={null}
+        ListFooterComponent={
+          loadingMore ? (
+            <View className="py-3">
+              <ActivityIndicator color="#F59E0B" />
+            </View>
+          ) : null
+        }
       />
     </SafeAreaView>
   );

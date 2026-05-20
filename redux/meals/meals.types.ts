@@ -43,6 +43,7 @@ export type MealsQuery = {
   kitchen_id?: string;
   search?: string;
   is_liked?: boolean;
+  city?: string;
 };
 
 export type MealsListResponse = {

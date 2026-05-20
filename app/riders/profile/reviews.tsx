@@ -5,7 +5,6 @@ import React from "react";
 import { ScrollView, Text, View, Pressable } from "react-native";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { mockRiderReviews } from "@/utils/mock/mockRider";
 
 export default function RiderReviewsScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
@@ -23,36 +22,19 @@ export default function RiderReviewsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        {mockRiderReviews.map((review) => (
-          <View
-            key={review.id}
-            className={`rounded-2xl p-4 mb-3 border ${
-              isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
-            }`}
-          >
-            <View className="flex-row items-center justify-between">
-              <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
-                {review.name}
-              </Text>
-              <Text className={`text-[11px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                {review.date}
-              </Text>
-            </View>
-            <View className="flex-row items-center mt-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Ionicons
-                  key={i}
-                  name={i < review.rating ? "star" : "star-outline"}
-                  size={14}
-                  color={i < review.rating ? "#F59E0B" : isDark ? "#4B5563" : "#D1D5DB"}
-                />
-              ))}
-            </View>
-            <Text className={`mt-2 text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-600"}`}>
-              {review.comment}
-            </Text>
-          </View>
-        ))}
+        <View
+          className={`rounded-2xl p-5 border items-center ${
+            isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+          }`}
+        >
+          <Ionicons name="star-outline" size={36} color={isDark ? "#6B7280" : "#D1D5DB"} />
+          <Text className={`mt-3 font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
+            No reviews yet
+          </Text>
+          <Text className={`mt-1 text-center text-[12px] ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
+            Rider reviews will appear here when the reviews endpoint is available.
+          </Text>
+        </View>
       </ScrollView>
     </View>
   );

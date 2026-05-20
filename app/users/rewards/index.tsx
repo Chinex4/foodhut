@@ -27,6 +27,7 @@ import { formatNGN } from "@/utils/money";
 import { goBackOrReplace } from "@/utils/navigation";
 
 type Tab = "REFER" | "EARN";
+const REFERRAL_BASE_URL = "https://foodhut.co";
 
 export default function ReferralsScreen() {
   const router = useRouter();
@@ -52,9 +53,13 @@ export default function ReferralsScreen() {
 
   const code = me?.referral_code ?? referrals[0]?.code ?? "—";
   const link = useMemo(() => {
-    if (me?.referral_url) return me.referral_url;
+    if (me?.referral_url) {
+      return me.referral_url.startsWith("http")
+        ? me.referral_url
+        : `${REFERRAL_BASE_URL}${me.referral_url.startsWith("/") ? "" : "/"}${me.referral_url}`;
+    }
     if (!code || code === "—") return "—";
-    return `/referrals/${code}`;
+    return `${REFERRAL_BASE_URL}/referrals/${code}`;
   }, [code, me?.referral_url]);
 
   const totalEarned = useMemo(

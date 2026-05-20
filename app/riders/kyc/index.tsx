@@ -6,7 +6,10 @@ import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { useAppSelector } from "@/store/hooks";
+import { fetchRiderProfile, submitRiderKyc } from "@/redux/logistics/logistics.thunks";
+import { selectRiderProfile } from "@/redux/logistics/logistics.selectors";
+import { showError, showSuccess } from "@/components/ui/toast";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 import VehicleStep from "@/components/riders/kyc/VehicleStep";
 import DocumentsStep from "@/components/riders/kyc/DocumentStep";
@@ -17,12 +20,18 @@ import KycProcessingModal from "@/components/riders/kyc/KycProcessingModal";
 
 export default function RiderKycScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const riderProfile = useAppSelector(selectRiderProfile);
   const [step, setStep] = useState<StepKey>("vehicle");
   const stepIndex = steps.indexOf(step);
 
   // loading / processing state
   const [submitting, setSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (!riderProfile) dispatch(fetchRiderProfile());
+  }, [dispatch, riderProfile]);
 
   // vehicle
   const [vehicleType, setVehicleType] = useState<string | null>(null);
@@ -58,36 +67,32 @@ export default function RiderKycScreen() {
     try {
       setSubmitting(true);
 
-      // build payload
-      const payload = {
-        vehicle: {
-          type: vehicleType,
-          registration_number: vehicleReg,
-        },
-        document: {
-          id_type: idType,
-          id_number: idNumber,
-          // you can send file URIs or convert to FormData here
-          files,
-        },
-        contact: {
-          name: nokName,
-          relationship: nokRelationship,
-          phone: nokPhone,
-          address: nokAddress,
-        },
-      };
-      void payload;
+      if (!riderProfile?.id) {
+        throw new Error("Rider profile is required before KYC submission.");
+      }
 
-      // TODO: replace this with real API call
-      // const res = await api.post("/riders/kyc", payload);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await dispatch(
+        submitRiderKyc({
+          rider_id: riderProfile.id,
+          id_type: idType || "",
+          id_number: idNumber,
+          id_document_id: files[0]?.id || files[0]?.name || "",
+          vehicle_type: vehicleType || "",
+          vehicle_registration_number: vehicleReg,
+          next_of_kin_full_name: nokName,
+          next_of_kin_relationship: nokRelationship,
+          next_of_kin_phone_number: nokPhone,
+          next_of_kin_address: nokAddress,
+        })
+      ).unwrap();
+
+      await dispatch(fetchRiderProfile()).unwrap();
+      showSuccess("KYC submitted for review.");
 
       // on success, go back to rider dashboard
       router.replace("/riders/(tabs)");
     } catch (e) {
-      // handle error (toast, etc.)
-      console.log("KYC submit failed", e);
+      showError(e instanceof Error ? e.message : "KYC submit failed");
     } finally {
       setSubmitting(false);
     }

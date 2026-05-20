@@ -1,9 +1,10 @@
 // app/users/riders/index.tsx
 import { emitRiderPicked } from "@/utils/riderBus.native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     FlatList,
     Pressable,
     Text,
@@ -11,8 +12,15 @@ import {
     View,
 } from "react-native";
 import CachedImageView from "@/components/ui/CachedImage";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import {
+  selectLogisticsError,
+  selectLogisticsRiders,
+  selectLogisticsStatus,
+} from "@/redux/logistics/logistics.selectors";
+import { fetchLogisticsRiders } from "@/redux/logistics/logistics.thunks";
+import type { LogisticsRider } from "@/redux/logistics/logistics.types";
 
 type Rider = {
   id: string;
@@ -22,30 +30,55 @@ type Rider = {
   rating: number;
   avatar?: string;
 };
-const MOCK: Rider[] = [
-  {
-    id: "r1",
-    name: "Prosper Chichi",
-    city: "Aba, Lagos",
-    priceLabel: "₦ 1,500–₦ 2,000",
-    rating: 5,
-  },
-  {
-    id: "r2",
-    name: "Precious Silas",
-    city: "Aba, Lagos",
-    priceLabel: "₦ 1,500–₦ 2,000",
-    rating: 3,
-  },
-];
+
+const riderName = (rider: LogisticsRider) => {
+  const fullName = [rider.user?.first_name, rider.user?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  return fullName || rider.user?.email || `Rider #${rider.id.slice(0, 6)}`;
+};
+
+const toRiderCard = (rider: LogisticsRider): Rider => ({
+  id: rider.id,
+  name: riderName(rider),
+  city: rider.logistics_company?.name
+    ? rider.logistics_company.name
+    : rider.is_available
+      ? "Available"
+      : "Unavailable",
+  priceLabel: "Make offer",
+  rating: rider.kyc?.verification_status === "VERIFIED" ? 5 : 0,
+});
 
 export default function RidersList() {
   const [q, setQ] = useState("");
+  const { order_id } = useLocalSearchParams<{ order_id?: string }>();
   const isDark = useAppSelector(selectThemeMode) === "dark";
+  const dispatch = useAppDispatch();
+  const riders = useAppSelector(selectLogisticsRiders);
+  const status = useAppSelector(selectLogisticsStatus);
+  const error = useAppSelector(selectLogisticsError);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      dispatch(
+        fetchLogisticsRiders({
+          page: 1,
+          per_page: 50,
+          is_available: true,
+          search: q.trim() || undefined,
+        })
+      );
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [dispatch, q]);
+
   const data = useMemo(() => {
+    const mapped = riders.map(toRiderCard);
     const s = q.trim().toLowerCase();
-    return s ? MOCK.filter((r) => r.name.toLowerCase().includes(s)) : MOCK;
-  }, [q]);
+    return s ? mapped.filter((r) => r.name.toLowerCase().includes(s)) : mapped;
+  }, [q, riders]);
 
   const render = ({ item }: { item: Rider }) => {
     const onPick = () => {
@@ -57,7 +90,7 @@ export default function RidersList() {
         onPress={() =>
           router.push({
             pathname: "/users/riders/[id]",
-            params: { id: item.id },
+            params: { id: item.id, order_id },
           })
         }
         className={`rounded-2xl px-3 py-3 mb-3 border ${
@@ -154,6 +187,22 @@ export default function RidersList() {
         keyExtractor={(x) => x.id}
         renderItem={render}
         contentContainerStyle={{ paddingBottom: 40 }}
+        ListHeaderComponent={
+          status === "loading" ? (
+            <View className="py-5 items-center">
+              <ActivityIndicator color="#ffa800" />
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          status !== "loading" ? (
+            <View className="items-center mt-10">
+              <Text className={isDark ? "text-neutral-400" : "text-neutral-500"}>
+                {error || "No available riders found."}
+              </Text>
+            </View>
+          ) : null
+        }
       />
     </View>
   );

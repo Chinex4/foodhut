@@ -53,6 +53,11 @@ export default function AdminProfileScreen() {
           label="View Riders"
           onPress={() => router.push("/admin/riders")}
         />
+        <Row
+          icon={<Ionicons name="cube-outline" size={18} color="#9CA3AF" />}
+          label="Logistics"
+          onPress={() => router.push("/admin/logistics" as any)}
+        />
       </ScrollView>
     </View>
   );

@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,10 +14,25 @@ import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { showSuccess } from "@/components/ui/toast";
+import { showError, showSuccess } from "@/components/ui/toast";
 import { goBackOrReplace } from "@/utils/navigation";
+import {
+  fetchBanks,
+  fetchWalletProfile,
+  resolveBankAccount,
+  withdrawFunds,
+} from "@/redux/wallet/wallet.thunks";
+import {
+  selectBanksList,
+  selectBanksStatus,
+  selectResolvedAccountName,
+  selectResolveStatus,
+  selectWalletProfileStatus,
+  selectWithdrawStatus,
+} from "@/redux/wallet/wallet.selectors";
+import { resetResolvedAccount } from "@/redux/wallet/wallet.slice";
 
 function Field({
   icon,
@@ -41,21 +58,74 @@ function Field({
 
 export default function RiderWithdrawScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
 
+  const banksStatus = useAppSelector(selectBanksStatus);
+  const banks = useAppSelector(selectBanksList);
+  const resolvedName = useAppSelector(selectResolvedAccountName);
+  const resolveStatus = useAppSelector(selectResolveStatus);
+  const walletStatus = useAppSelector(selectWalletProfileStatus);
+  const withdrawStatus = useAppSelector(selectWithdrawStatus);
   const [bankName, setBankName] = useState("");
+  const [bankQuery, setBankQuery] = useState("");
+  const [bankCode, setBankCode] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
+  const [pin, setPin] = useState("");
+  const lastResolvedKeyRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    if (banksStatus === "idle") dispatch(fetchBanks({ page: 1, per_page: 200 }));
+    if (walletStatus === "idle") dispatch(fetchWalletProfile({ as_rider: true }));
+  }, [banksStatus, dispatch, walletStatus]);
+
+  const cleanAccount = accountNumber.replace(/\D/g, "");
+  const filteredBanks = useMemo(() => {
+    if (!bankQuery.trim()) return banks;
+    const q = bankQuery.toLowerCase();
+    return banks.filter((bank) => bank.name.toLowerCase().includes(q) || bank.code.includes(bankQuery));
+  }, [bankQuery, banks]);
   const canWithdraw =
-    bankName.trim().length > 0 &&
-    accountNumber.trim().length >= 10 &&
-    Number(amount.replace(/[^0-9.]/g, "")) > 0;
+    !!resolvedName &&
+    bankCode.length > 0 &&
+    cleanAccount.length === 10 &&
+    pin.trim().length >= 4 &&
+    Number(amount.replace(/[^0-9.]/g, "")) > 0 &&
+    withdrawStatus !== "loading";
 
-  const handleWithdraw = () => {
+  useEffect(() => {
+    dispatch(resetResolvedAccount());
+    lastResolvedKeyRef.current = null;
+  }, [bankCode, accountNumber, dispatch]);
+
+  useEffect(() => {
+    if (!bankCode || cleanAccount.length !== 10 || resolveStatus === "loading") return;
+    const key = `${bankCode}:${cleanAccount}`;
+    if (lastResolvedKeyRef.current === key) return;
+    lastResolvedKeyRef.current = key;
+    dispatch(resolveBankAccount({ bank_code: bankCode, account_number: cleanAccount })).catch(() => {});
+  }, [bankCode, cleanAccount, dispatch, resolveStatus]);
+
+  const handleWithdraw = async () => {
     if (!canWithdraw) return;
-    showSuccess("Withdrawal request submitted.");
-    router.back();
+    try {
+      const amountValue = Math.round(Number(amount.replace(/[^0-9.]/g, "")));
+      const res = await dispatch(
+        withdrawFunds({
+          bank_code: bankCode,
+          account_number: cleanAccount,
+          account_name: resolvedName,
+          amount: amountValue,
+          pin: pin.trim(),
+          as_rider: true,
+        })
+      ).unwrap();
+      showSuccess(res.message);
+      router.back();
+    } catch (error: any) {
+      showError(error);
+    }
   };
 
   return (
@@ -81,13 +151,39 @@ export default function RiderWithdrawScreen() {
         <View className="flex-1 px-5 mt-2">
           <Field icon={<Ionicons name="business-outline" size={18} color="#9CA3AF" />}>
             <TextInput
-              placeholder="Bank name"
-              value={bankName}
-              onChangeText={setBankName}
+              placeholder="Select bank"
+              value={bankName || bankQuery}
+              onChangeText={(value) => {
+                setBankName("");
+                setBankCode("");
+                setBankQuery(value);
+              }}
               placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
               className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
             />
           </Field>
+
+          {(bankQuery.length > 0 || !bankCode) && (
+            <FlatList
+              data={filteredBanks}
+              keyExtractor={(bank) => bank.id}
+              style={{ maxHeight: 180, marginBottom: 12 }}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    setBankName(item.name);
+                    setBankCode(item.code);
+                    setBankQuery("");
+                  }}
+                  className={`px-3 py-3 border-b ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
+                >
+                  <Text className={isDark ? "text-white" : "text-neutral-900"}>
+                    {item.name} <Text className="text-neutral-400">({item.code})</Text>
+                  </Text>
+                </Pressable>
+              )}
+            />
+          )}
 
           <Field icon={<Ionicons name="card-outline" size={18} color="#9CA3AF" />}>
             <TextInput
@@ -95,10 +191,18 @@ export default function RiderWithdrawScreen() {
               value={accountNumber}
               onChangeText={setAccountNumber}
               keyboardType="numeric"
+              maxLength={10}
               placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
               className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
             />
           </Field>
+
+          {resolveStatus === "loading" && <ActivityIndicator color="#ffa800" />}
+          {resolvedName ? (
+            <Text className={`mb-3 font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
+              {resolvedName}
+            </Text>
+          ) : null}
 
           <Field icon={<Ionicons name="cash-outline" size={18} color="#9CA3AF" />}>
             <TextInput
@@ -111,6 +215,19 @@ export default function RiderWithdrawScreen() {
             />
           </Field>
 
+          <Field icon={<Ionicons name="keypad-outline" size={18} color="#9CA3AF" />}>
+            <TextInput
+              placeholder="Wallet PIN"
+              value={pin}
+              onChangeText={(value) => setPin(value.replace(/\D/g, "").slice(0, 6))}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={6}
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+              className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
+            />
+          </Field>
+
           <Pressable
             onPress={handleWithdraw}
             disabled={!canWithdraw}
@@ -118,7 +235,11 @@ export default function RiderWithdrawScreen() {
               canWithdraw ? "bg-primary" : "bg-neutral-400"
             }`}
           >
-            <Text className="text-white font-satoshiBold">Withdraw Funds</Text>
+            {withdrawStatus === "loading" ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-white font-satoshiBold">Withdraw Funds</Text>
+            )}
           </Pressable>
         </View>
       </KeyboardAvoidingView>

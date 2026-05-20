@@ -74,6 +74,7 @@ export default function WithdrawScreen() {
   const [bankName, setBankName] = useState<string>("");
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
+  const [pin, setPin] = useState("");
   const lastResolvedKeyRef = useRef<string | null>(null);
 
   // resolve
@@ -99,6 +100,7 @@ export default function WithdrawScreen() {
   const canWithdraw =
     !!resolvedName &&
     Number(amount.replace(/[^0-9.]/g, "")) > 0 &&
+    pin.trim().length >= 4 &&
     canResolve &&
     !busy;
 
@@ -124,6 +126,7 @@ export default function WithdrawScreen() {
           account_number: cleanAccount,
           account_name: resolvedName as string,
           amount: amt,
+          pin: pin.trim(),
         })
       ).unwrap();
       showSuccess(res.message);
@@ -317,6 +320,19 @@ export default function WithdrawScreen() {
               onChangeText={setAmount}
               keyboardType="numeric"
               placeholder="Amount"
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+              className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
+            />
+          </Field>
+
+          <Field icon={<Ionicons name="keypad-outline" size={18} color="#9CA3AF" />}>
+            <TextInput
+              value={pin}
+              onChangeText={(value) => setPin(value.replace(/\D/g, "").slice(0, 6))}
+              keyboardType="number-pad"
+              secureTextEntry
+              placeholder="Wallet PIN"
+              maxLength={6}
               placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
               className={`font-satoshi ${isDark ? "text-white" : "text-neutral-900"}`}
             />

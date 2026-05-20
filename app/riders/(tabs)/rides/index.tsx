@@ -1,24 +1,77 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
-import { mockRiderHistory } from "@/utils/mock/mockRider";
+import { fetchDeliveries, fetchRiderProfile } from "@/redux/logistics/logistics.thunks";
+import {
+  selectDeliveries,
+  selectLogisticsStatus,
+  selectRiderProfile,
+} from "@/redux/logistics/logistics.selectors";
+import type { Delivery, DeliveryStatus } from "@/redux/logistics/logistics.types";
+import { formatNGN } from "@/utils/money";
 
-type RideStatus = "completed" | "cancelled";
+type RideFilter = "completed" | "cancelled" | "active" | "all";
+
+const getPickup = (delivery: Delivery) =>
+  String(
+    delivery.pickup_address ??
+      delivery.order?.kitchen?.address ??
+      delivery.order?.kitchen?.location ??
+      "Pickup pending"
+  );
+
+const getDropoff = (delivery: Delivery) =>
+  String(
+    delivery.dropoff_address ??
+      delivery.delivery_address ??
+      delivery.order?.delivery_address ??
+      "Dropoff pending"
+  );
+
+const isActive = (status: DeliveryStatus) =>
+  ["ASSIGNED", "AWAITING_PICKUP", "PICKED_UP", "IN_TRANSIT"].includes(status);
+
+const formatDate = (value: number | string) => {
+  const numeric = Number(value);
+  const date = Number.isFinite(numeric)
+    ? new Date(numeric < 1000000000000 ? numeric * 1000 : numeric)
+    : new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString();
+};
 
 export default function RiderRidesScreen() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
-  const [filter, setFilter] = useState<RideStatus | "all">("all");
+  const dispatch = useAppDispatch();
+  const riderProfile = useAppSelector(selectRiderProfile);
+  const deliveries = useAppSelector(selectDeliveries);
+  const logisticsStatus = useAppSelector(selectLogisticsStatus);
+  const [filter, setFilter] = useState<RideFilter>("all");
+
+  useEffect(() => {
+    dispatch(fetchRiderProfile());
+  }, [dispatch]);
+
+  useEffect(() => {
+    dispatch(fetchDeliveries({ page: 1, per_page: 50, rider_id: riderProfile?.id }));
+  }, [dispatch, riderProfile?.id]);
 
   const filtered = useMemo(
     () =>
-      mockRiderHistory.filter((r) =>
-        filter === "all" ? true : r.status === filter
-      ),
-    [filter]
+      deliveries
+        .filter((delivery) => !riderProfile?.id || delivery.rider_id === riderProfile.id)
+        .filter((delivery) => {
+          if (filter === "all") return true;
+          if (filter === "completed") return delivery.delivery_status === "DELIVERED";
+          if (filter === "cancelled") {
+            return delivery.delivery_status === "CANCELLED" || delivery.delivery_status === "FAILED";
+          }
+          return isActive(delivery.delivery_status);
+        }),
+    [deliveries, filter, riderProfile?.id]
   );
 
   return (
@@ -32,18 +85,17 @@ export default function RiderRidesScreen() {
 
         <View className={`flex-row rounded-full p-1 ${isDark ? "bg-neutral-800" : "bg-white"}`}>
           {[
-            { key: "completed" as const, label: "Completed" },
-            { key: "cancelled" as const, label: "Cancelled" },
             { key: "all" as const, label: "All" },
+            { key: "active" as const, label: "Active" },
+            { key: "completed" as const, label: "Done" },
+            { key: "cancelled" as const, label: "Failed" },
           ].map((opt) => {
             const active = filter === opt.key;
             return (
               <Pressable
                 key={opt.key}
                 onPress={() => setFilter(opt.key)}
-                className={`flex-1 px-3 py-1.5 rounded-full items-center ${
-                  active ? "bg-primary" : ""
-                }`}
+                className={`flex-1 px-2 py-1.5 rounded-full items-center ${active ? "bg-primary" : ""}`}
               >
                 <Text
                   className={`text-[12px] font-satoshiMedium ${
@@ -66,19 +118,25 @@ export default function RiderRidesScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
       >
-        {filtered.map((ride) => (
+        {logisticsStatus === "loading" && !filtered.length ? (
+          <View className="items-center mt-10">
+            <ActivityIndicator color="#F59E0B" />
+          </View>
+        ) : null}
+
+        {filtered.map((delivery) => (
           <View
-            key={ride.id}
+            key={delivery.id}
             className={`rounded-3xl px-4 py-4 mb-3 border ${
               isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
             }`}
           >
             <View className="flex-row items-center justify-between mb-1">
               <Text className={`text-[13px] font-satoshiMedium ${isDark ? "text-white" : "text-neutral-900"}`}>
-                Order ID: {ride.id}
+                Delivery #{delivery.id.slice(0, 8)}
               </Text>
               <Text className={`text-[11px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
-                {ride.date}
+                {formatDate(delivery.created_at)}
               </Text>
             </View>
 
@@ -93,13 +151,13 @@ export default function RiderRidesScreen() {
                   Pickup
                 </Text>
                 <Text className={`text-[13px] font-satoshiMedium mb-2 ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
-                  {ride.pickup}
+                  {getPickup(delivery)}
                 </Text>
                 <Text className={`text-[12px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
                   Dropoff
                 </Text>
                 <Text className={`text-[13px] font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
-                  {ride.dropoff}
+                  {getDropoff(delivery)}
                 </Text>
               </View>
             </View>
@@ -113,25 +171,16 @@ export default function RiderRidesScreen() {
                   style={{ marginRight: 4 }}
                 />
                 <Text className={`text-[13px] font-satoshiMedium ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
-                  {ride.amount}
+                  {formatNGN(delivery.delivery_fee ?? delivery.earning?.amount ?? 0)}
                 </Text>
               </View>
 
-              <View className="flex-row items-center">
-                <StatusPill status={ride.status} />
-                <Pressable className="ml-3 flex-row items-center">
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={isDark ? "#6B7280" : "#D1D5DB"}
-                  />
-                </Pressable>
-              </View>
+              <StatusPill status={delivery.delivery_status} />
             </View>
           </View>
         ))}
 
-        {filtered.length === 0 && (
+        {filtered.length === 0 && logisticsStatus !== "loading" && (
           <View className="mt-10 items-center">
             <Ionicons name="bicycle-outline" size={42} color={isDark ? "#6B7280" : "#D1D5DB"} />
             <Text className={`mt-3 text-[13px] font-satoshi ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>
@@ -144,15 +193,15 @@ export default function RiderRidesScreen() {
   );
 }
 
-function StatusPill({ status }: { status: RideStatus }) {
-  const isCancelled = status === "cancelled";
-  const bg = isCancelled ? "bg-rose-100" : "bg-emerald-100";
-  const text = isCancelled ? "text-rose-700" : "text-emerald-700";
-  const label = isCancelled ? "Cancelled" : "Completed";
+function StatusPill({ status }: { status: DeliveryStatus }) {
+  const isBad = status === "CANCELLED" || status === "FAILED";
+  const isDone = status === "DELIVERED";
+  const bg = isBad ? "bg-rose-100" : isDone ? "bg-emerald-100" : "bg-amber-100";
+  const text = isBad ? "text-rose-700" : isDone ? "text-emerald-700" : "text-amber-700";
 
   return (
     <View className={`px-3 py-1 rounded-full ${bg}`}>
-      <Text className={`text-[11px] font-satoshiMedium ${text}`}>{label}</Text>
+      <Text className={`text-[11px] font-satoshiMedium ${text}`}>{status}</Text>
     </View>
   );
 }

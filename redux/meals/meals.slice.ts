@@ -31,6 +31,8 @@ const upsert = (state: MealsState, m: Meal) => {
   state.entities[m.id] = m;
 };
 
+const uniqueMealIds = (items: Meal[]) => Array.from(new Set(items.map((m) => m.id)));
+
 const mealsSlice = createSlice({
   name: "meals",
   initialState,
@@ -64,7 +66,7 @@ const mealsSlice = createSlice({
       .addCase(fetchMeals.fulfilled, (state, a) => {
         state.listStatus = "succeeded";
         const { items, meta } = a.payload;
-        state.lastListIds = items.map((m) => m.id);
+        state.lastListIds = uniqueMealIds(items);
         state.lastListMeta = meta;
         items.forEach((m) => upsert(state, m));
       })

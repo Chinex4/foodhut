@@ -7,7 +7,8 @@ import SettingsTab from "@/app/kitchen/components/SettingsTab";
 import { useKitchenData } from "@/app/kitchen/hooks/useKitchenData";
 import { useAppDispatch } from "@/store/hooks";
 import {
-  updateKitchenByProfile,
+  fetchKitchenProfile,
+  updateKitchenById,
 } from "@/redux/kitchen/kitchen.thunks";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
@@ -18,11 +19,13 @@ export default function KitchenSettingsScreen() {
   const palette = getKitchenPalette(isDark);
 
   const [closingTime, setClosingTime] = useState("");
+  const [openingTime, setOpeningTime] = useState("");
   const [isAvailable, setIsAvailable] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (kitchen) {
+      setOpeningTime(kitchen.opening_time || "");
       setClosingTime(kitchen.closing_time || "");
       setIsAvailable(Boolean(kitchen.is_available));
     }
@@ -41,11 +44,18 @@ export default function KitchenSettingsScreen() {
     setSaving(true);
     try {
       await dispatch(
-        updateKitchenByProfile({
-          closing_time: closingTime.trim(),
-          is_available: isAvailable,
+        updateKitchenById({
+          id: kitchen.id,
+          body: {
+            opening_time: openingTime.trim(),
+            closing_time: closingTime.trim(),
+            is_available: isAvailable,
+            profile_picture_id: kitchen.profile_picture_id ?? undefined,
+            cover_image_id: kitchen.cover_image_id ?? undefined,
+          },
         })
       ).unwrap();
+      await dispatch(fetchKitchenProfile()).unwrap();
       showSuccess("Kitchen updated");
     } catch (err: any) {
       showError(err?.message || "Failed to update kitchen");
@@ -73,8 +83,10 @@ export default function KitchenSettingsScreen() {
         kitchen={kitchen}
         isDark={isDark}
         closingTime={closingTime}
+        openingTime={openingTime}
         isAvailable={isAvailable}
         onChangeClosingTime={setClosingTime}
+        onChangeOpeningTime={setOpeningTime}
         onChangeAvailable={setIsAvailable}
         onUpdateCover={handleUpdateCover}
         onUpdateProfilePic={handleUpdateProfilePic}

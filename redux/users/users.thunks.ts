@@ -22,6 +22,7 @@ type BackendProfileUser = {
   is_verified: boolean;
   role: string;
   has_kitchen: boolean;
+  has_rider?: boolean;
   profile_picture_id: string | null;
   created_at: number;
   updated_at: number | null;
@@ -47,6 +48,7 @@ type BackendUserById = {
   is_verified: boolean;
   role: string;
   has_kitchen: boolean;
+  has_rider?: boolean;
   profile_picture_id: string | null;
   created_at: number;
   updated_at: number | null;
@@ -65,6 +67,7 @@ const toUser = (data: BackendProfileUser | BackendUserById): User => {
     first_name: data.first_name,
     last_name: data.last_name,
     has_kitchen: data.has_kitchen ?? false,
+    has_rider: data.has_rider ?? false,
     role: data.role,
     birthday: null,
     referral_code: "referral" in data ? data.referral?.code ?? null : null,
@@ -99,6 +102,7 @@ export const fetchMyProfile = createAsyncThunk<User, void, { rejectValue: string
           last_name: user.last_name,
           role: user.role,
           has_kitchen: user.has_kitchen,
+          has_rider: user.has_rider,
         })
       );
 

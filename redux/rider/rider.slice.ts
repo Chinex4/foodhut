@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { RiderState } from "./rider.type";
 import { createRider } from "./rider.thunk";
 
-const initialState: RiderState = { status: "idle", error: null };
+const initialState: RiderState = { status: "idle", error: null, riderId: null };
 
 const riderSlice = createSlice({
   name: "rider",
@@ -15,8 +15,9 @@ const riderSlice = createSlice({
       s.status = "loading";
       s.error = null;
     });
-    b.addCase(createRider.fulfilled, (s) => {
+    b.addCase(createRider.fulfilled, (s, a) => {
       s.status = "succeeded";
+      s.riderId = a.payload.riderId;
     });
     b.addCase(createRider.rejected, (s, a) => {
       s.status = "failed";

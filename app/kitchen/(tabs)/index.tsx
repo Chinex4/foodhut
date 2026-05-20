@@ -16,6 +16,7 @@ import { formatNGN } from "@/utils/money";
 import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
 import { selectWalletBalanceNumber, selectWalletProfileStatus } from "@/redux/wallet/wallet.selectors";
 import CachedImageView from "@/components/ui/CachedImage";
+import { selectUnreadNotificationsCount } from "@/redux/notifications/notifications.selectors";
 
 export default function KitchenDashboardScreen() {
   const dispatch = useAppDispatch();
@@ -26,6 +27,7 @@ export default function KitchenDashboardScreen() {
 
   const walletBalance = useAppSelector(selectWalletBalanceNumber);
   const walletStatus = useAppSelector(selectWalletProfileStatus);
+  const unreadNotifications = useAppSelector(selectUnreadNotificationsCount);
 
   React.useEffect(() => {
     if (walletStatus === "idle") {
@@ -147,13 +149,27 @@ export default function KitchenDashboardScreen() {
             </View>
           </View>
 
-          <Pressable
-            onPress={toggleTheme}
-            className="w-11 h-11 rounded-full items-center justify-center"
-            style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
-          >
-            <Ionicons name={isDark ? "sunny" : "moon"} size={20} color={palette.textPrimary} />
-          </Pressable>
+          <View className="flex-row">
+            <Pressable
+              onPress={() => router.push("/notifications" as any)}
+              className="w-11 h-11 rounded-full items-center justify-center mr-2"
+              style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
+            >
+              <Ionicons name="notifications-outline" size={20} color={palette.textPrimary} />
+              {unreadNotifications > 0 ? (
+                <View className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 items-center justify-center">
+                  <Text className="text-white text-[9px] font-satoshiBold">{unreadNotifications}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+            <Pressable
+              onPress={toggleTheme}
+              className="w-11 h-11 rounded-full items-center justify-center"
+              style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
+            >
+              <Ionicons name={isDark ? "sunny" : "moon"} size={20} color={palette.textPrimary} />
+            </Pressable>
+          </View>
         </View>
 
         <View className="rounded-[30px] mt-7 p-6" style={{ backgroundColor: palette.accent }}>

@@ -78,6 +78,7 @@ export default function DocumentsStep({
       </Text>
       <SimpleSelect
         placeholder="Select ID Type"
+        title="Select ID Type"
         value={idType}
         options={ID_TYPES}
         onChange={setIdType}
@@ -146,9 +147,6 @@ export default function DocumentsStep({
               </Text>
               <Text className={`text-xs font-satoshi mb-1 ${isDark ? "text-neutral-500" : "text-gray-500"}`}>
                 {file.sizeLabel}
-              </Text>
-              <Text className="text-xs font-satoshi text-primary">
-                Tap preview above to view full image
               </Text>
             </View>
 

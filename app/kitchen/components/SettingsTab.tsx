@@ -9,8 +9,10 @@ type Props = {
   kitchen: Kitchen | null;
   isDark: boolean;
   closingTime: string;
+  openingTime: string;
   isAvailable: boolean;
   onChangeClosingTime: (v: string) => void;
+  onChangeOpeningTime: (v: string) => void;
   onChangeAvailable: (v: boolean) => void;
   onUpdateCover: () => void;
   onUpdateProfilePic: () => void;
@@ -22,8 +24,10 @@ export default function SettingsTab({
   kitchen,
   isDark,
   closingTime,
+  openingTime,
   isAvailable,
   onChangeClosingTime,
+  onChangeOpeningTime,
   onChangeAvailable,
   onUpdateCover,
   onUpdateProfilePic,
@@ -38,7 +42,7 @@ export default function SettingsTab({
         Kitchen Settings
       </Text>
       <Text className="text-[13px] mt-1" style={{ color: palette.textSecondary }}>
-        Update your storefront status and closing time.
+        Update your storefront status and operating hours.
       </Text>
 
       <View
@@ -107,12 +111,26 @@ export default function SettingsTab({
 
         <View className="mt-4">
           <Text className="text-[13px] mb-1" style={{ color: palette.textSecondary }}>
+            Opening Time
+          </Text>
+          <TextInput
+            value={openingTime}
+            onChangeText={onChangeOpeningTime}
+            placeholder="08:00 AM"
+            placeholderTextColor={palette.textMuted}
+            className="rounded-2xl px-3 py-3 font-satoshi text-[15px]"
+            style={{ backgroundColor: palette.surfaceAlt, color: palette.textPrimary }}
+          />
+        </View>
+
+        <View className="mt-4">
+          <Text className="text-[13px] mb-1" style={{ color: palette.textSecondary }}>
             Closing Time
           </Text>
           <TextInput
             value={closingTime}
             onChangeText={onChangeClosingTime}
-            placeholder="12:00"
+            placeholder="10:00 PM"
             placeholderTextColor={palette.textMuted}
             className="rounded-2xl px-3 py-3 font-satoshi text-[15px]"
             style={{ backgroundColor: palette.surfaceAlt, color: palette.textPrimary }}

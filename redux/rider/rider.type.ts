@@ -7,4 +7,5 @@ export type CreateRiderPayload = {
 export type RiderState = {
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
+  riderId: string | null;
 };

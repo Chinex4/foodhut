@@ -26,6 +26,14 @@ type BackendMeal = {
     url?: string | null;
     meta?: Record<string, string | null | undefined> | null;
   } | null;
+  kitchen?: {
+    name?: string;
+    cover_image?: {
+      id?: string;
+      url?: string | null;
+      meta?: Record<string, string | null | undefined> | null;
+    } | null;
+  } | null;
   discount: Meal["discount"];
   created_at: number;
   updated_at: number | null;
@@ -116,6 +124,7 @@ export const fetchMeals = createAsyncThunk<
       kitchen_id: query?.kitchen_id,
       search: query?.search,
       is_liked: boolToQueryString(query?.is_liked),
+      city: query?.city,
     });
 
     const { data } = await api.get<FetchMealsSuccessResponse>("/meals", { params });

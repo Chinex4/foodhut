@@ -10,6 +10,7 @@ import {
   getToken,
   saveToken,
 } from "@/storage/auth";
+import { clearLastDashboard } from "@/storage/dashboard";
 
 type VerifyOtpSuccessResponse = {
   data: {
@@ -158,4 +159,5 @@ export const logout = createAsyncThunk<void, void>("auth/logout", async () => {
   await clearToken();
   await clearRefreshToken();
   await clearUser();
+  await clearLastDashboard();
 });

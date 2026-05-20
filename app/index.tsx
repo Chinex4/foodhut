@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { Image, StyleSheet, View } from "react-native";
 
+import { getLastDashboard } from "@/storage/dashboard";
 import { STORAGE_KEYS } from "@/storage/keys";
 
 export default function Splash() {
@@ -26,7 +27,16 @@ export default function Splash() {
         if (!isMounted) return;
 
         if (token) {
-          router.replace("/users/(tabs)");
+          const dashboard = await getLastDashboard();
+          if (!isMounted) return;
+
+          if (dashboard === "riders") {
+            router.replace("/riders/(tabs)");
+          } else if (dashboard === "kitchen") {
+            router.replace("/kitchen/(tabs)");
+          } else {
+            router.replace("/users/(tabs)");
+          }
         } else if (!hasOnboarded) {
           router.replace("/onboarding");
         } else {

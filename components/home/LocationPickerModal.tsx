@@ -4,7 +4,7 @@ import {
 } from "@/redux/kitchen/kitchen.selectors";
 import { fetchKitchenCities } from "@/redux/kitchen/kitchen.thunks";
 import type { KitchenCity } from "@/redux/kitchen/kitchen.types";
-import { saveSelectedCity } from "@/storage/city";
+import { clearSelectedCity, saveSelectedCity } from "@/storage/city";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -24,7 +24,7 @@ import {
 interface LocationPickerModalProps {
   visible: boolean;
   onClose: () => void;
-  onCitySelect: (city: KitchenCity) => void;
+  onCitySelect: (city: KitchenCity | null) => void;
   selectedCity: KitchenCity | null;
 }
 
@@ -88,6 +88,12 @@ export default function LocationPickerModal({
   const handleCitySelect = async (city: KitchenCity) => {
     await saveSelectedCity(city);
     onCitySelect(city);
+    onClose();
+  };
+
+  const handleAllCitiesSelect = async () => {
+    await clearSelectedCity();
+    onCitySelect(null);
     onClose();
   };
 
@@ -184,6 +190,51 @@ export default function LocationPickerModal({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 12 }}
         >
+          <Pressable
+            onPress={handleAllCitiesSelect}
+            className={`flex-row items-center justify-between py-4 px-4 mb-2 rounded-2xl border-2 ${
+              !selectedCity
+                ? "border-primary"
+                : isDark
+                  ? "border-neutral-800 bg-neutral-900"
+                  : "border-neutral-100 bg-white"
+            }`}
+          >
+            <View className="flex-1">
+              <View className="flex-row items-center">
+                <MaterialCommunityIcons
+                  name="earth"
+                  size={20}
+                  color={!selectedCity ? "#ffa800" : isDark ? "#9CA3AF" : "#9CA3AF"}
+                />
+                <Text
+                  className={`ml-3 text-lg font-satoshiMedium ${
+                    !selectedCity
+                      ? "text-primary"
+                      : isDark
+                        ? "text-neutral-100"
+                        : "text-neutral-900"
+                  }`}
+                >
+                  All cities
+                </Text>
+              </View>
+              <Text
+                className={`text-sm font-satoshi ml-7 mt-1 ${
+                  isDark ? "text-neutral-400" : "text-neutral-500"
+                }`}
+              >
+                Show meals and kitchens from every city
+              </Text>
+            </View>
+
+            {!selectedCity && (
+              <View className="w-6 h-6 rounded-full bg-primary items-center justify-center">
+                <MaterialCommunityIcons name="check" size={16} color="white" />
+              </View>
+            )}
+          </Pressable>
+
           {citiesStatus === "loading" ? (
             <View className="py-12 items-center justify-center">
               <ActivityIndicator size="large" color="#ffa800" />
@@ -295,7 +346,7 @@ export default function LocationPickerModal({
             >
               {selectedCity
                 ? `Currently in ${selectedCity.name}`
-                : "Select a city to see available restaurants"}
+                : "Showing meals and kitchens from all cities"}
             </Text>
           </View>
         )}

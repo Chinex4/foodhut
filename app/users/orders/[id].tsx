@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchOrderById, payForOrder } from "@/redux/orders/orders.thunks";
@@ -18,6 +18,13 @@ import { setCartItem } from "@/redux/cart/cart.thunks";
 import { useEnsureAuthenticated } from "@/hooks/useEnsureAuthenticated";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { goBackOrReplace } from "@/utils/navigation";
+import { selectOffersForOrder } from "@/redux/logistics/logistics.selectors";
+import {
+  acceptDeliveryOffer,
+  counterDeliveryOffer,
+  fetchDeliveryOffers,
+  rejectDeliveryOffer,
+} from "@/redux/logistics/logistics.thunks";
 
 export default function OrderDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,6 +36,9 @@ export default function OrderDetails() {
   const { isAuthenticated, redirectToLogin } = useEnsureAuthenticated();
   const canRepeat = order?.status === "DELIVERED";
   const canPay = order?.status === "AWAITING_PAYMENT";
+  const [counterAmount, setCounterAmount] = useState<Record<string, string>>({});
+  const offersSelector = useMemo(() => selectOffersForOrder(id!), [id]);
+  const offers = useAppSelector(offersSelector);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -38,7 +48,26 @@ export default function OrderDetails() {
 
   useEffect(() => {
     if (!order) dispatch(fetchOrderById(id!));
+    dispatch(fetchDeliveryOffers(id!));
   }, [id, order, dispatch]);
+
+  const offerAction = async (
+    action: "accept" | "reject" | "counter",
+    offerId: string
+  ) => {
+    try {
+      if (action === "accept") await dispatch(acceptDeliveryOffer(offerId)).unwrap();
+      if (action === "reject") await dispatch(rejectDeliveryOffer(offerId)).unwrap();
+      if (action === "counter") {
+        const amount = Number(counterAmount[offerId]);
+        if (!amount) return;
+        await dispatch(counterDeliveryOffer({ offer_id: offerId, amount })).unwrap();
+      }
+      showSuccess("Delivery offer updated");
+    } catch (err: any) {
+      showError(err);
+    }
+  };
 
   if (!order || status === "loading")
     return (
@@ -116,6 +145,68 @@ export default function OrderDetails() {
                 {formatNGN(order.total)}
               </Text>
             </View>
+            {offers.length > 0 ? (
+              <View className="mt-6">
+                <Text className={`font-satoshiBold mb-3 ${isDark ? "text-white" : "text-neutral-900"}`}>
+                  Delivery offers
+                </Text>
+                {offers.map((offer) => (
+                  <View
+                    key={offer.id}
+                    className={`rounded-2xl p-3 mb-3 border ${isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"}`}
+                  >
+                    <View className="flex-row justify-between">
+                      <Text className={isDark ? "text-neutral-300" : "text-neutral-600"}>
+                        Rider #{offer.rider_id.slice(0, 8)}
+                      </Text>
+                      <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
+                        {formatNGN(offer.amount)}
+                      </Text>
+                    </View>
+                    <Text className="text-primary font-satoshiBold mt-1">{offer.status}</Text>
+                    {offer.status !== "ACCEPTED" && offer.status !== "REJECTED" ? (
+                      <>
+                        <View className="flex-row mt-3">
+                          <Pressable
+                            onPress={() => offerAction("accept", offer.id)}
+                            className="flex-1 bg-primary rounded-xl py-3 items-center mr-2"
+                          >
+                            <Text className="text-white font-satoshiBold">Accept</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => offerAction("reject", offer.id)}
+                            className={`flex-1 rounded-xl py-3 items-center ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}
+                          >
+                            <Text className={isDark ? "text-neutral-200" : "text-neutral-700"}>Reject</Text>
+                          </Pressable>
+                        </View>
+                        <View className="flex-row mt-3">
+                          <TextInput
+                            value={counterAmount[offer.id] || ""}
+                            onChangeText={(value) =>
+                              setCounterAmount((prev) => ({
+                                ...prev,
+                                [offer.id]: value.replace(/[^0-9]/g, ""),
+                              }))
+                            }
+                            keyboardType="number-pad"
+                            placeholder="Counter amount"
+                            placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                            className={`flex-1 rounded-xl px-3 py-3 mr-2 ${isDark ? "bg-neutral-800 text-white" : "bg-neutral-100 text-neutral-900"}`}
+                          />
+                          <Pressable
+                            onPress={() => offerAction("counter", offer.id)}
+                            className="px-4 rounded-xl bg-primary items-center justify-center"
+                          >
+                            <Text className="text-white font-satoshiBold">Send</Text>
+                          </Pressable>
+                        </View>
+                      </>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            ) : null}
             {canPay && (
               <Pressable
                 onPress={async () => {

@@ -54,6 +54,7 @@ export type CreateBankAccountPayload = {
 export type TopupPayload = {
   amount: number;
   as_kitchen?: boolean;
+  as_rider?: boolean;
   wallet_id?: string;
 };
 
@@ -66,8 +67,14 @@ export type WithdrawPayload = {
   bank_code: string;
   account_name: string;
   amount: number | string;
+  pin?: string;
   as_kitchen?: boolean;
+  as_rider?: boolean;
   wallet_id?: string;
+};
+
+export type SetWalletPinPayload = {
+  pin: string;
 };
 
 export type MessageResult = { message: string };
@@ -93,6 +100,9 @@ export type WalletState = {
 
   withdrawStatus: WalletStatus;
   lastWithdrawMessage: string | null;
+
+  setPinStatus: WalletStatus;
+  lastSetPinMessage: string | null;
 
   error: string | null;
 };

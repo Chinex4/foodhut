@@ -16,6 +16,7 @@ import {
   selectRiderError,
   selectRiderStatus,
 } from "@/redux/rider/rider.selectors";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 
 const digitsOnly = (s: string) => s.replace(/\D+/g, "");
 function sanitizeLocal(dial: string, raw: string) {
@@ -53,6 +54,7 @@ export default function RiderRegisterScreen() {
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectRiderStatus);
   const error = useAppSelector(selectRiderError);
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const loading = status === "loading";
 
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -97,22 +99,41 @@ export default function RiderRegisterScreen() {
     }
   });
 
+  const inputClass = `rounded-xl px-4 py-3 text-base font-satoshi ${
+    isDark ? "bg-neutral-900 text-white border border-neutral-800" : "bg-gray-100 text-neutral-900"
+  }`;
+  const labelClass = `mt-4 mb-2 text-sm font-satoshiMedium ${
+    isDark ? "text-neutral-200" : "text-black"
+  }`;
+  const placeholderColor = isDark ? "#6B7280" : "#9CA3AF";
+
   return (
-    <SafeAreaView className="flex-1 bg-primary-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-primary-50"}`}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <KeyboardAwareScrollView
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        extraScrollHeight={24}
+        extraHeight={120}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: 16, paddingBottom: 36, flexGrow: 1 }}
       >
-        <Text className="text-3xl font-satoshiBold text-black mt-2">
+        <Text
+          className={`text-3xl font-satoshiBold mt-2 ${
+            isDark ? "text-white" : "text-black"
+          }`}
+        >
           Rider Sign Up
         </Text>
-        <Text className="text-base text-gray-600 font-satoshi mt-1">
+        <Text
+          className={`text-base font-satoshi mt-1 ${
+            isDark ? "text-neutral-400" : "text-gray-600"
+          }`}
+        >
           Basic details to start delivering.
         </Text>
 
-        <Text className="mt-6 mb-2 text-sm text-black font-satoshiMedium">
+        <Text className={`${labelClass} mt-6`}>
           Full Name
         </Text>
         <Controller
@@ -124,7 +145,8 @@ export default function RiderRegisterScreen() {
               onChangeText={onChange}
               onBlur={onBlur}
               placeholder="Enter full name"
-              className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+              placeholderTextColor={placeholderColor}
+              className={inputClass}
             />
           )}
         />
@@ -134,7 +156,7 @@ export default function RiderRegisterScreen() {
           </Text>
         )}
 
-        <Text className="mt-4 mb-2 text-sm text-black font-satoshiMedium">
+        <Text className={labelClass}>
           Email
         </Text>
         <Controller
@@ -148,7 +170,8 @@ export default function RiderRegisterScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               placeholder="Enter email"
-              className="bg-gray-100 rounded-xl px-4 py-3 text-base font-satoshi"
+              placeholderTextColor={placeholderColor}
+              className={inputClass}
             />
           )}
         />
@@ -158,17 +181,32 @@ export default function RiderRegisterScreen() {
           </Text>
         )}
 
-        <Text className="mt-4 mb-2 text-sm text-black font-satoshiMedium">
+        <Text className={labelClass}>
           Phone Number
         </Text>
-        <View className="bg-gray-100 rounded-xl px-3 py-1 flex-row items-center">
+        <View
+          className={`rounded-xl px-3 py-1 flex-row items-center ${
+            isDark ? "bg-neutral-900 border border-neutral-800" : "bg-gray-100"
+          }`}
+        >
           <Pressable
             onPress={() => setPickerOpen(true)}
             className="flex-row items-center px-2 py-2 mr-2 rounded-lg"
           >
             <Text className="text-lg mr-2">{country.flag}</Text>
-            <Text className="text-base font-satoshiMedium">{country.dial}</Text>
-            <Ionicons name="chevron-down" size={16} style={{ marginLeft: 4 }} />
+            <Text
+              className={`text-base font-satoshiMedium ${
+                isDark ? "text-white" : "text-neutral-900"
+              }`}
+            >
+              {country.dial}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={16}
+              color={isDark ? "#E5E7EB" : "#111827"}
+              style={{ marginLeft: 4 }}
+            />
           </Pressable>
           <Controller
             control={control}
@@ -180,7 +218,10 @@ export default function RiderRegisterScreen() {
                 onBlur={onBlur}
                 keyboardType={Platform.OS === "ios" ? "number-pad" : "numeric"}
                 placeholder="e.g. 7049938128"
-                className="flex-1 text-base font-satoshi py-2"
+                placeholderTextColor={placeholderColor}
+                className={`flex-1 text-base font-satoshi py-2 ${
+                  isDark ? "text-white" : "text-neutral-900"
+                }`}
               />
             )}
           />

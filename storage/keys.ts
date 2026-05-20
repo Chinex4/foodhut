@@ -4,4 +4,5 @@ export const STORAGE_KEYS = {
   HAS_ONBOARDED: "@foodhut_has_onboarded", 
   USER: "@foodhut/user",
   SELECTED_CITY: "@foodhut/selected_city",
+  LAST_DASHBOARD: "@foodhut/last_dashboard",
 } as const;

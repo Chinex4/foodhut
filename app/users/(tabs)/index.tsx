@@ -14,7 +14,9 @@ import {
   makeSelectTrendingDiscounts,
   selectMealsError,
   selectMealsListStatus,
+  selectMealsQuery,
 } from "@/redux/meals/meals.selectors";
+import { selectUnreadNotificationsCount } from "@/redux/notifications/notifications.selectors";
 import { fetchMeals } from "@/redux/meals/meals.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { selectFetchMeStatus, selectMe } from "@/redux/users/users.selectors";
@@ -32,9 +34,10 @@ export default function HomeScreen() {
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const status = useAppSelector(selectMealsListStatus);
+  const mealsQuery = useAppSelector(selectMealsQuery);
   const fetchMestatus = useAppSelector(selectFetchMeStatus);
   const error = useAppSelector(selectMealsError);
-  const { selectedCity, updateCity } = useSelectedCity();
+  const { selectedCity, updateCity, removeCity } = useSelectedCity();
   const [locationModalVisible, setLocationModalVisible] = useState(false);
 
   const trendingSel = useMemo(() => makeSelectTrendingDiscounts(10), []);
@@ -44,22 +47,34 @@ export default function HomeScreen() {
   const popular = useAppSelector(popularSel);
   const me = useAppSelector(selectMe);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const unreadNotifications = useAppSelector(selectUnreadNotificationsCount);
   const router = useRouter();
   const { ensureAuth } = useEnsureAuthenticated();
 
   useEffect(() => {
-    if (status === "idle") {
-      dispatch(fetchMeals({ page: 1, per_page: 50 }));
+    const city = selectedCity?.name?.trim();
+    const needsMeals =
+      status === "idle" ||
+      mealsQuery?.page !== 1 ||
+      mealsQuery?.per_page !== 50 ||
+      (mealsQuery?.city ?? undefined) !== (city || undefined);
+
+    if (needsMeals && status !== "loading") {
+      dispatch(fetchMeals({ page: 1, per_page: 50, city }));
     }
-  }, [status, dispatch]);
+  }, [dispatch, mealsQuery, selectedCity?.name, status]);
   useEffect(() => {
     if (fetchMestatus === "idle" && isAuthenticated) {
       dispatch(fetchMyProfile());
     }
   }, [fetchMestatus, dispatch, isAuthenticated]);
 
-  const handleCitySelect = (city: KitchenCity) => {
-    updateCity(city);
+  const handleCitySelect = (city: KitchenCity | null) => {
+    if (city) {
+      updateCity(city);
+    } else {
+      removeCity();
+    }
   };
 
   return (
@@ -89,29 +104,34 @@ export default function HomeScreen() {
               </Text>
             </View>
 
-            {/* Location Icon Button */}
-            <Pressable
-              onPress={() => setLocationModalVisible(true)}
-              className={`ml-4 w-14 h-14 rounded-full ${isDark ? "bg-neutral-800" : "bg-white"} bg-white items-center justify-center shadow-md ${isDark ? "active:bg-neutral-800" : "active:bg-neutral-50"}`}
-              style={Platform.select({ android: { elevation: 3 } })}
-            >
-              <View>
-                <MaterialCommunityIcons
-                  name="map-marker"
-                  size={28}
-                  color="#ffa800"
-                />
-                {selectedCity && (
-                  <View className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary items-center justify-center">
-                    <MaterialCommunityIcons
-                      name="check"
-                      size={10}
-                      color="white"
-                    />
+            <View className="flex-row ml-4">
+              <Pressable
+                onPress={() => router.push("/notifications" as any)}
+                className={`w-14 h-14 rounded-full ${isDark ? "bg-neutral-800" : "bg-white"} items-center justify-center shadow-md mr-2`}
+                style={Platform.select({ android: { elevation: 3 } })}
+              >
+                <MaterialCommunityIcons name="bell-outline" size={27} color="#ffa800" />
+                {unreadNotifications > 0 && (
+                  <View className="absolute top-2 right-2 min-w-4 h-4 px-1 rounded-full bg-red-500 items-center justify-center">
+                    <Text className="text-white text-[9px] font-satoshiBold">{unreadNotifications}</Text>
                   </View>
                 )}
-              </View>
-            </Pressable>
+              </Pressable>
+              <Pressable
+                onPress={() => setLocationModalVisible(true)}
+                className={`w-14 h-14 rounded-full ${isDark ? "bg-neutral-800" : "bg-white"} items-center justify-center shadow-md ${isDark ? "active:bg-neutral-800" : "active:bg-neutral-50"}`}
+                style={Platform.select({ android: { elevation: 3 } })}
+              >
+                <View>
+                  <MaterialCommunityIcons name="map-marker" size={28} color="#ffa800" />
+                  {selectedCity && (
+                    <View className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary items-center justify-center">
+                      <MaterialCommunityIcons name="check" size={10} color="white" />
+                    </View>
+                  )}
+                </View>
+              </Pressable>
+            </View>
           </View>
 
           {/* Display selected city */}

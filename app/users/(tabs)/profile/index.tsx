@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as Clipboard from "expo-clipboard";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -15,7 +16,7 @@ import {
 
 import { showError, showSuccess } from "@/components/ui/toast";
 import { logout } from "@/redux/auth/auth.thunks";
-import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
+import { selectIsAuthenticated, selectSessionExpired } from "@/redux/auth/auth.selectors";
 import {
   selectFetchMeStatus,
   selectMe,
@@ -28,6 +29,8 @@ import {
   persistThemePreference,
   setThemeMode,
 } from "@/redux/theme/theme.slice";
+import { saveLastDashboard } from "@/storage/dashboard";
+import { getToken } from "@/storage/auth";
 
 function Row({
   icon,
@@ -88,6 +91,7 @@ export default function ProfileHomeScreen() {
   const isDark = themeMode === "dark";
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const sessionExpired = useAppSelector(selectSessionExpired);
   const requestedProfileRef = useRef(false);
 
   useEffect(() => {
@@ -101,6 +105,12 @@ export default function ProfileHomeScreen() {
     !isAuthenticated
       ? "Guest"
       : [me?.first_name, me?.last_name].filter(Boolean).join(" ") || "—";
+  const hasRiderAccess = Boolean(me?.has_rider || me?.role === "RIDER");
+  const hasKitchenAccess = Boolean(
+    me?.has_kitchen || me?.role === "KITCHEN" || me?.role === "VENDOR"
+  );
+  const showRiderEntry = isAuthenticated && !hasKitchenAccess;
+  const showVendorEntry = isAuthenticated && hasKitchenAccess && !hasRiderAccess;
 
   const handleLogout = async () => {
     try {
@@ -148,6 +158,21 @@ export default function ProfileHomeScreen() {
       showError(err?.message || "Failed to upload picture");
     }
   };
+
+  const handleCopyAccessToken = async () => {
+    try {
+      const token = await getToken();
+      if (!token) {
+        showError("No access token found. Please log in first.");
+        return;
+      }
+      await Clipboard.setStringAsync(token);
+      showSuccess("Access token copied");
+    } catch {
+      showError("Failed to copy access token");
+    }
+  };
+
   return (
     <View className={`flex-1 ${isDark ? "bg-neutral-950" : "bg-white"}`}>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -215,21 +240,33 @@ export default function ProfileHomeScreen() {
                 isDark ? "text-white" : "text-neutral-900"
               }`}
             >
-              You are browsing as a guest
+              {sessionExpired ? "Your session has expired" : "You are browsing as a guest"}
             </Text>
             <Text
               className={`mt-1 text-[13px] font-satoshi ${
                 isDark ? "text-neutral-300" : "text-neutral-600"
               }`}
             >
-              Create an account to save orders, rewards, and your favorites.
+              {sessionExpired
+                ? "Log in again to access your orders, rewards, wallet, and favorites."
+                : "Create an account to save orders, rewards, and your favorites."}
             </Text>
             <View className="mt-4">
               <Pressable
-                onPress={() => router.push("/(auth)/register")}
+                onPress={() => router.push("/(auth)/login")}
                 className="rounded-2xl bg-primary py-4 items-center"
               >
                 <Text className="text-white font-satoshiMedium">
+                  Login
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push("/(auth)/register")}
+                className={`mt-3 rounded-2xl border py-4 items-center ${
+                  isDark ? "border-neutral-700" : "border-primary"
+                }`}
+              >
+                <Text className={`${isDark ? "text-white" : "text-primary"} font-satoshiMedium`}>
                   Create an account now
                 </Text>
               </Pressable>
@@ -240,7 +277,7 @@ export default function ProfileHomeScreen() {
                 }`}
               >
                 <Text className={`${isDark ? "text-white" : "text-primary"} font-satoshiMedium`}>
-                  Create vendor account
+                  Create vendor acount
                 </Text>
               </Pressable>
             </View>
@@ -293,18 +330,39 @@ export default function ProfileHomeScreen() {
           onPress={() => router.push("/users/profile/legal")}
           isDark={isDark}
         />
-        <Row
-          icon={<Ionicons name="swap-horizontal-outline" size={18} color="#9CA3AF" />}
-          label="Switch to Rider Dashboard"
-          onPress={() => router.replace("/riders/(tabs)")}
-          isDark={isDark}
-        />
-        <Row
-          icon={<Ionicons name="swap-horizontal-outline" size={18} color="#9CA3AF" />}
-          label="Switch to Vendor Dashboard"
-          onPress={() => router.replace("/kitchen/(tabs)")}
-          isDark={isDark}
-        />
+        {showRiderEntry && (
+          <Row
+            icon={
+              <Ionicons
+                name={hasRiderAccess ? "swap-horizontal-outline" : "bicycle-outline"}
+                size={18}
+                color="#9CA3AF"
+              />
+            }
+            label={hasRiderAccess ? "Switch to Rider Dashboard" : "Become a Rider"}
+            onPress={async () => {
+              if (hasRiderAccess) {
+                await saveLastDashboard("riders");
+                router.replace("/riders/(tabs)");
+                return;
+              }
+
+              router.push("/(auth)/register-rider");
+            }}
+            isDark={isDark}
+          />
+        )}
+        {showVendorEntry && (
+          <Row
+            icon={<Ionicons name="swap-horizontal-outline" size={18} color="#9CA3AF" />}
+            label="Switch to Vendor Dashboard"
+            onPress={async () => {
+              await saveLastDashboard("kitchen");
+              router.replace("/kitchen/(tabs)");
+            }}
+            isDark={isDark}
+          />
+        )}
         <Row
           icon={<Ionicons name="moon-outline" size={18} color="#9CA3AF" />}
           label="Dark Mode"
@@ -319,6 +377,15 @@ export default function ProfileHomeScreen() {
           }
           isDark={isDark}
         />
+
+        {__DEV__ && isAuthenticated && (
+          <Row
+            icon={<Ionicons name="key-outline" size={18} color="#9CA3AF" />}
+            label="Copy Access Token"
+            onPress={handleCopyAccessToken}
+            isDark={isDark}
+          />
+        )}
 
         {/* Danger / sign out */}
         {isAuthenticated && (

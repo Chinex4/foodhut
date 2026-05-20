@@ -15,6 +15,7 @@ import riderReducer from "@/redux/rider/rider.slice";
 import themeReducer from "@/redux/theme/theme.slice";
 import referralsReducer from "@/redux/referrals/referrals.slice";
 import storageApiReducer from "@/redux/storageApi/storageApi.slice";
+import logisticsReducer from "@/redux/logistics/logistics.slice";
 
 export const store = configureStore({
   reducer: {
@@ -34,6 +35,7 @@ export const store = configureStore({
     theme: themeReducer,
     referrals: referralsReducer,
     storageApi: storageApiReducer,
+    logistics: logisticsReducer,
   },
   middleware: (gdm) =>
     gdm({

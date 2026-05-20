@@ -217,8 +217,9 @@ export const updateKitchenById = createAsyncThunk<
   { rejectValue: string }
 >("kitchen/updateKitchenById", async ({ id, body }, { rejectWithValue }) => {
   try {
-    await api.patch(`/kitchens/${id}`, {
+    await api.patch(`/kitchen/${id}`, {
       opening_time: body.opening_time,
+      closing_time: body.closing_time,
       is_available: body.is_available,
       profile_picture_id: body.profile_picture_id,
       cover_image_id: body.cover_image_id,

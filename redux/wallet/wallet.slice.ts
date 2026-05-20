@@ -7,6 +7,7 @@ import {
   fetchBanks,
   fetchWalletProfile,
   resolveBankAccount,
+  setWalletPin,
   withdrawFunds,
 } from "./wallet.thunks";
 
@@ -31,6 +32,9 @@ const initialState: WalletState = {
 
   withdrawStatus: "idle",
   lastWithdrawMessage: null,
+
+  setPinStatus: "idle",
+  lastSetPinMessage: null,
 
   error: null,
 };
@@ -148,6 +152,22 @@ const walletSlice = createSlice({
       .addCase(withdrawFunds.rejected, (state, a) => {
         state.withdrawStatus = "failed";
         state.error = (a.payload as string) || "Failed to withdraw funds";
+      });
+
+    // --- WALLET PIN
+    builder
+      .addCase(setWalletPin.pending, (state) => {
+        state.setPinStatus = "loading";
+        state.error = null;
+        state.lastSetPinMessage = null;
+      })
+      .addCase(setWalletPin.fulfilled, (state, a) => {
+        state.setPinStatus = "succeeded";
+        state.lastSetPinMessage = a.payload.message;
+      })
+      .addCase(setWalletPin.rejected, (state, a) => {
+        state.setPinStatus = "failed";
+        state.error = (a.payload as string) || "Failed to set wallet PIN";
       });
   },
 });

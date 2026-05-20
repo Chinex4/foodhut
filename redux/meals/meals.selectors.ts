@@ -11,6 +11,21 @@ export const selectMealsArray = createSelector(
   (entities): Meal[] => Object.values(entities ?? {})
 );
 
+export const selectMealsList = createSelector(
+  [selectMealsIds, selectMealsEntities],
+  (ids, entities): Meal[] => {
+    const seen = new Set<string>();
+    return ids
+      .filter((id) => {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      })
+      .map((id) => entities[id])
+      .filter(Boolean);
+  }
+);
+
 // simple deterministic hash
 const hashString = (str: string) => {
   let h = 0;
@@ -31,26 +46,22 @@ const rotateRandomly = (arr: Meal[], salt: string) =>
     .slice()
     .sort((a, b) => jitterFor(b.id, salt) - jitterFor(a.id, salt));
 
+const hasMealDiscount = (m: Meal) => {
+  const price = toNum(m.price);
+  const original = toNum(m.original_price);
+  if (original > price) return true;
+  if (!m.discount) return false;
+  if ("percentage" in m.discount) return Number(m.discount.percentage) > 0;
+  if ("price" in m.discount) return Number(m.discount.price) > 0;
+  return false;
+};
+
 // === FACTORY SELECTORS (memoized) ===
 export const makeSelectTrendingDiscounts = (limit = 10) =>
-  createSelector([selectMealsArray], (arr) => {
-    const discounted = rotateRandomly(
-      arr
-      .map((m) => {
-        const price = toNum(m.price);
-        const original = toNum(m.original_price);
-        const discount =
-          original > price ? (original - price) / (original || 1) : 0;
-        return { m, discount };
-      })
-      .filter((x) => x.discount > 0)
-      .sort((a, b) => b.discount - a.discount)
-      .slice(0, limit)
-      .map((x) => x.m),
-      "trending-discounts"
-    );
+  createSelector([selectMealsList], (arr) => {
+    const discounted = rotateRandomly(arr.filter(hasMealDiscount), "trending-discounts");
 
-    if (discounted.length) return discounted;
+    if (discounted.length) return discounted.slice(0, limit);
 
     return rotateRandomly(arr, "trending-fallback").slice(0, limit);
   });
@@ -58,26 +69,17 @@ export const makeSelectTrendingDiscounts = (limit = 10) =>
 export const makeSelectMostPopular = (limit = 10, salt = "day-1") => {
   const selectTrending = makeSelectTrendingDiscounts(limit);
 
-  return createSelector([selectMealsArray, selectTrending], (arr, trending) => {
+  return createSelector([selectMealsList, selectTrending], (arr, trending) => {
     const excludeIds = new Set(trending.map((m) => m.id));
     const candidates = arr.filter((m) => !excludeIds.has(m.id));
-    if (!candidates.length) return rotateRandomly(arr, "popular-fallback").slice(0, limit);
+    const source = candidates.length ? candidates : arr;
 
-    const scored = candidates.map((m) => {
-      const baseScore = toNum(m.rating) * 3 + toNum(m.likes); // your main metric
-      const jitter = jitterFor(m.id, salt) * 0.2; // small 0–0.2 bonus
-      return { m, score: baseScore + jitter };
-    });
-
-    return scored
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
-      .map((x) => x.m);
+    return rotateRandomly(source, `popular-${salt}`).slice(0, limit);
   });
 };
 
 export const makeSelectVendorsCloseBy = (limitKitchens = 10) =>
-  createSelector([selectMealsArray], (arr) => {
+  createSelector([selectMealsList], (arr) => {
     const byKitchen = new Map<string, Meal[]>();
     for (const m of arr) {
       if (!m.kitchen_id) continue;
@@ -102,9 +104,6 @@ export const makeSelectVendorsCloseBy = (limitKitchens = 10) =>
   });
 
 export const selectMealsState = (s: RootState) => s.meals;
-
-export const selectMealsList = (s: RootState) =>
-  s.meals.lastListIds.map((id) => s.meals.entities[id]).filter(Boolean);
 
 export const makeSelectMealsByKitchenId = (kitchenId: string) =>
   createSelector([selectMealsArray], (meals) => {

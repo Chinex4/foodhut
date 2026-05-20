@@ -73,6 +73,7 @@ export default function KitchenWithdrawScreen() {
   const [bankName, setBankName] = useState<string>("");
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
+  const [pin, setPin] = useState("");
   const lastResolvedKeyRef = useRef<string | null>(null);
 
   const resolveStatus = useAppSelector(selectResolveStatus);
@@ -93,7 +94,11 @@ export default function KitchenWithdrawScreen() {
 
   const canResolve = bankCode.length > 0 && cleanAccount.length === 10;
   const canWithdraw =
-    !!resolvedName && Number(amount.replace(/[^0-9.]/g, "")) > 0 && canResolve && !busy;
+    !!resolvedName &&
+    Number(amount.replace(/[^0-9.]/g, "")) > 0 &&
+    pin.trim().length >= 4 &&
+    canResolve &&
+    !busy;
 
   const doResolve = async () => {
     try {
@@ -118,6 +123,7 @@ export default function KitchenWithdrawScreen() {
           account_number: cleanAccount,
           account_name: resolvedName as string,
           amount: amt,
+          pin: pin.trim(),
           as_kitchen: true,
         })
       ).unwrap();
@@ -229,6 +235,20 @@ export default function KitchenWithdrawScreen() {
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
+              placeholderTextColor={palette.textMuted}
+              className="font-satoshi text-[15px]"
+              style={{ color: palette.textPrimary }}
+            />
+          </Field>
+
+          <Field icon={<Ionicons name="keypad-outline" size={18} color={palette.textMuted} />} isDark={isDark}>
+            <TextInput
+              placeholder="Wallet PIN"
+              value={pin}
+              onChangeText={(value) => setPin(value.replace(/\D/g, "").slice(0, 6))}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={6}
               placeholderTextColor={palette.textMuted}
               className="font-satoshi text-[15px]"
               style={{ color: palette.textPrimary }}

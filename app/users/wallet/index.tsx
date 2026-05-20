@@ -196,6 +196,20 @@ export default function WalletScreen() {
               </Text>
             </View>
           </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/users/wallet/pin" as any)}
+            className={`mt-3 rounded-xl py-3 items-center justify-center border ${
+              isDark ? "bg-neutral-800 border-neutral-700" : "bg-white border-neutral-200"
+            }`}
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="keypad-outline" size={18} color={isDark ? "#E5E7EB" : "#0F172A"} />
+              <Text className={`ml-2 font-satoshiBold ${isDark ? "text-neutral-100" : "text-neutral-900"}`}>
+                Set Wallet PIN
+              </Text>
+            </View>
+          </Pressable>
         </View>
       </View>
 

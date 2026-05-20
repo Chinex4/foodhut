@@ -17,6 +17,7 @@ const initialState: AuthState = {
   isAuthenticated: false,
   accessToken: null,
   refreshToken: null,
+  sessionExpired: false,
 
   otpSent: false,
   lastPhoneTried: null,
@@ -40,6 +41,18 @@ const authSlice = createSlice({
     },
     setUser(state, action: PayloadAction<MinimalUser | null>) {
       state.user = action.payload;
+    },
+    sessionExpired(state) {
+      state.status = "failed";
+      state.error = "Session expired. Please log in again.";
+      state.isAuthenticated = false;
+      state.accessToken = null;
+      state.refreshToken = null;
+      state.user = null;
+      state.sessionExpired = true;
+    },
+    dismissSessionExpired(state) {
+      state.sessionExpired = false;
     },
     clearError(state) {
       state.error = null;
@@ -107,6 +120,7 @@ const authSlice = createSlice({
         state.accessToken = action.payload.access_token;
         state.refreshToken = action.payload.refresh_token ?? null;
         state.isAuthenticated = true;
+        state.sessionExpired = false;
       })
       .addCase(verifyOtp.rejected, (state, action: any) => {
         state.status = "failed";
@@ -125,6 +139,7 @@ const authSlice = createSlice({
         state.accessToken = action.payload.access_token;
         state.refreshToken = action.payload.refresh_token ?? null;
         state.isAuthenticated = Boolean(action.payload.access_token);
+        state.sessionExpired = false;
       })
       .addCase(refreshTokens.rejected, (state, action: any) => {
         state.status = "failed";
@@ -141,10 +156,11 @@ const authSlice = createSlice({
           accessToken: null,
           refreshToken: null,
           user: null,
+          sessionExpired: false,
         });
       });
   },
 });
 
-export const { hydrateFromStorage, setUser, clearError } = authSlice.actions;
+export const { hydrateFromStorage, setUser, sessionExpired, dismissSessionExpired, clearError } = authSlice.actions;
 export default authSlice.reducer;

@@ -10,6 +10,7 @@ import type {
   MessageResult,
   ResolveAccountPayload,
   ResolveAccountResponse,
+  SetWalletPinPayload,
   TopupPayload,
   TopupResponse,
   WalletProfile,
@@ -123,7 +124,7 @@ export const resolveBankAccount = createAsyncThunk<
 
 export const fetchWalletProfile = createAsyncThunk<
   WalletProfile,
-  { as_kitchen?: boolean } | undefined,
+  { as_kitchen?: boolean; as_rider?: boolean } | undefined,
   { rejectValue: string }
 >("wallet/fetchWalletProfile", async (opts, { rejectWithValue }) => {
   try {
@@ -135,7 +136,7 @@ export const fetchWalletProfile = createAsyncThunk<
         id: data.id,
         owner_id: data.owner_id ?? "",
         balance: String(data.balance ?? 0),
-        wallet_type: opts?.as_kitchen ? "kitchen" : "user",
+        wallet_type: opts?.as_kitchen ? "kitchen" : opts?.as_rider ? "rider" : "user",
         metadata: data.metadata ?? null,
         created_at: data.created_at ?? Date.now(),
         updated_at: data.updated_at ?? null,
@@ -147,7 +148,10 @@ export const fetchWalletProfile = createAsyncThunk<
       kitchen: data?.kitchen ?? null,
       rider: data?.rider ?? null,
     };
-    const picked = pickWalletId(pointers, { as_kitchen: opts?.as_kitchen });
+    const picked = pickWalletId(pointers, {
+      as_kitchen: opts?.as_kitchen,
+      as_rider: opts?.as_rider,
+    });
 
     return {
       id: picked.walletId ?? "",
@@ -219,11 +223,28 @@ export const withdrawFunds = createAsyncThunk<
         bank_code: body.bank_code,
         account_name: body.account_name,
         amount: Number(body.amount),
+        ...(body.pin ? { pin: body.pin } : {}),
       }
     );
 
     return { message: data.message || "Withdrawal request placed" };
   } catch (error) {
     return rejectWithValue(getApiErrorMessage(error, "Failed to withdraw funds"));
+  }
+});
+
+export const setWalletPin = createAsyncThunk<
+  MessageResult,
+  SetWalletPinPayload,
+  { rejectValue: string }
+>("wallet/setWalletPin", async (body, { rejectWithValue }) => {
+  try {
+    const { data } = await api.post<{ message?: string }>("/wallets/pin", {
+      pin: body.pin,
+    });
+
+    return { message: data.message || "Wallet PIN set" };
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, "Failed to set wallet PIN"));
   }
 });

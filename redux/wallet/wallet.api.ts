@@ -27,10 +27,14 @@ export const fetchWalletPointers = async (): Promise<WalletPointers> => {
 
 export const pickWalletId = (
   pointers: WalletPointers,
-  opts?: { as_kitchen?: boolean }
+  opts?: { as_kitchen?: boolean; as_rider?: boolean }
 ): { walletId: string | null; walletType: WalletType } => {
   if (opts?.as_kitchen && pointers.kitchen) {
     return { walletId: pointers.kitchen, walletType: "kitchen" };
+  }
+
+  if (opts?.as_rider && pointers.rider) {
+    return { walletId: pointers.rider, walletType: "rider" };
   }
 
   if (!opts?.as_kitchen && pointers.user) {
