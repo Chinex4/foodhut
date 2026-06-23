@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useMemo } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -12,11 +12,12 @@ import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 import { useKitchenData } from "@/app/kitchen/hooks/useKitchenData";
 import { showSuccess, showError } from "@/components/ui/toast";
 import { updateOrderStatus } from "@/redux/orders/orders.thunks";
+import { updateKitchenByProfile } from "@/redux/kitchen/kitchen.thunks";
 import { formatNGN } from "@/utils/money";
 import { fetchWalletProfile } from "@/redux/wallet/wallet.thunks";
 import { selectWalletBalanceNumber, selectWalletProfileStatus } from "@/redux/wallet/wallet.selectors";
-import CachedImageView from "@/components/ui/CachedImage";
 import { selectUnreadNotificationsCount } from "@/redux/notifications/notifications.selectors";
+import KitchenMealImage from "@/components/kitchen/KitchenMealImage";
 
 export default function KitchenDashboardScreen() {
   const dispatch = useAppDispatch();
@@ -79,6 +80,15 @@ export default function KitchenDashboardScreen() {
     const next = isDark ? "light" : "dark";
     dispatch(setThemeMode(next));
     dispatch(persistThemePreference(next));
+  };
+
+  const toggleKitchenAvailability = async (value: boolean) => {
+    try {
+      await dispatch(updateKitchenByProfile({ is_available: value })).unwrap();
+      showSuccess(value ? "Kitchen is online" : "Kitchen is offline");
+    } catch (error: any) {
+      showError(error?.message || "Failed to update kitchen status");
+    }
   };
 
   const handleAcceptOrder = async (orderId: string) => {
@@ -173,6 +183,20 @@ export default function KitchenDashboardScreen() {
         </View>
 
         <View className="rounded-[30px] mt-7 p-6" style={{ backgroundColor: palette.accent }}>
+          <View className="flex-row items-center justify-between mb-5">
+            <View>
+              <Text className="text-[13px] font-satoshiMedium text-white/80">Kitchen Status</Text>
+              <Text className="text-[18px] font-satoshiBold text-white">
+                {kitchen?.is_available ? "Online" : "Offline"}
+              </Text>
+            </View>
+            <Switch
+              value={Boolean(kitchen?.is_available)}
+              onValueChange={toggleKitchenAvailability}
+              thumbColor="#fff"
+              trackColor={{ false: "rgba(255,255,255,0.35)", true: "rgba(255,255,255,0.65)" }}
+            />
+          </View>
           <Text className="text-[17px] font-satoshiMedium text-white/85">Total Wallet Balance</Text>
           <Text className="text-[32px] leading-[38px] font-satoshiBold text-white mt-2">
             {formatNGN(walletBalance)}
@@ -198,6 +222,24 @@ export default function KitchenDashboardScreen() {
             </Pressable>
           </View>
         </View>
+
+        {incoming.length ? (
+          <Pressable
+            onPress={() => router.push("/kitchen/(tabs)/orders")}
+            className="rounded-3xl mt-5 p-5"
+            style={{ backgroundColor: isDark ? palette.surfaceAlt : "#FFF4DE", borderWidth: 1, borderColor: isDark ? palette.border : "#FFD293" }}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center flex-1">
+                <Ionicons name="notifications" size={18} color={palette.accentStrong} />
+                <Text className="ml-3 text-[17px] font-satoshiBold" style={{ color: palette.textPrimary }}>
+                  {incoming.length} incoming order{incoming.length === 1 ? "" : "s"} need attention
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={palette.accentStrong} />
+            </View>
+          </Pressable>
+        ) : null}
 
         <View className="mt-7 flex-row items-center justify-between">
           <Text className="text-[20px] leading-[26px] font-satoshiBold" style={{ color: palette.textPrimary }}>
@@ -321,12 +363,12 @@ export default function KitchenDashboardScreen() {
               style={{ width: 235, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
             >
               <View className="h-36 items-center justify-center bg-neutral-200">
-                <CachedImageView
-                  uri={meal.cover_image?.url}
+                <KitchenMealImage
+                  coverUrl={meal.cover_image?.url}
+                  coverImageId={meal.cover_image_id}
                   className="w-full h-full"
-                  fallback={
-                    <Ionicons name="fast-food" size={36} color={palette.accentStrong} />
-                  }
+                  iconName="fast-food"
+                  iconColor={palette.accentStrong}
                 />
               </View>
 

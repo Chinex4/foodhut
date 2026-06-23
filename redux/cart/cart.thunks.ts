@@ -343,6 +343,7 @@ export const checkoutActiveCart = createAsyncThunk<
         dispatch_rider_note: rest.dispatch_rider_note,
         delivery_address: rest.delivery_address,
         delivery_date: rest.delivery_date ?? Date.now(),
+        rider_id,
       }
     );
 

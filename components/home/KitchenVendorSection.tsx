@@ -22,6 +22,7 @@ export default function KitchenVendorsSection({
   const kitchens = useAppSelector(selectKitchensList);
   const error = useAppSelector(selectKitchensError);
   const [loading, setLoading] = useState(false);
+  const lastRequestKey = React.useRef<string | null>(null);
 
   const loadKitchens = useCallback(async () => {
     try {
@@ -31,6 +32,7 @@ export default function KitchenVendorsSection({
           page: 1,
           per_page: 50,
           is_available: true,
+          city_id: selectedCity?.id,
         })
       ).unwrap();
     } catch {
@@ -38,10 +40,12 @@ export default function KitchenVendorsSection({
     } finally {
       setLoading(false);
     }
-  }, [dispatch]);
+  }, [dispatch, selectedCity?.id]);
 
   useEffect(() => {
-    if (status === "idle") {
+    const requestKey = selectedCity?.id ?? "all";
+    if (status !== "loading" && lastRequestKey.current !== requestKey) {
+      lastRequestKey.current = requestKey;
       loadKitchens();
     }
   }, [loadKitchens, status, selectedCity?.id]);

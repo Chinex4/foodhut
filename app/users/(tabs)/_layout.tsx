@@ -4,6 +4,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Platform } from "react-native";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { GlassTabBarBackground } from "@/components/navigation/GlassTabBarBackground";
 
 export default function TabLayout() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
@@ -16,13 +17,16 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: tint,
         tabBarInactiveTintColor: inactive,
+        tabBarBackground: () => <GlassTabBarBackground isDark={isDark} />,
         tabBarStyle: {
-          height: 78,
-          paddingTop: 8,
-          paddingBottom: Platform.select({ ios: 18, default: 14 }),
-          backgroundColor: isDark ? "#0a0a0a" : "#FFF8EC",
+          height: Platform.select({ ios: 70, default: 78 }),
+          paddingTop: Platform.select({ ios: 4, default: 8 }),
+          paddingBottom: Platform.select({ ios: 8, default: 14 }),
+          backgroundColor: "transparent",
           borderTopWidth: 1,
-          borderTopColor: isDark ? "#0a0a0a" : "#f3f4f6",
+          borderTopColor: isDark
+            ? "rgba(255, 255, 255, 0.12)"
+            : "rgba(255, 255, 255, 0.7)",
           elevation: 0,
         },
         tabBarLabelStyle: {

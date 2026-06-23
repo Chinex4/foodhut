@@ -25,12 +25,13 @@ import {
 
 import {
   selectCartCheckoutStatus,
+  selectCartFetchStatus,
   selectCartKitchenIds,
   selectCartSubtotalForKitchens,
   selectCartTotalItemsForKitchens,
   selectOrderRowsForKitchens,
 } from "@/redux/cart/cart.selectors";
-import { checkoutActiveCart, removeCartItem, setCartItem } from "@/redux/cart/cart.thunks";
+import { checkoutActiveCart, fetchActiveCart, removeCartItem, setCartItem } from "@/redux/cart/cart.thunks";
 import { makeSelectPayStatus } from "@/redux/orders/orders.selectors";
 import { payForOrder } from "@/redux/orders/orders.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
@@ -48,8 +49,8 @@ import { goBackOrReplace } from "@/utils/navigation";
 import PagerView from "react-native-pager-view";
 
 type PaymentUI = "ONLINE" | "WALLET" | "PAY_FOR_ME";
-type CheckoutTab = "ORDER" | "DELIVERY";
-const checkoutTabs: CheckoutTab[] = ["ORDER", "DELIVERY"];
+type CheckoutTab = "ORDER" | "DELIVERY" | "PAYMENT";
+const checkoutTabs: CheckoutTab[] = ["ORDER", "DELIVERY", "PAYMENT"];
 const checkoutTextInputStyle = {
   minHeight: 28,
   lineHeight: 20,
@@ -183,6 +184,7 @@ export default function CheckoutScreen() {
   const subtotal = useAppSelector(selectCartSubtotalForKitchens(activeKitchenIds));
   const totalItems = useAppSelector(selectCartTotalItemsForKitchens(activeKitchenIds));
   const checkoutStatus = useAppSelector(selectCartCheckoutStatus);
+  const cartFetchStatus = useAppSelector(selectCartFetchStatus);
 
   // UI state
   const isGroupCheckout = activeKitchenIds.length > 1;
@@ -222,6 +224,12 @@ export default function CheckoutScreen() {
   const walletBalance = useAppSelector(selectWalletBalanceNumber);
   const walletProfileStatus = useAppSelector(selectWalletProfileStatus);
   const meals = useAppSelector(selectMealsArray);
+
+  useEffect(() => {
+    if (cartFetchStatus === "idle") {
+      dispatch(fetchActiveCart());
+    }
+  }, [cartFetchStatus, dispatch]);
 
   useEffect(() => {
     if (walletProfileStatus === "idle" && isAuthenticated) {
@@ -265,16 +273,27 @@ export default function CheckoutScreen() {
     activeKitchenIds.length > 0 &&
     !isBusy;
 
+  const getCheckoutProblems = () => {
+    const problems: string[] = [];
+    if (!activeKitchenIds.length) problems.push("Select at least one kitchen.");
+    if (totalItems <= 0) problems.push("Add at least one meal to your cart.");
+    if (fulfillment === "DELIVERY" && !address.trim()) problems.push("Enter a delivery address.");
+    if (paymentMethod === "WALLET" && walletBalance < subtotal) {
+      problems.push(`Wallet balance is short by ${formatNGN(subtotal - walletBalance)}.`);
+    }
+    return problems;
+  };
+
+  const showCheckoutProblems = (problems = getCheckoutProblems()) => {
+    Alert.alert("Checkout information missing", problems.join("\n"));
+  };
+
   const handlePlaceOrder = async () => {
     try {
-      if (!activeKitchenIds.length) {
-        return showError("Select at least one kitchen to continue.");
-      }
+      const problems = getCheckoutProblems();
+      if (problems.length) return showCheckoutProblems(problems);
       if (!isAuthenticated) {
         showError("You're checking out as a guest. Create an account to track your order history.");
-      }
-      if (paymentMethod === "WALLET" && walletBalance < subtotal) {
-        return showError("Insufficient wallet balance. Please top up.");
       }
 
       setPlacing(true);
@@ -432,35 +451,24 @@ export default function CheckoutScreen() {
 
         {/* Tabs */}
         <View className="flex-row mt-5">
-          <Pressable onPress={() => goToTab("ORDER")} className="mr-6 pb-2">
-            <Text
-              className={`${
-                tab === "ORDER"
-                  ? `font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`
-                  : `font-satoshi ${isDark ? "text-neutral-500" : "text-neutral-500"}`
-              }`}
-            >
-              Your Order
-            </Text>
-            {tab === "ORDER" && (
-              <View className="h-1 bg-primary rounded-full mt-2" />
-            )}
-          </Pressable>
-
-          <Pressable onPress={() => goToTab("DELIVERY")} className="pb-2">
-            <Text
-              className={`${
-                tab === "DELIVERY"
-                  ? `font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`
-                  : `font-satoshi ${isDark ? "text-neutral-500" : "text-neutral-500"}`
-              }`}
-            >
-              Delivery & Payment
-            </Text>
-            {tab === "DELIVERY" && (
-              <View className="h-1 bg-primary rounded-full mt-2" />
-            )}
-          </Pressable>
+          {[
+            { key: "ORDER" as const, label: "Your Order" },
+            { key: "DELIVERY" as const, label: "Delivery" },
+            { key: "PAYMENT" as const, label: "Payment" },
+          ].map((item) => (
+            <Pressable key={item.key} onPress={() => goToTab(item.key)} className="mr-6 pb-2">
+              <Text
+                className={`${
+                  tab === item.key
+                    ? `font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`
+                    : `font-satoshi ${isDark ? "text-neutral-500" : "text-neutral-500"}`
+                }`}
+              >
+                {item.label}
+              </Text>
+              {tab === item.key && <View className="h-1 bg-primary rounded-full mt-2" />}
+            </Pressable>
+          ))}
         </View>
       </View>
 
@@ -651,8 +659,8 @@ export default function CheckoutScreen() {
               onPress={() => goToTab("DELIVERY")}
               className="bg-primary rounded-2xl py-4 items-center justify-center"
             >
-              <Text className="text-white font-satoshiBold">
-                {isGroupCheckout ? "Make Group Payment" : "Make Payment"}
+                <Text className="text-white font-satoshiBold">
+                Continue
               </Text>
             </Pressable>
           </View>
@@ -846,72 +854,6 @@ export default function CheckoutScreen() {
               </View>
             ) : null}
 
-            {/* Payment Summary */}
-            <View className="mt-5">
-              <SectionHeader title="Payment Summary" isDark={isDark} />
-              <View
-                className={`rounded-2xl border p-3 ${
-                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
-                }`}
-              >
-                <SummaryRow
-                  label={`Sub-total (${totalItems} item${totalItems === 1 ? "" : "s"})`}
-                  value={formatNGN(subtotal)}
-                  isDark={isDark}
-                />
-                <View className={`h-[1px] my-2 ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`} />
-                <SummaryRow label="Total Payment" value={formatNGN(total)} bold isDark={isDark} />
-              </View>
-            </View>
-
-            {/* Payment Method */}
-            <View className="mt-5">
-              <SectionHeader title="Payment Method" isDark={isDark} />
-              <View
-                className={`rounded-2xl border px-3 ${
-                  isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
-                }`}
-              >
-                {/* Pay Online */}
-                <Radio
-                  label="Pay Online (Paystack)"
-                  selected={paymentMethod === "ONLINE"}
-                  onPress={() => setPaymentMethod("ONLINE")}
-                  isDark={isDark}
-                />
-                <View className="h-[1px] bg-neutral-100" />
-
-                {/* Pay with Wallet */}
-                <Radio
-                  label={`Pay with Wallet (${formatNGN(walletBalance)})`}
-                  selected={paymentMethod === "WALLET"}
-                  onPress={() => setPaymentMethod("WALLET")}
-                  rightEl={
-                    walletBalance < subtotal ? (
-                      <Text className="text-red-600 text-xs font-satoshiMedium">
-                        Insufficient
-                      </Text>
-                    ) : undefined
-                  }
-                  isDark={isDark}
-                />
-                <View className="h-[1px] bg-neutral-100" />
-
-                {/* Pay For Me */}
-                <Radio
-                  label="Pay For Me (Share Link)"
-                  selected={paymentMethod === "PAY_FOR_ME"}
-                  onPress={() => setPaymentMethod("PAY_FOR_ME")}
-                  rightEl={
-                    <Text className="text-[11px] text-neutral-500">
-                      Share with friend
-                    </Text>
-                  }
-                  isDark={isDark}
-                />
-              </View>
-            </View>
-
             {/* kitchen selection removed as checkout is per kitchen */}
           </ScrollView>
 
@@ -938,19 +880,18 @@ export default function CheckoutScreen() {
               </Pressable>
 
               <Pressable
-                disabled={!canPlace}
-                onPress={handlePlaceOrder}
+                onPress={() => {
+                  const problems = getCheckoutProblems().filter((problem) =>
+                    problem.includes("delivery address")
+                  );
+                  if (problems.length) return showCheckoutProblems(problems);
+                  goToTab("PAYMENT");
+                }}
                 className={`flex-1 rounded-2xl py-4 items-center justify-center ${
-                  canPlace ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-300"
+                  "bg-primary"
                 }`}
               >
-                {isBusy ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text className="text-white font-satoshiBold">
-                    Place Order
-                  </Text>
-                )}
+                <Text className="text-white font-satoshiBold">Continue to Payment</Text>
               </Pressable>
             </View>
 
@@ -961,6 +902,98 @@ export default function CheckoutScreen() {
             </Text>
           </View>
         </View>
+          </View>
+          <View key="payment" style={{ flex: 1 }}>
+            <View className="flex-1 px-5">
+              <ScrollView contentContainerStyle={{ paddingBottom: 200 }} keyboardShouldPersistTaps="handled">
+                <View className="mt-2">
+                  <SectionHeader title="Payment Summary" isDark={isDark} />
+                  <View
+                    className={`rounded-2xl border p-3 ${
+                      isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+                    }`}
+                  >
+                    <SummaryRow
+                      label={`Sub-total (${totalItems} item${totalItems === 1 ? "" : "s"})`}
+                      value={formatNGN(subtotal)}
+                      isDark={isDark}
+                    />
+                    <View className={`h-[1px] my-2 ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`} />
+                    <SummaryRow label="Total Payment" value={formatNGN(total)} bold isDark={isDark} />
+                  </View>
+                </View>
+
+                <View className="mt-5">
+                  <SectionHeader title="Payment Method" isDark={isDark} />
+                  <View
+                    className={`rounded-2xl border px-3 ${
+                      isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+                    }`}
+                  >
+                    <Radio
+                      label="Pay Online (Paystack)"
+                      selected={paymentMethod === "ONLINE"}
+                      onPress={() => setPaymentMethod("ONLINE")}
+                      isDark={isDark}
+                    />
+                    <View className={`h-[1px] ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`} />
+                    <Radio
+                      label={`Pay with Wallet (${formatNGN(walletBalance)})`}
+                      selected={paymentMethod === "WALLET"}
+                      onPress={() => setPaymentMethod("WALLET")}
+                      rightEl={
+                        walletBalance < subtotal ? (
+                          <Text className="text-red-600 text-xs font-satoshiMedium">
+                            Insufficient
+                          </Text>
+                        ) : undefined
+                      }
+                      isDark={isDark}
+                    />
+                    <View className={`h-[1px] ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`} />
+                    <Radio
+                      label="Pay For Me (Share Link)"
+                      selected={paymentMethod === "PAY_FOR_ME"}
+                      onPress={() => setPaymentMethod("PAY_FOR_ME")}
+                      rightEl={<Text className="text-[11px] text-neutral-500">Share with friend</Text>}
+                      isDark={isDark}
+                    />
+                  </View>
+                </View>
+              </ScrollView>
+
+              <View
+                className={`absolute left-0 right-0 bottom-0 px-5 pb-6 pt-4 ${
+                  isDark ? "bg-neutral-950 border-t border-neutral-800" : "bg-[#FFFDF8]"
+                }`}
+              >
+                <View className="flex-row">
+                  <Pressable
+                    onPress={() => goToTab("DELIVERY")}
+                    className={`flex-1 mr-3 rounded-2xl py-4 items-center justify-center border ${
+                      isDark ? "bg-neutral-900 border-neutral-700" : "bg-[#FFF1E0] border-primary-500"
+                    }`}
+                  >
+                    <Text className={`font-satoshiMedium ${isDark ? "text-neutral-100" : "text-primary"}`}>
+                      Return
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    disabled={isBusy}
+                    onPress={handlePlaceOrder}
+                    className={`flex-1 rounded-2xl py-4 items-center justify-center ${
+                      canPlace ? "bg-primary" : isDark ? "bg-neutral-800" : "bg-neutral-300"
+                    }`}
+                  >
+                    {isBusy ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text className="text-white font-satoshiBold">Place Order</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            </View>
           </View>
         </PagerView>
       </View>

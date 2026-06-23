@@ -33,12 +33,14 @@ export default function SearchBar({
     per_page: perPage,
   });
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const filtersActive = filters.scope !== "ALL" || (filters.per_page ?? perPage) !== perPage;
 
   const doSearch = async (q: string, extra?: Partial<SearchQuery>) => {
     const query: SearchQuery = {
       q: q.trim(),
       page: 1,
       per_page: extra?.per_page ?? filters.per_page ?? perPage,
+      scope: extra?.scope ?? filters.scope,
     };
     if (!query.q) return; 
     try {
@@ -79,8 +81,16 @@ export default function SearchBar({
           returnKeyType="search"
           onSubmitEditing={() => doSearch(value)}
         />
-        <Pressable className="ml-3" onPress={() => setOpen(true)} hitSlop={8}>
-          <Ionicons name="options-outline" size={22} color="#8E8E93" />
+        <Pressable
+          className={`ml-3 rounded-full p-1 ${filtersActive ? "bg-primary" : ""}`}
+          onPress={() => setOpen(true)}
+          hitSlop={8}
+        >
+          <Ionicons
+            name={filtersActive ? "options" : "options-outline"}
+            size={22}
+            color={filtersActive ? "#fff" : "#8E8E93"}
+          />
         </Pressable>
       </View>
 
@@ -91,7 +101,7 @@ export default function SearchBar({
         onApply={(f) => {
           setFilters(f);
           setOpen(false);
-          doSearch(value, { per_page: f.per_page });
+          doSearch(value, { per_page: f.per_page, scope: f.scope });
         }}
       />
     </>

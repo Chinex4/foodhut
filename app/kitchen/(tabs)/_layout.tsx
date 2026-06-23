@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
+import { GlassTabBarBackground } from "@/components/navigation/GlassTabBarBackground";
 
 export default function KitchenTabLayout() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
@@ -17,11 +18,12 @@ export default function KitchenTabLayout() {
         headerShown: false,
         tabBarActiveTintColor: tint,
         tabBarInactiveTintColor: inactive,
+        tabBarBackground: () => <GlassTabBarBackground isDark={isDark} />,
         tabBarStyle: {
-          height: 84,
-          paddingTop: 8,
-          paddingBottom: Platform.select({ ios: 20, default: 14 }),
-          backgroundColor: palette.surface,
+          height: Platform.select({ ios: 68, default: 84 }),
+          paddingTop: Platform.select({ ios: 4, default: 8 }),
+          paddingBottom: Platform.select({ ios: 8, default: 14 }),
+          backgroundColor: "transparent",
           borderTopWidth: 1,
           borderTopColor: palette.border,
           elevation: 0,

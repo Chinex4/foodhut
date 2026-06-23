@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Platform } from "react-native";
+import { GlassTabBarBackground } from "@/components/navigation/GlassTabBarBackground";
 
 export default function AdminTabsLayout() {
   const tint = "#ffa800"; // primary
@@ -12,12 +13,14 @@ export default function AdminTabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: tint,
         tabBarInactiveTintColor: inactive,
+        tabBarBackground: () => <GlassTabBarBackground isDark={false} />,
         tabBarStyle: {
-          height: 78,
-          paddingTop: 8,
-          paddingBottom: Platform.select({ ios: 18, default: 14 }),
-          backgroundColor: "#FFF8EC",
+          height: Platform.select({ ios: 66, default: 78 }),
+          paddingTop: Platform.select({ ios: 4, default: 8 }),
+          paddingBottom: Platform.select({ ios: 8, default: 14 }),
+          backgroundColor: "transparent",
           borderTopWidth: 1,
+          borderTopColor: "rgba(255, 255, 255, 0.7)",
           elevation: 0,
         },
         tabBarLabelStyle: {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import {
@@ -46,6 +46,8 @@ export function useKitchenData(options?: UseKitchenDataOptions) {
   const ordersStatus = useAppSelector(selectOrdersListStatus);
   const ordersQuery = useAppSelector(selectOrdersQuery);
   const ordersState = useAppSelector(selectOrdersState);
+  const lastMealsRequestKey = useRef<string | null>(null);
+  const lastOrdersRequestKey = useRef<string | null>(null);
 
   const meals = useMemo(
     () =>
@@ -68,7 +70,9 @@ export function useKitchenData(options?: UseKitchenDataOptions) {
       mealsQuery.kitchen_id !== kitchen.id ||
       mealsQuery.page !== 1 ||
       mealsQuery.per_page !== 200;
-    if (needsMeals) {
+    const requestKey = `${kitchen.id}:1:200`;
+    if (needsMeals && lastMealsRequestKey.current !== requestKey) {
+      lastMealsRequestKey.current = requestKey;
       dispatch(fetchMeals({ page: 1, per_page: 200, kitchen_id: kitchen.id }));
     }
   }, [dispatch, kitchen?.id, mealsQuery, mealsStatus]);
@@ -84,7 +88,9 @@ export function useKitchenData(options?: UseKitchenDataOptions) {
       ordersQuery.per_page !== 50 ||
       ordersQuery.page !== 1 ||
       ordersQuery.as_kitchen !== true;
-    if (needsOrders) {
+    const requestKey = `${kitchen.id}:1:50:${desiredOrderStatus ?? "all"}:kitchen`;
+    if (needsOrders && lastOrdersRequestKey.current !== requestKey) {
+      lastOrdersRequestKey.current = requestKey;
       dispatch(
         fetchOrders({
           kitchen_id: kitchen.id,

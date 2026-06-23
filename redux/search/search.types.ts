@@ -63,6 +63,7 @@ export type SearchQuery = {
   q: string;
   page?: number;
   per_page?: number;
+  scope?: "ALL" | "MEALS" | "KITCHENS";
 };
 
 export type SearchListResponse = {

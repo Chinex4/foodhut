@@ -4,6 +4,7 @@ import {
     selectOrdersListStatus,
 } from "@/redux/orders/orders.selectors";
 import { fetchOrders } from "@/redux/orders/orders.thunks";
+import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { formatNGN } from "@/utils/money";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -14,6 +15,7 @@ import { ActivityIndicator, FlatList, Image, Pressable, Text, View } from "react
 export default function CompletedTab() {
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectOrdersListStatus);
+  const isDark = useAppSelector(selectThemeMode) === "dark";
   const orders = useAppSelector(selectOrdersList).filter(
     (o) => o.status === "DELIVERED" || o.status === "CANCELLED"
   );
@@ -41,7 +43,7 @@ export default function CompletedTab() {
     return (
       <View className="flex-1 items-center justify-center">
         <Image source={require("@/assets/images/trayy.png")} />
-        <Text className="text-neutral-500 mt-4">No completed orders yet</Text>
+        <Text className={`mt-4 ${isDark ? "text-neutral-400" : "text-neutral-500"}`}>No completed orders yet</Text>
       </View>
     );
 
@@ -51,13 +53,17 @@ export default function CompletedTab() {
       keyExtractor={(o) => o.id}
       contentContainerStyle={{ paddingBottom: 120 }}
       renderItem={({ item }) => (
-        <View className="bg-white rounded-2xl mx-4 mt-4 p-3 border border-neutral-100">
+        <View
+          className={`rounded-2xl mx-4 mt-4 p-3 border ${
+            isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-100"
+          }`}
+        >
           <View className="flex-row items-center justify-between mb-2">
             <View>
-              <Text className="font-satoshiBold text-neutral-900">
+              <Text className={`font-satoshiBold ${isDark ? "text-white" : "text-neutral-900"}`}>
                 {item.kitchen.name}
               </Text>
-              <Text className="text-neutral-500 text-[12px] mt-1">
+              <Text className={`${isDark ? "text-neutral-400" : "text-neutral-500"} text-[12px] mt-1`}>
                 {item.items.length} Items · {formatNGN(item.total)}
               </Text>
             </View>
@@ -78,7 +84,7 @@ export default function CompletedTab() {
                 <Text className="text-white font-satoshiBold ml-2">View</Text>
               </View>
             </Pressable>
-            <Pressable className="w-14 bg-neutral-100 rounded-xl items-center justify-center">
+            <Pressable className={`w-14 rounded-xl items-center justify-center ${isDark ? "bg-neutral-800" : "bg-neutral-100"}`}>
               <Ionicons name="trash-outline" size={18} color="#9CA3AF" />
             </Pressable>
           </View>

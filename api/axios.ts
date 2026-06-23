@@ -13,6 +13,8 @@ export const api = axios.create({
 });
 
 let _store: RootStore | null = null;
+let sessionExpiredHandled = false;
+
 export const attachStore = (store: RootStore) => {
   _store = store;
 };
@@ -23,11 +25,27 @@ const getRequestLabel = (config?: { method?: string; baseURL?: string; url?: str
   return `${method} ${url}`;
 };
 
+const getAuthHeader = (headers: any) => {
+  if (!headers) return null;
+  if (typeof headers.get === "function") {
+    return headers.get("Authorization") ?? headers.get("authorization");
+  }
+  return headers.Authorization ?? headers.authorization ?? null;
+};
+
+const isAuthEndpoint = (url?: string) => {
+  return Boolean(url?.startsWith("/auth/"));
+};
+
 api.interceptors.request.use(async (config) => {
   const token = await getToken();
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
+    const authState = _store?.getState().auth;
+    if (authState?.isAuthenticated && !authState.sessionExpired) {
+      sessionExpiredHandled = false;
+    }
   }
   console.log("[API REQUEST]", getRequestLabel(config), {
     params: config.params,
@@ -56,11 +74,22 @@ api.interceptors.response.use(
     const friendlyMessage = getApiErrorMessage(err);
 
     if (status === 401) {
-      await clearToken();
-      await clearRefreshToken();
-      await clearUser();
-      _store?.dispatch({ type: "auth/sessionExpired" });
-      showError(friendlyMessage);
+      const authState = _store?.getState().auth;
+      const requestHadToken = Boolean(getAuthHeader(err.config?.headers));
+      const shouldExpireSession =
+        !isAuthEndpoint(err.config?.url) &&
+        !sessionExpiredHandled &&
+        !authState?.sessionExpired &&
+        (requestHadToken || Boolean(authState?.isAuthenticated));
+
+      if (shouldExpireSession) {
+        sessionExpiredHandled = true;
+        await clearToken();
+        await clearRefreshToken();
+        await clearUser();
+        _store?.dispatch({ type: "auth/sessionExpired" });
+        showError(friendlyMessage);
+      }
     } else {
       showError(friendlyMessage);
     }

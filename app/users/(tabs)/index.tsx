@@ -169,42 +169,45 @@ export default function HomeScreen() {
         {/* promo banner (static placeholder) */}
         <AdsCarousel />
 
-        {/* sections */}
-        <Section
-          title="Trending Discounts"
-          onSeeAll={() => router.push("/users/category/trending")}
-          data={status === "loading" ? Array.from({ length: 4 }) : trending}
-          horizontal
-          renderItem={({ item }: any) =>
-            status === "loading" ? (
-              <MealCardSkeleton compact />
-            ) : (
-              <MealCard
-                onPress={() => router.push(`/users/meal/${item.id}` as any)}
-                item={item}
-                compact
-              />
-            )
-          }
-        />
+        {!selectedCity && (
+          <>
+            <Section
+              title="Trending Discounts"
+              onSeeAll={() => router.push("/users/category/trending")}
+              data={status === "loading" ? Array.from({ length: 4 }) : trending}
+              horizontal
+              renderItem={({ item }: any) =>
+                status === "loading" ? (
+                  <MealCardSkeleton compact />
+                ) : (
+                  <MealCard
+                    onPress={() => router.push(`/users/meal/${item.id}` as any)}
+                    item={item}
+                    compact
+                  />
+                )
+              }
+            />
 
-        <Section
-          title="Most Popular Order"
-          onSeeAll={() => router.push("/users/category/popular")}
-          data={status === "loading" ? Array.from({ length: 4 }) : popular}
-          horizontal
-          renderItem={({ item }: any) =>
-            status === "loading" ? (
-              <MealCardSkeleton compact />
-            ) : (
-              <MealCard
-                item={item}
-                onPress={() => router.push(`/users/meal/${item.id}` as any)}
-                compact
-              />
-            )
-          }
-        />
+            <Section
+              title="Most Popular Order"
+              onSeeAll={() => router.push("/users/category/popular")}
+              data={status === "loading" ? Array.from({ length: 4 }) : popular}
+              horizontal
+              renderItem={({ item }: any) =>
+                status === "loading" ? (
+                  <MealCardSkeleton compact />
+                ) : (
+                  <MealCard
+                    item={item}
+                    onPress={() => router.push(`/users/meal/${item.id}` as any)}
+                    compact
+                  />
+                )
+              }
+            />
+          </>
+        )}
 
         <KitchenVendorsSection selectedCity={selectedCity} />
 

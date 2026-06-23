@@ -7,6 +7,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Switch,
   Text,
   TextInput,
   View,
@@ -17,9 +18,10 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { getKitchenPalette } from "@/app/kitchen/components/kitchenTheme";
 import { useKitchenData } from "@/app/kitchen/hooks/useKitchenData";
-import { deleteMealById } from "@/redux/meals/meals.thunks";
+import { deleteMealById, updateMealById } from "@/redux/meals/meals.thunks";
 import { showError, showSuccess } from "@/components/ui/toast";
 import { formatNGN } from "@/utils/money";
+import KitchenMealImage from "@/components/kitchen/KitchenMealImage";
 
 export default function KitchenMenuScreen() {
   const dispatch = useAppDispatch();
@@ -50,6 +52,16 @@ export default function KitchenMenuScreen() {
       await refreshMeals();
     } catch (error: any) {
       showError(error?.message || "Failed to delete meal");
+    }
+  };
+
+  const toggleStock = async (mealId: string, next: boolean) => {
+    try {
+      await dispatch(updateMealById({ id: mealId, body: { is_available: next } })).unwrap();
+      showSuccess(next ? "Meal marked in stock" : "Meal marked out of stock");
+      await refreshMeals();
+    } catch (error: any) {
+      showError(error?.message || "Failed to update stock status");
     }
   };
 
@@ -101,6 +113,12 @@ export default function KitchenMenuScreen() {
               style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}
             >
               <View className="flex-row items-center justify-between">
+                <KitchenMealImage
+                  coverUrl={meal.cover_image?.url}
+                  coverImageId={meal.cover_image_id}
+                  className="w-16 h-16 rounded-2xl mr-3"
+                  iconColor={palette.textMuted}
+                />
                 <View className="flex-1 pr-4">
                   <Text
                     className="font-satoshiBold text-[14px] leading-[22px]"
@@ -117,7 +135,19 @@ export default function KitchenMenuScreen() {
                   </Text>
                 </View>
 
-                <View className="flex-row items-center">
+                <View className="items-end">
+                  <Switch
+                    value={meal.is_available}
+                    onValueChange={(next) => toggleStock(meal.id, next)}
+                    thumbColor={meal.is_available ? palette.accent : "#f5f5f5"}
+                    trackColor={{ false: "#d1d5db", true: "#FCD34D" }}
+                  />
+                  <Text className="text-[10px] mt-1" style={{ color: palette.textSecondary }}>
+                    {meal.is_available ? "In stock" : "Out"}
+                  </Text>
+                </View>
+
+                <View className="flex-row items-center ml-3">
                   <Pressable
                     onPress={() => router.push(`/kitchen/(tabs)/menu/${meal.id}` as any)}
                     className="mr-3"

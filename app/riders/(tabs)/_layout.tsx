@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useAppSelector } from "@/store/hooks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
+import { GlassTabBarBackground } from "@/components/navigation/GlassTabBarBackground";
 
 export default function RiderTabsLayout() {
   const isDark = useAppSelector(selectThemeMode) === "dark";
@@ -18,13 +19,16 @@ export default function RiderTabsLayout() {
           headerShown: false,
           tabBarActiveTintColor: tint,
           tabBarInactiveTintColor: inactive,
+          tabBarBackground: () => <GlassTabBarBackground isDark={isDark} />,
           tabBarStyle: {
-            height: 78,
-            paddingTop: 8,
-            paddingBottom: Platform.select({ ios: 18, default: 14 }),
-            backgroundColor: isDark ? "#0a0a0a" : "#FFF8EC",
+            height: Platform.select({ ios: 66, default: 78 }),
+            paddingTop: Platform.select({ ios: 4, default: 8 }),
+            paddingBottom: Platform.select({ ios: 8, default: 14 }),
+            backgroundColor: "transparent",
             borderTopWidth: 1,
-            borderTopColor: isDark ? "#1f2937" : "#f0e3d0",
+            borderTopColor: isDark
+              ? "rgba(255, 255, 255, 0.12)"
+              : "rgba(255, 255, 255, 0.7)",
             elevation: 0,
           },
           tabBarLabelStyle: {

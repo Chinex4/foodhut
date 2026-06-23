@@ -1,7 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { fetchOrders } from "@/redux/orders/orders.thunks";
 import { selectOrdersList } from "@/redux/orders/orders.selectors";
 import { fetchTransactions } from "@/redux/transactions/transactions.thunks";

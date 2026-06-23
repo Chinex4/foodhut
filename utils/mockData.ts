@@ -354,7 +354,10 @@ const makeOrderItems = (mealIds: string[]): OrderItem[] =>
         name: meal.name,
         description: meal.description,
         price: meal.price,
-        original_price: meal.original_price,
+        original_price:
+          "original_price" in meal && typeof meal.original_price !== "undefined"
+            ? (meal.original_price as string | number)
+            : meal.price,
         is_available: meal.is_available,
         rating: meal.rating,
         likes: meal.likes,

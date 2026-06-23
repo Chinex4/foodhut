@@ -140,17 +140,22 @@ export const searchMealsAndKitchens = createAsyncThunk<
       per_page: query.per_page ?? 20,
       search: term,
     });
+    const scope = query.scope ?? "ALL";
 
     const [mealsRes, kitchensRes] = await Promise.all([
-      api.get<MealsResponse>("/meals", {
-        params,
-      }),
-      api.get<KitchensResponse>("/kitchens", {
-        params: compactQuery({
-          ...params,
-          is_available: boolToQueryString(true),
-        }),
-      }),
+      scope === "KITCHENS"
+        ? Promise.resolve({ data: { items: [], meta: { page: 1, per_page: 0, total: 0 } } } as { data: MealsResponse })
+        : api.get<MealsResponse>("/meals", {
+            params,
+          }),
+      scope === "MEALS"
+        ? Promise.resolve({ data: { items: [], meta: { page: 1, per_page: 0, total: 0 } } } as { data: KitchensResponse })
+        : api.get<KitchensResponse>("/kitchens", {
+            params: compactQuery({
+              ...params,
+              is_available: boolToQueryString(true),
+            }),
+          }),
     ]);
 
     const items = [

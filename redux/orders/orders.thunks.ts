@@ -196,6 +196,7 @@ export const fetchOrders = createAsyncThunk<
         per_page: query?.per_page,
         kitchen_id: query?.kitchen_id,
         status: statusValues,
+        as_kitchen: query?.as_kitchen,
       },
     });
 

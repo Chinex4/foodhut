@@ -7,9 +7,6 @@ interface SkeletonProps {
 
 export default function Skeleton({ className = "" }: SkeletonProps) {
   return (
-    <View
-      className={`bg-neutral-200 animate-pulse ${className}`}
-      style={{ animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" }}
-    />
+    <View className={`bg-neutral-200 animate-pulse ${className}`} />
   );
 }

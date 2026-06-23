@@ -190,14 +190,14 @@ export default function SupportScreen() {
   };
 
   const openWhatsApp = async () => {
-    const url = "https://wa.me/2348090000000?text=Hi%20FoodHut%20support";
+    const url = "https://wa.me/2348086298785?text=Hi%20FoodHut%20support";
     const can = await Linking.canOpenURL(url);
     if (can) return Linking.openURL(url);
     Alert.alert("WhatsApp not available", "Please try email or phone.");
   };
 
   const openCall = async () => {
-    const url = "tel:+2348090000000";
+    const url = "tel:08086298785";
     const can = await Linking.canOpenURL(url);
     if (can) return Linking.openURL(url);
     Alert.alert("Call not available", "Please reach us via WhatsApp or email.");
@@ -375,7 +375,7 @@ My name is ${[me?.first_name, me?.last_name].filter(Boolean).join(" ") || "—"}
                       isDark ? "text-neutral-400" : "text-neutral-500"
                     }`}
                   >
-                    +234 809 000 0000
+                    +234 808 629 8785
                   </Text>
                 </View>
               </View>

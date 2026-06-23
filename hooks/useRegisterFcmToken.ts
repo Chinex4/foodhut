@@ -1,6 +1,5 @@
 // hooks/useRegisterPushToken.ts
 import { useEffect } from "react";
-import { Platform } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 
@@ -10,6 +9,7 @@ import {
   selectPushToken,
   selectPushRegisterStatus,
 } from "@/redux/notifications/notifications.selectors";
+import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
 
 // Optional: notification behavior
 Notifications.setNotificationHandler({
@@ -52,11 +52,14 @@ export function useRegisterPushToken() {
   const dispatch = useAppDispatch();
   const lastToken = useAppSelector(selectPushToken);
   const status = useAppSelector(selectPushRegisterStatus);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   useEffect(() => {
     let subscription: Notifications.Subscription | undefined;
 
     const setup = async () => {
+      if (!isAuthenticated) return;
+
       const token = await getDevicePushToken();
       if (!token) return;
 
@@ -80,5 +83,5 @@ export function useRegisterPushToken() {
         subscription.remove();
       }
     };
-  }, [dispatch, lastToken, status]);
+  }, [dispatch, isAuthenticated, lastToken, status]);
 }

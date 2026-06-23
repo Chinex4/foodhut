@@ -9,8 +9,8 @@ import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { goBackOrReplace } from "@/utils/navigation";
 
 const SUPPORT_EMAIL = "support@foodhut.co";
-const SUPPORT_PHONE = "+2348090000000";
-const SUPPORT_WHATSAPP = "2348090000000";
+const SUPPORT_PHONE = "08086298785";
+const SUPPORT_WHATSAPP = "2348086298785";
 
 export default function GetHelpScreen() {
   const router = useRouter();

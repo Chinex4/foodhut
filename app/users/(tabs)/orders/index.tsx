@@ -3,6 +3,8 @@ import { fetchOrders } from "@/redux/orders/orders.thunks";
 import { selectThemeMode } from "@/redux/theme/theme.selectors";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsAuthenticated } from "@/redux/auth/auth.selectors";
+import { useFocusEffect } from "@react-navigation/native";
+import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import PagerView from "react-native-pager-view";
@@ -18,6 +20,7 @@ export default function OrdersScreen() {
   const dispatch = useAppDispatch();
   const isDark = useAppSelector(selectThemeMode) === "dark";
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const { tab: routeTab } = useLocalSearchParams<{ tab?: string }>();
 
   const tabs = useMemo(
     () =>
@@ -38,6 +41,20 @@ export default function OrdersScreen() {
     dispatch(fetchActiveCart());
     if (isAuthenticated) dispatch(fetchOrders({ page: 1, per_page: 50 }));
   }, [dispatch, isAuthenticated]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      dispatch(fetchActiveCart());
+      if (isAuthenticated) dispatch(fetchOrders({ page: 1, per_page: 50 }));
+    }, [dispatch, isAuthenticated])
+  );
+
+  useEffect(() => {
+    if (routeTab === "ongoing" || routeTab === "completed" || routeTab === "carts") {
+      goToTab(routeTab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeTab]);
 
   const goToTab = (next: TabKey) => {
     setTab(next);

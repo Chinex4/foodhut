@@ -167,6 +167,7 @@ export const updateMealById = createAsyncThunk<
       description: body.description,
       original_price:
         body.price !== undefined ? toApiNumber(body.price) : undefined,
+      is_available: body.is_available,
       cover_image_id: coverImageId,
     });
 
